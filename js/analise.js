@@ -23,6 +23,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configurações globais do Chart.js
     Chart.defaults.color = '#8b9dc3';
     Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.boxHeight = 10;
+    Chart.defaults.plugins.legend.labels.padding = 16;
     
     const gridColor = 'rgba(255, 255, 255, 0.05)';
     const tooltipBackground = 'rgba(6, 10, 20, 0.9)';
