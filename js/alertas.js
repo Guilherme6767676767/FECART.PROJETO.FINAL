@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const iconClass = `alert-item-icon ${alert.type}`;
                 
                 const alertHTML = `
-                    <div class="alert-item">
+                    <div class="alert-item" id="alert-item-${alert.id}">
                         <div class="${iconClass}">
                             <i data-lucide="${alert.icon}"></i>
                         </div>
@@ -57,6 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             <p>${alert.desc}</p>
                         </div>
                         <div class="alert-item-time">${alert.time}</div>
+                        <div class="alert-item-actions">
+                            <button class="btn-acknowledge" onclick="acknowledgeAlert(${alert.id})">
+                                <i data-lucide="check" style="width:14px;height:14px"></i> Reconhecer
+                            </button>
+                        </div>
                     </div>
                 `;
                 alertListContainer.insertAdjacentHTML('beforeend', alertHTML);
@@ -66,6 +71,61 @@ document.addEventListener('DOMContentLoaded', () => {
         alertCountElement.textContent = count;
         lucide.createIcons();
     }
+
+    // Função Global para Reconhecer Alerta (Acknowledge)
+    window.acknowledgeAlert = function(id) {
+        event.stopPropagation();
+        const el = document.getElementById('alert-item-' + id);
+        if (el) {
+            el.classList.add('fadeOut');
+            setTimeout(() => {
+                el.remove();
+                // Atualiza o contador visual
+                const countEl = document.getElementById('alertCount');
+                if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+            }, 300);
+        }
+    };
+
+    // Simulador de Alertas em Tempo Real (Live Feed)
+    setInterval(() => {
+        const activeFilterBtn = document.querySelector('.filter-btn.active');
+        if (!activeFilterBtn) return;
+        const currentFilter = activeFilterBtn.getAttribute('data-filter');
+        
+        const types = ['critical', 'high', 'medium', 'low'];
+        const randomType = types[Math.floor(Math.random() * types.length)];
+        
+        // Só adiciona se o filtro atual permitir
+        if (currentFilter !== 'all' && currentFilter !== randomType) return;
+
+        const newId = Date.now();
+        const icons = { critical: 'alert-octagon', high: 'waves', medium: 'car', low: 'tool' };
+        
+        const alertHTML = `
+            <div class="alert-item" id="alert-item-${newId}">
+                <div class="alert-item-icon ${randomType}">
+                    <i data-lucide="${icons[randomType]}"></i>
+                </div>
+                <div class="alert-item-content">
+                    <h5>Nova Ocorrência Detectada (Auto)</h5>
+                    <p>A Inteligência Artificial reportou uma atividade anômala na região monitorada.</p>
+                </div>
+                <div class="alert-item-time">Agora mesmo</div>
+                <div class="alert-item-actions">
+                    <button class="btn-acknowledge" onclick="acknowledgeAlert(${newId})">
+                        <i data-lucide="check" style="width:14px;height:14px"></i> Reconhecer
+                    </button>
+                </div>
+            </div>
+        `;
+        alertListContainer.insertAdjacentHTML('afterbegin', alertHTML);
+        lucide.createIcons();
+        
+        const countEl = document.getElementById('alertCount');
+        if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
+        
+    }, 12000);
 
     // Render inicial
     if (alertListContainer) {
