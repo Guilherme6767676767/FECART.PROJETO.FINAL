@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sentinel IA — Plataforma de Inteligência Preditiva Urbana com Deep Learning e Análise Geoespacial em tempo real.">
+  <title>Sentinel IA — Inteligência Preditiva Urbana</title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Favicon (emoji fallback) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+
+  <!-- ============================================
+       NAVBAR
+       ============================================ -->
+  <nav class="navbar" id="navbar">
+    <div class="container">
+      <a href="#" class="navbar-brand">
+        <div class="logo-icon">
+          <i data-lucide="shield-check" style="width:20px;height:20px;color:var(--bg-primary)"></i>
+        </div>
+        <span>Sentinel <span class="text-cyan">IA</span></span>
+      </a>
+
+      <button class="navbar-toggle" id="navToggle" aria-label="Menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <div class="navbar-links" id="navLinks">
+        <a href="#" class="active">Início</a>
+        <a href="#features">Recursos</a>
+        <a href="#tech">Tecnologias</a>
+        <a href="#team">Equipe</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="mapa.html">Mapa</a>
+        <a href="analise.html">Análise</a>
+        <a href="alertas.html">Alertas</a>
+        <a href="dashboard.html" class="btn btn-primary btn-sm" style="margin-left: 0.5rem;">
+          <i data-lucide="layout-dashboard" style="width:16px;height:16px"></i>
+          Acessar
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ============================================
+       HERO SECTION
+       ============================================ -->
+  <section class="hero" id="hero">
+    <!-- Animated Background Grid -->
+    <div class="hero-grid"></div>
+
+    <!-- Floating Orbs -->
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+
+    <div class="container">
+      <div class="hero-content">
+        <div class="hero-badge">
+          <span class="status-dot online"></span>
+          Sistema Operacional — v3.2.1
+        </div>
+
+        <h1>
+          <span class="text-gradient">Sentinel IA</span><br>
+          Inteligência Preditiva Urbana
+        </h1>
+
+        <p>
+          Plataforma avançada de análise urbana que utiliza Deep Learning, 
+          visão computacional e dados geoespaciais para prever padrões, 
+          detectar anomalias e gerar insights em tempo real para cidades mais inteligentes e seguras.
+        </p>
+
+        <div class="hero-buttons">
+          <a href="dashboard.html" class="btn btn-primary btn-lg">
+            <i data-lucide="layout-dashboard" style="width:20px;height:20px"></i>
+            Acessar Dashboard
+          </a>
+          <a href="mapa.html" class="btn btn-secondary btn-lg">
+            <i data-lucide="map" style="width:20px;height:20px"></i>
+            Explorar Mapa
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Visual Element -->
+      <div class="hero-visual">
+        <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;">
+          <!-- Neural network visualization -->
+          <defs>
+            <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.6"/>
+              <stop offset="100%" stop-color="#00e5ff" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#00e5ff" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#a855f7" stop-opacity="0.3"/>
+            </linearGradient>
+          </defs>
+          <!-- Connection lines -->
+          <g stroke="url(#lineGrad)" stroke-width="1" opacity="0.4">
+            <line x1="100" y1="150" x2="200" y2="100"><animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="150" x2="200" y2="200"><animate attributeName="opacity" values="0.3;0.7;0.3" dur="4s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="150" x2="200" y2="300"><animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="250" x2="200" y2="200"><animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.5s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="250" x2="200" y2="300"><animate attributeName="opacity" values="0.2;0.6;0.2" dur="3s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="350" x2="200" y2="300"><animate attributeName="opacity" values="0.3;0.7;0.3" dur="4s" repeatCount="indefinite"/></line>
+            <line x1="100" y1="350" x2="200" y2="400"><animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="100" x2="320" y2="180"><animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="200" x2="320" y2="180"><animate attributeName="opacity" values="0.2;0.7;0.2" dur="4s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="200" x2="320" y2="320"><animate attributeName="opacity" values="0.4;0.8;0.4" dur="2.5s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="300" x2="320" y2="180"><animate attributeName="opacity" values="0.2;0.5;0.2" dur="3.5s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="300" x2="320" y2="320"><animate attributeName="opacity" values="0.3;0.6;0.3" dur="3s" repeatCount="indefinite"/></line>
+            <line x1="200" y1="400" x2="320" y2="320"><animate attributeName="opacity" values="0.2;0.7;0.2" dur="4s" repeatCount="indefinite"/></line>
+            <line x1="320" y1="180" x2="420" y2="250"><animate attributeName="opacity" values="0.3;0.8;0.3" dur="3s" repeatCount="indefinite"/></line>
+            <line x1="320" y1="320" x2="420" y2="250"><animate attributeName="opacity" values="0.2;0.6;0.2" dur="3.5s" repeatCount="indefinite"/></line>
+          </g>
+          <!-- Nodes -->
+          <g>
+            <!-- Input layer -->
+            <circle cx="100" cy="150" r="8" fill="#00e5ff" opacity="0.8"><animate attributeName="r" values="6;10;6" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="100" cy="250" r="8" fill="#00e5ff" opacity="0.8"><animate attributeName="r" values="7;11;7" dur="4s" repeatCount="indefinite"/></circle>
+            <circle cx="100" cy="350" r="8" fill="#00e5ff" opacity="0.8"><animate attributeName="r" values="6;9;6" dur="3.5s" repeatCount="indefinite"/></circle>
+            <!-- Hidden layer 1 -->
+            <circle cx="200" cy="100" r="7" fill="#3b82f6" opacity="0.8"><animate attributeName="r" values="5;9;5" dur="4s" repeatCount="indefinite"/></circle>
+            <circle cx="200" cy="200" r="7" fill="#3b82f6" opacity="0.8"><animate attributeName="r" values="6;10;6" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="200" cy="300" r="7" fill="#3b82f6" opacity="0.8"><animate attributeName="r" values="5;8;5" dur="3.5s" repeatCount="indefinite"/></circle>
+            <circle cx="200" cy="400" r="7" fill="#3b82f6" opacity="0.8"><animate attributeName="r" values="6;9;6" dur="4s" repeatCount="indefinite"/></circle>
+            <!-- Hidden layer 2 -->
+            <circle cx="320" cy="180" r="8" fill="#a855f7" opacity="0.8"><animate attributeName="r" values="6;11;6" dur="3s" repeatCount="indefinite"/></circle>
+            <circle cx="320" cy="320" r="8" fill="#a855f7" opacity="0.8"><animate attributeName="r" values="7;10;7" dur="4s" repeatCount="indefinite"/></circle>
+            <!-- Output layer -->
+            <circle cx="420" cy="250" r="10" fill="#10b981" opacity="0.9"><animate attributeName="r" values="8;13;8" dur="3s" repeatCount="indefinite"/></circle>
+          </g>
+          <!-- Glow effects -->
+          <circle cx="100" cy="150" r="25" fill="url(#nodeGlow)"><animate attributeName="opacity" values="0.3;0.7;0.3" dur="3s" repeatCount="indefinite"/></circle>
+          <circle cx="420" cy="250" r="30" fill="url(#nodeGlow)"><animate attributeName="opacity" values="0.4;0.8;0.4" dur="3s" repeatCount="indefinite"/></circle>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       STATS SECTION
+       ============================================ -->
+  <section class="section" style="background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="stats-grid">
+        <div class="stat-item reveal">
+          <div class="stat-number" data-target="2400000" data-suffix="+" data-format="abbr">0</div>
+          <div class="stat-label">Dados Processados</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-1">
+          <div class="stat-number" data-target="847" data-suffix="">0</div>
+          <div class="stat-label">Zonas Monitoradas</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-2">
+          <div class="stat-number" data-target="99.7" data-suffix="%" data-decimal="true">0</div>
+          <div class="stat-label">Precisão do Modelo</div>
+        </div>
+        <div class="stat-item reveal reveal-delay-3">
+          <div class="stat-number" data-target="24" data-suffix="/7">0</div>
+          <div class="stat-label">Monitoramento Contínuo</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       FEATURES SECTION
+       ============================================ -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="badge badge-cyan">
+          <i data-lucide="sparkles" style="width:14px;height:14px"></i>
+          Recursos
+        </span>
+        <h2>Tecnologia de <span class="text-gradient">Ponta</span></h2>
+        <p>Ferramentas avançadas de inteligência artificial para análise urbana preditiva e monitoramento em tempo real.</p>
+      </div>
+
+      <div class="grid grid-3">
+        <!-- Feature 1 -->
+        <div class="card feature-card reveal">
+          <div class="feature-icon cyan">
+            <i data-lucide="brain" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Deep Learning Preditivo</h4>
+          <p>Redes neurais profundas treinadas com milhões de dados urbanos para prever incidentes, padrões de mobilidade e tendências comportamentais com alta precisão.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="card feature-card reveal reveal-delay-1">
+          <div class="feature-icon purple">
+            <i data-lucide="map-pin" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Mapas Inteligentes</h4>
+          <p>Visualização geoespacial interativa com camadas de calor, clusters dinâmicos e sobreposição de dados em tempo real para tomada de decisão estratégica.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="card feature-card reveal reveal-delay-2">
+          <div class="feature-icon red">
+            <i data-lucide="scan-eye" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Detecção de Anomalias</h4>
+          <p>Algoritmos de detecção automática que identificam padrões atípicos e comportamentos suspeitos antes que se tornem incidentes críticos.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="card feature-card reveal">
+          <div class="feature-icon blue">
+            <i data-lucide="globe" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Análise Geoespacial</h4>
+          <p>Processamento avançado de dados geográficos com algoritmos de clustering espacial, interpolação e correlação territorial.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="card feature-card reveal reveal-delay-1">
+          <div class="feature-icon yellow">
+            <i data-lucide="bell-ring" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Alertas em Tempo Real</h4>
+          <p>Sistema de notificações inteligente com classificação automática de severidade e encaminhamento prioritário baseado em contexto e histórico.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="card feature-card reveal reveal-delay-2">
+          <div class="feature-icon green">
+            <i data-lucide="database" style="width:28px;height:28px"></i>
+          </div>
+          <h4>Big Data Analytics</h4>
+          <p>Pipeline de processamento massivo de dados com ingestão em tempo real, transformação distribuída e armazenamento otimizado para consultas analíticas.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       TECH STACK SECTION
+       ============================================ -->
+  <section class="section" id="tech" style="background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="badge badge-purple">
+          <i data-lucide="cpu" style="width:14px;height:14px"></i>
+          Stack Tecnológico
+        </span>
+        <h2>Construído com as <span class="text-gradient">Melhores</span> Tecnologias</h2>
+        <p>Ecossistema robusto de ferramentas modernas para garantir performance, escalabilidade e confiabilidade.</p>
+      </div>
+
+      <div class="tech-grid reveal">
+        <!-- Python -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--blue-glow); color: var(--blue);">
+            <i data-lucide="code" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Python</h5>
+            <span>Backend & IA</span>
+          </div>
+        </div>
+
+        <!-- FastAPI -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--green-glow); color: var(--green);">
+            <i data-lucide="zap" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>FastAPI</h5>
+            <span>API REST</span>
+          </div>
+        </div>
+
+        <!-- TensorFlow -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--yellow-glow); color: var(--yellow);">
+            <i data-lucide="brain" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>TensorFlow</h5>
+            <span>Deep Learning</span>
+          </div>
+        </div>
+
+        <!-- PyTorch -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--red-glow); color: var(--red);">
+            <i data-lucide="flame" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>PyTorch</h5>
+            <span>Machine Learning</span>
+          </div>
+        </div>
+
+        <!-- React -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--cyan-glow); color: var(--cyan);">
+            <i data-lucide="atom" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>React</h5>
+            <span>Frontend UI</span>
+          </div>
+        </div>
+
+        <!-- PostgreSQL -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--blue-glow); color: var(--blue);">
+            <i data-lucide="database" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>PostgreSQL</h5>
+            <span>Banco Relacional</span>
+          </div>
+        </div>
+
+        <!-- MongoDB -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--green-glow); color: var(--green);">
+            <i data-lucide="leaf" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>MongoDB</h5>
+            <span>Banco NoSQL</span>
+          </div>
+        </div>
+
+        <!-- Kafka -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--purple-glow); color: var(--purple);">
+            <i data-lucide="arrow-right-left" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Apache Kafka</h5>
+            <span>Streaming</span>
+          </div>
+        </div>
+
+        <!-- Docker -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--cyan-glow); color: var(--cyan);">
+            <i data-lucide="container" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Docker</h5>
+            <span>Containerização</span>
+          </div>
+        </div>
+
+        <!-- Kubernetes -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--blue-glow); color: var(--blue);">
+            <i data-lucide="network" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Kubernetes</h5>
+            <span>Orquestração</span>
+          </div>
+        </div>
+
+        <!-- Redis -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--red-glow); color: var(--red);">
+            <i data-lucide="hard-drive" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Redis</h5>
+            <span>Cache & Filas</span>
+          </div>
+        </div>
+
+        <!-- Grafana -->
+        <div class="tech-item">
+          <div class="tech-item-icon" style="background: var(--yellow-glow); color: var(--yellow);">
+            <i data-lucide="bar-chart-3" style="width:20px;height:20px"></i>
+          </div>
+          <div class="tech-item-info">
+            <h5>Grafana</h5>
+            <span>Monitoramento</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       TEAM SECTION
+       ============================================ -->
+  <section class="section" id="team">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="badge badge-green">
+          <i data-lucide="users" style="width:14px;height:14px"></i>
+          Equipe
+        </span>
+        <h2>Quem <span class="text-gradient">Constrói</span> o Sentinel</h2>
+        <p>Desenvolvedores dedicados combinando expertise em inteligência artificial, engenharia de dados e desenvolvimento frontend.</p>
+      </div>
+
+      <div class="grid grid-2" style="max-width: 700px; margin: 0 auto;">
+        <!-- Eduardo -->
+        <div class="card team-card reveal">
+          <div class="team-avatar">EP</div>
+          <h4>Eduardo Pinheiro</h4>
+          <p class="role">Desenvolvedor IA & Backend</p>
+          <p style="margin-top: var(--space-md); font-size: 0.85rem;">
+            Especialista em arquitetura de modelos de deep learning, pipelines de dados e APIs de alta performance.
+          </p>
+          <div style="display: flex; gap: var(--space-sm); justify-content: center; margin-top: var(--space-lg);">
+            <span class="badge badge-cyan">Python</span>
+            <span class="badge badge-yellow">TensorFlow</span>
+            <span class="badge badge-green">FastAPI</span>
+          </div>
+        </div>
+
+        <!-- Guilherme -->
+        <div class="card team-card reveal reveal-delay-1">
+          <div class="team-avatar">GB</div>
+          <h4>Guilherme Botelho</h4>
+          <p class="role">Desenvolvedor Frontend & Dados</p>
+          <p style="margin-top: var(--space-md); font-size: 0.85rem;">
+            Especialista em interfaces interativas, visualização de dados geoespaciais e experiência do usuário.
+          </p>
+          <div style="display: flex; gap: var(--space-sm); justify-content: center; margin-top: var(--space-lg);">
+            <span class="badge badge-cyan">React</span>
+            <span class="badge badge-blue">TypeScript</span>
+            <span class="badge badge-purple">D3.js</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       CTA SECTION
+       ============================================ -->
+  <section class="section" style="background: var(--bg-secondary); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
+    <div class="container">
+      <div class="text-center reveal" style="max-width: 600px; margin: 0 auto;">
+        <h2 style="margin-bottom: var(--space-md);">Pronto para <span class="text-gradient">Explorar</span>?</h2>
+        <p style="margin-bottom: var(--space-2xl);">Acesse o dashboard interativo e descubra como a inteligência artificial pode transformar a gestão urbana.</p>
+        <div style="display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap;">
+          <a href="dashboard.html" class="btn btn-primary btn-lg">
+            <i data-lucide="layout-dashboard" style="width:20px;height:20px"></i>
+            Acessar Dashboard
+          </a>
+          <a href="analise.html" class="btn btn-secondary btn-lg">
+            <i data-lucide="brain" style="width:20px;height:20px"></i>
+            Ver Análises
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       FOOTER
+       ============================================ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-brand">
+          <div class="logo-icon" style="width:32px;height:32px;border-radius:var(--radius-sm);background:var(--gradient-main);display:flex;align-items:center;justify-content:center;">
+            <i data-lucide="shield-check" style="width:16px;height:16px;color:var(--bg-primary)"></i>
+          </div>
+          <span>Sentinel <span class="text-cyan">IA</span></span>
+        </div>
+
+        <p>© 2026 Sentinel IA — Projeto Final FECART. Todos os direitos reservados.</p>
+
+        <div class="footer-links">
+          <a href="dashboard.html">Dashboard</a>
+          <a href="mapa.html">Mapa</a>
+          <a href="analise.html">Análise</a>
+          <a href="alertas.html">Alertas</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ============================================
+       SCRIPTS
+       ============================================ -->
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Main JS -->
+  <script src="js/main.js"></script>
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+  </script>
+</body>
+</html>

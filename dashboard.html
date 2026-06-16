@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sentinel IA — Painel de Controle</title>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+<body>
+  <div class="dashboard-layout">
+
+    <!-- ============================================
+         Sidebar
+         ============================================ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon">
+          <i data-lucide="shield" style="width:20px;height:20px;color:#060a14"></i>
+        </div>
+        <div>
+          <h3>Sentinel IA</h3>
+          <span>Inteligência Preditiva</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <span class="sidebar-section-label">Principal</span>
+
+        <a href="dashboard.html" class="sidebar-link active">
+          <i data-lucide="layout-dashboard"></i>
+          Dashboard
+        </a>
+        <a href="mapa.html" class="sidebar-link">
+          <i data-lucide="map"></i>
+          Mapa
+        </a>
+        <a href="analise.html" class="sidebar-link">
+          <i data-lucide="brain"></i>
+          Análise
+        </a>
+        <a href="alertas.html" class="sidebar-link">
+          <i data-lucide="bell"></i>
+          Alertas
+          <span class="link-badge">23</span>
+        </a>
+
+        <span class="sidebar-section-label">Sistema</span>
+
+        <a href="index.html" class="sidebar-link">
+          <i data-lucide="home"></i>
+          Voltar ao Site
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-status">
+          <span class="status-dot online"></span>
+          Sistema Online
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============================================
+         Main Content
+         ============================================ -->
+    <main class="dashboard-main">
+
+      <!-- Top Bar -->
+      <header class="dashboard-topbar">
+        <div class="topbar-left">
+          <button class="sidebar-toggle-btn" id="sidebarToggle" aria-label="Abrir menu">
+            <i data-lucide="menu"></i>
+          </button>
+          <div>
+            <h2>Painel de Controle</h2>
+            <p id="topbarDate"></p>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-time" id="liveClock">--:--:--</div>
+          <button class="btn-icon" aria-label="Notificações">
+            <i data-lucide="bell" style="width:18px;height:18px"></i>
+          </button>
+          <button class="btn-icon" aria-label="Configurações">
+            <i data-lucide="settings" style="width:18px;height:18px"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Dashboard Content -->
+      <div class="dashboard-content">
+
+        <!-- KPI Grid -->
+        <div class="kpi-grid">
+          <!-- KPI 1 — Alertas Ativos -->
+          <div class="kpi-card red">
+            <div class="kpi-header">
+              <div class="kpi-icon red">
+                <i data-lucide="alert-triangle" style="width:20px;height:20px"></i>
+              </div>
+              <span class="kpi-trend up">
+                <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+                +12%
+              </span>
+            </div>
+            <div class="kpi-value" data-target="23" data-suffix="">0</div>
+            <div class="kpi-label">Alertas Ativos</div>
+          </div>
+
+          <!-- KPI 2 — Zonas Monitoradas -->
+          <div class="kpi-card cyan">
+            <div class="kpi-header">
+              <div class="kpi-icon cyan">
+                <i data-lucide="radar" style="width:20px;height:20px"></i>
+              </div>
+              <span class="kpi-trend up">
+                <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+                +3%
+              </span>
+            </div>
+            <div class="kpi-value" data-target="847" data-suffix="">0</div>
+            <div class="kpi-label">Zonas Monitoradas</div>
+          </div>
+
+          <!-- KPI 3 — Índice de Segurança -->
+          <div class="kpi-card green">
+            <div class="kpi-header">
+              <div class="kpi-icon green">
+                <i data-lucide="shield-check" style="width:20px;height:20px"></i>
+              </div>
+              <span class="kpi-trend up">
+                <i data-lucide="trending-up" style="width:12px;height:12px"></i>
+                +2.1%
+              </span>
+            </div>
+            <div class="kpi-value" data-target="87.4" data-suffix="%">0</div>
+            <div class="kpi-label">Índice de Segurança</div>
+          </div>
+
+          <!-- KPI 4 — Previsões Hoje -->
+          <div class="kpi-card purple">
+            <div class="kpi-header">
+              <div class="kpi-icon purple">
+                <i data-lucide="sparkles" style="width:20px;height:20px"></i>
+              </div>
+            </div>
+            <div class="kpi-value" data-target="156" data-suffix="">0</div>
+            <div class="kpi-label">Previsões Hoje</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid: Line + Doughnut -->
+        <div class="dashboard-grid">
+          <!-- Line Chart — Incidentes por Hora -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="activity" style="width:16px;height:16px;color:var(--cyan)"></i>
+                Incidentes por Hora (Últimas 24h)
+              </h4>
+              <div class="panel-actions">
+                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+                  <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
+                </button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-container">
+                <canvas id="incidentsLineChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doughnut Chart — Distribuição por Tipo -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="pie-chart" style="width:16px;height:16px;color:var(--purple)"></i>
+                Distribuição por Tipo
+              </h4>
+              <div class="panel-actions">
+                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+                  <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
+                </button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-container">
+                <canvas id="typeDoughnutChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wide Grid: Map (2fr) + Alerts Feed (1fr) -->
+        <div class="dashboard-grid-wide">
+          <!-- Map Panel -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="map-pin" style="width:16px;height:16px;color:var(--green)"></i>
+                Mapa de Ocorrências — São Paulo
+              </h4>
+              <div class="panel-actions">
+                <span class="badge badge-green">
+                  <span class="status-dot online" style="width:6px;height:6px"></span>
+                  Ao Vivo
+                </span>
+              </div>
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div class="map-container" id="dashboardMap"></div>
+            </div>
+          </div>
+
+          <!-- Alerts Feed Panel -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="bell" style="width:16px;height:16px;color:var(--red)"></i>
+                Alertas Recentes
+              </h4>
+              <div class="panel-actions">
+                <a href="alertas.html" class="badge badge-cyan" style="text-decoration:none;font-size:0.65rem">
+                  Ver Todos
+                </a>
+              </div>
+            </div>
+            <div class="alert-feed" id="alertFeed">
+              <!-- Alerts will be injected by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Charts Grid: Bar + Radar -->
+        <div class="dashboard-grid">
+          <!-- Bar Chart — Tendência Semanal -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="bar-chart-3" style="width:16px;height:16px;color:var(--blue)"></i>
+                Tendência Semanal
+              </h4>
+              <div class="panel-actions">
+                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+                  <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
+                </button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-container">
+                <canvas id="weeklyBarChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Radar Chart — Índices Urbanos -->
+          <div class="dashboard-panel">
+            <div class="panel-header">
+              <h4>
+                <i data-lucide="hexagon" style="width:16px;height:16px;color:var(--yellow)"></i>
+                Índices Urbanos
+              </h4>
+              <div class="panel-actions">
+                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+                  <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
+                </button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="chart-container">
+                <canvas id="urbanRadarChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /dashboard-content -->
+    </main>
+  </div><!-- /dashboard-layout -->
+
+  <!-- Overlay for mobile sidebar -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
