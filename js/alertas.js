@@ -87,31 +87,94 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Simulador de Alertas em Tempo Real (Live Feed)
+    // Motor Simulado de IA Preditiva para Geração de Alertas
+    const aiGenerators = {
+        critical: {
+            titles: ["Colisão Múltipla Detectada", "Risco Iminente de Enchente", "Queda de Energia Estrutural", "Incêndio em Área Comercial", "Evasão Suspeita Detectada"],
+            sources: ["Visão Computacional (Câmera 84)", "Sensor Climático (Nível Vermelho)", "Malha de Sensores IoT", "Análise Térmica por Drone", "LPR (Leitura de Placas)"],
+            details: [
+                "A rede neural identificou padrão de bloqueio total da via. Confiança: 98.4%. Viaturas acionadas automaticamente.",
+                "Modelo preditivo aponta transbordamento em 15 minutos devido a índice pluviométrico atípico.",
+                "Anomalia crítica no grid de energia. Desvio de 45% acima da tolerância. Risco de apagão no quadrante.",
+                "Foco de calor extremo detectado fora do padrão térmico normal. Propagação rápida estimada pela IA.",
+                "Veículo com restrição detectado cruzando cerco eletrônico em alta velocidade."
+            ]
+        },
+        high: {
+            titles: ["Aglomeração Anômala", "Alerta de Tráfego Intenso", "Suspeita de Invasão", "Falha de Infraestrutura", "Alerta Ambiental"],
+            sources: ["Análise de Fluxo de Pessoas", "Modelo de Previsão de Trânsito", "Sensores Perimetrais", "Monitoramento de Pontes", "Sensores de Ar"],
+            details: [
+                "Desvio de 300% na movimentação normal de pessoas na praça central. Possível manifestação não programada.",
+                "Rede recorrente previu retenção severa nas próximas 2 horas. Sugerido desvio dinâmico de semáforos.",
+                "Movimentação detectada em área restrita fora do horário comercial. Alarme despachado.",
+                "Micro-vibrações detectadas acima do limiar seguro em pilar do viaduto principal.",
+                "Queda abrupta na qualidade do ar (PM2.5 disparado). Possível vazamento de gás ou fumaça."
+            ]
+        },
+        medium: {
+            titles: ["Semáforo Intermitente", "Ruído Urbano Elevado", "Veículo Abandonado", "Lentidão Moderada", "Iluminação Inoperante"],
+            sources: ["Monitoramento Viário", "Sensores Acústicos", "Câmeras de Segurança", "GPS Coletivo", "Smart Grid"],
+            details: [
+                "Sistema reporta falha de sincronização no cruzamento. Impacto moderado no fluxo.",
+                "Nível de decibéis 30% acima do tolerável por mais de 20 minutos. Possível perturbação da ordem.",
+                "Objeto estático (veículo) na via por tempo superior a 2 horas. Verificação pendente.",
+                "Velocidade média da via caiu para 15km/h. Padrão não habitual para o horário.",
+                "Circuito de iluminação LED apagado. Risco de segurança aumentado no quarteirão."
+            ]
+        },
+        low: {
+            titles: ["Manutenção Preventiva", "Sensor Calibrando", "Aviso de Limpeza", "Monitoramento Ativo", "Atualização de Sistema"],
+            sources: ["Sistema Central", "Agente Autônomo", "Gestão de Resíduos", "Rotina de IA", "Servidor Edge"],
+            details: [
+                "Equipe técnica detectada na via realizando reparos previstos no cronograma.",
+                "Sensor 4B entrou em modo de auto-calibração temporária. Dados isolados.",
+                "Lixeira inteligente relatou 90% de capacidade. Rota de coleta otimizada pela IA.",
+                "Varredura padrão completada sem anomalias críticas no quadrante oeste.",
+                "Modelo LSTM regional atualizado via edge-computing. Precisão melhorada em +0.5%."
+            ]
+        }
+    };
+
+    const regions = ["Avenida Paulista", "Marginal Tietê", "Centro Histórico", "Zona Sul (Berrini)", "Radial Leste", "Vila Madalena", "Faria Lima"];
+
     setInterval(() => {
         const activeFilterBtn = document.querySelector('.filter-btn.active');
         if (!activeFilterBtn) return;
         const currentFilter = activeFilterBtn.getAttribute('data-filter');
         
-        const types = ['critical', 'high', 'medium', 'low'];
-        const randomType = types[Math.floor(Math.random() * types.length)];
-        
+        // Probabilidade de gerar os tipos de alertas
+        const randomNum = Math.random();
+        let randomType = 'low';
+        if (randomNum > 0.90) randomType = 'critical'; // 10% chance
+        else if (randomNum > 0.70) randomType = 'high'; // 20% chance
+        else if (randomNum > 0.40) randomType = 'medium'; // 30% chance
+        // senão 40% low
+
         // Só adiciona se o filtro atual permitir
         if (currentFilter !== 'all' && currentFilter !== randomType) return;
 
         const newId = Date.now();
         const icons = { critical: 'alert-octagon', high: 'waves', medium: 'car', low: 'tool' };
         
+        // IA "pensando" e gerando conteúdo dinâmico
+        const db = aiGenerators[randomType];
+        const randomTitle = db.titles[Math.floor(Math.random() * db.titles.length)];
+        const randomSource = db.sources[Math.floor(Math.random() * db.sources.length)];
+        const randomDetail = db.details[Math.floor(Math.random() * db.details.length)];
+        const randomRegion = regions[Math.floor(Math.random() * regions.length)];
+        
+        const description = `[${randomSource}] ${randomDetail} — Local: ${randomRegion}.`;
+
         const alertHTML = `
             <div class="alert-item" id="alert-item-${newId}">
                 <div class="alert-item-icon ${randomType}">
                     <i data-lucide="${icons[randomType]}"></i>
                 </div>
                 <div class="alert-item-content">
-                    <h5>Nova Ocorrência Detectada (Auto)</h5>
-                    <p>A Inteligência Artificial reportou uma atividade anômala na região monitorada.</p>
+                    <h5>${randomTitle}</h5>
+                    <p>${description}</p>
                 </div>
-                <div class="alert-item-time">Agora mesmo</div>
+                <div class="alert-item-time">Gerado Agora</div>
                 <div class="alert-item-actions">
                     <button class="btn-acknowledge" onclick="acknowledgeAlert(${newId})">
                         <i data-lucide="check" style="width:14px;height:14px"></i> Reconhecer
@@ -125,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const countEl = document.getElementById('alertCount');
         if (countEl) countEl.textContent = parseInt(countEl.textContent) + 1;
         
-    }, 12000);
+    }, 8500);
 
     // Render inicial
     if (alertListContainer) {
