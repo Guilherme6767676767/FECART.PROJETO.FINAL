@@ -551,3 +551,46 @@ function initSidebarToggle() {
     }
   });
 }
+
+/* ============================================
+   Dropdown & Chart Type Logic
+   ============================================ */
+window.toggleDropdown = function(event, id) {
+  event.stopPropagation();
+  const dropdowns = document.querySelectorAll('.dropdown-menu');
+  dropdowns.forEach(d => {
+    if (d.id !== id) d.classList.remove('show');
+  });
+  const target = document.getElementById(id);
+  if (target) target.classList.toggle('show');
+};
+
+document.addEventListener('click', function() {
+  const dropdowns = document.querySelectorAll('.dropdown-menu');
+  dropdowns.forEach(d => d.classList.remove('show'));
+});
+
+window.changeChartType = function(canvasId, newType) {
+  const chart = Chart.getChart(canvasId);
+  if (chart) {
+    chart.config.type = newType;
+    
+    // Scale adjustments for polar/radar/pie vs bar/line
+    if (newType === 'pie' || newType === 'doughnut' || newType === 'polarArea' || newType === 'radar') {
+      if (chart.config.options.scales) {
+        if (chart.config.options.scales.x) chart.config.options.scales.x.display = false;
+        if (chart.config.options.scales.y) chart.config.options.scales.y.display = false;
+      }
+    } else {
+      if (chart.config.options.scales) {
+        if (chart.config.options.scales.x) chart.config.options.scales.x.display = true;
+        if (chart.config.options.scales.y) chart.config.options.scales.y.display = true;
+      }
+    }
+    
+    chart.update();
+    setTimeout(() => {
+      if (window.lucide) lucide.createIcons();
+    }, 50);
+  }
+};

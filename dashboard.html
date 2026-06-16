@@ -165,10 +165,18 @@
                 <i data-lucide="activity" style="width:16px;height:16px;color:var(--cyan)"></i>
                 Incidentes por Hora (Últimas 24h)
               </h4>
-              <div class="panel-actions">
-                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+              <div class="panel-actions dropdown">
+                <button class="btn-icon dropdown-toggle" style="width:32px;height:32px" aria-label="Mais opções" onclick="toggleDropdown(event, 'dd-incidents')">
                   <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
                 </button>
+                <div class="dropdown-menu" id="dd-incidents">
+                  <button class="dropdown-item" onclick="changeChartType('incidentsLineChart', 'bar')">
+                    <i data-lucide="bar-chart-2" style="width:14px;height:14px;margin-right:8px"></i> Mudar para Barras
+                  </button>
+                  <button class="dropdown-item" onclick="changeChartType('incidentsLineChart', 'line')">
+                    <i data-lucide="activity" style="width:14px;height:14px;margin-right:8px"></i> Mudar para Linhas
+                  </button>
+                </div>
               </div>
             </div>
             <div class="panel-body">
@@ -185,10 +193,18 @@
                 <i data-lucide="pie-chart" style="width:16px;height:16px;color:var(--purple)"></i>
                 Distribuição por Tipo
               </h4>
-              <div class="panel-actions">
-                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+              <div class="panel-actions dropdown">
+                <button class="btn-icon dropdown-toggle" style="width:32px;height:32px" aria-label="Mais opções" onclick="toggleDropdown(event, 'dd-type')">
                   <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
                 </button>
+                <div class="dropdown-menu" id="dd-type">
+                  <button class="dropdown-item" onclick="changeChartType('typeDoughnutChart', 'pie')">
+                    <i data-lucide="pie-chart" style="width:14px;height:14px;margin-right:8px"></i> Gráfico de Pizza
+                  </button>
+                  <button class="dropdown-item" onclick="changeChartType('typeDoughnutChart', 'doughnut')">
+                    <i data-lucide="circle" style="width:14px;height:14px;margin-right:8px"></i> Gráfico de Rosca
+                  </button>
+                </div>
               </div>
             </div>
             <div class="panel-body">
@@ -248,10 +264,18 @@
                 <i data-lucide="bar-chart-3" style="width:16px;height:16px;color:var(--blue)"></i>
                 Tendência Semanal
               </h4>
-              <div class="panel-actions">
-                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+              <div class="panel-actions dropdown">
+                <button class="btn-icon dropdown-toggle" style="width:32px;height:32px" aria-label="Mais opções" onclick="toggleDropdown(event, 'dd-trend')">
                   <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
                 </button>
+                <div class="dropdown-menu" id="dd-trend">
+                  <button class="dropdown-item" onclick="changeChartType('weeklyBarChart', 'line')">
+                    <i data-lucide="trending-up" style="width:14px;height:14px;margin-right:8px"></i> Mudar para Linhas
+                  </button>
+                  <button class="dropdown-item" onclick="changeChartType('weeklyBarChart', 'bar')">
+                    <i data-lucide="bar-chart-3" style="width:14px;height:14px;margin-right:8px"></i> Mudar para Barras
+                  </button>
+                </div>
               </div>
             </div>
             <div class="panel-body">
@@ -268,10 +292,18 @@
                 <i data-lucide="hexagon" style="width:16px;height:16px;color:var(--yellow)"></i>
                 Índices Urbanos
               </h4>
-              <div class="panel-actions">
-                <button class="btn-icon" style="width:32px;height:32px" aria-label="Mais opções">
+              <div class="panel-actions dropdown">
+                <button class="btn-icon dropdown-toggle" style="width:32px;height:32px" aria-label="Mais opções" onclick="toggleDropdown(event, 'dd-radar')">
                   <i data-lucide="more-horizontal" style="width:14px;height:14px"></i>
                 </button>
+                <div class="dropdown-menu" id="dd-radar">
+                  <button class="dropdown-item" onclick="changeChartType('urbanRadarChart', 'polarArea')">
+                    <i data-lucide="target" style="width:14px;height:14px;margin-right:8px"></i> Área Polar
+                  </button>
+                  <button class="dropdown-item" onclick="changeChartType('urbanRadarChart', 'radar')">
+                    <i data-lucide="hexagon" style="width:14px;height:14px;margin-right:8px"></i> Radar Padrão
+                  </button>
+                </div>
               </div>
             </div>
             <div class="panel-body">
