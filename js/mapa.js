@@ -187,16 +187,62 @@
     `;
   }
 
+  // ── Animated Markers Styles ──
+  const markerStyles = document.createElement('style');
+  markerStyles.innerHTML = `
+    .marker-pulse {
+      border-radius: 50%;
+      box-sizing: border-box;
+      animation: pulseAnim 2s infinite;
+      cursor: pointer;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      position: relative;
+    }
+    .marker-pulse::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+    .custom-animated-marker {
+      transition: all 0.2s ease;
+    }
+    .custom-animated-marker:hover .marker-pulse {
+      transform: scale(1.6);
+      z-index: 1000 !important;
+      animation-play-state: paused;
+    }
+    @keyframes pulseAnim {
+      0% { box-shadow: 0 0 0 0 var(--pulse-color); }
+      70% { box-shadow: 0 0 0 20px transparent; }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+  `;
+  document.head.appendChild(markerStyles);
+
   function addMarker(loc) {
     const style = severityColors[loc.severity];
-    const marker = L.circleMarker([loc.lat, loc.lng], {
-      radius: 8,
-      color: style.color,
-      weight: style.borderWidth,
-      fillColor: style.fillColor,
-      fillOpacity: 0.7,
-      opacity: 0.9
-    }).addTo(map);
+    
+    const icon = L.divIcon({
+      className: 'custom-animated-marker',
+      html: `<div class="marker-pulse" style="
+        width: 18px; 
+        height: 18px; 
+        background: ${style.fillColor}; 
+        border: ${style.borderWidth}px solid ${style.color}; 
+        --pulse-color: ${style.color}80;
+      "></div>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
+    });
+
+    const marker = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
 
     marker.bindPopup(createPopupContent(loc), {
       maxWidth: 280,
