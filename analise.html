@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Preditiva - Sentinel IA</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">🛡️</div>
+                <div>
+                    <h3>Sentinel IA</h3>
+                    <span>v2.4.0-beta</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="sidebar-section-label">Principal</div>
+                <a href="dashboard.html" class="sidebar-link">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="mapa.html" class="sidebar-link">
+                    <i data-lucide="map"></i> Mapa Interativo
+                </a>
+                <a href="analise.html" class="sidebar-link active">
+                    <i data-lucide="brain"></i> Análise Preditiva
+                </a>
+                <a href="alertas.html" class="sidebar-link">
+                    <i data-lucide="bell"></i> Alertas
+                    <span class="link-badge">23</span>
+                </a>
+                
+                <div style="margin-top: auto;"></div>
+                <div class="sidebar-section-label">Sistema</div>
+                <a href="index.html" class="sidebar-link">
+                    <i data-lucide="home"></i> Voltar ao Site
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <span class="status-dot online"></span>
+                    Sistema Online
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Topbar -->
+            <header class="dashboard-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div>
+                        <h2>Análise Preditiva</h2>
+                        <p>Monitoramento e performance dos modelos de IA</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-time" id="liveClock">00:00:00</div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                <div class="section-header" style="text-align: left; margin-bottom: var(--space-xl);">
+                    <h2>Modelos de Inteligência Artificial</h2>
+                    <p>Status atual e métricas de desempenho dos modelos em produção.</p>
+                </div>
+
+                <!-- Modelos Grid -->
+                <div class="grid grid-2" style="margin-bottom: var(--space-2xl);">
+                    <!-- CNN -->
+                    <div class="card model-card">
+                        <div class="model-card-header">
+                            <div class="model-icon" style="background: var(--cyan-glow); color: var(--cyan);">
+                                <i data-lucide="eye"></i>
+                            </div>
+                            <div>
+                                <div class="model-name">CNN - Visão Computacional</div>
+                                <div class="model-type">Processamento de Câmeras Urbanas</div>
+                            </div>
+                        </div>
+                        <div class="model-stats">
+                            <div class="model-stat">
+                                <div class="value">96.8%</div>
+                                <div class="label">Acurácia</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value">45ms</div>
+                                <div class="label">Latência</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value">2.4M</div>
+                                <div class="label">Amostras/dia</div>
+                            </div>
+                        </div>
+                        <p class="model-description">Rede Neural Convolucional otimizada para identificação de veículos, acidentes e fluxo de pedestres em tempo real nas câmeras da cidade.</p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill cyan" style="width: 96.8%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- LSTM -->
+                    <div class="card model-card">
+                        <div class="model-card-header">
+                            <div class="model-icon" style="background: var(--purple-glow); color: var(--purple);">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                            <div>
+                                <div class="model-name">LSTM - Séries Temporais</div>
+                                <div class="model-type">Previsão de Padrões Temporais</div>
+                            </div>
+                        </div>
+                        <div class="model-stats">
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--purple);">94.2%</div>
+                                <div class="label">Acurácia</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--purple);">72h</div>
+                                <div class="label">Janela</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--purple);">847K</div>
+                                <div class="label">Previsões</div>
+                            </div>
+                        </div>
+                        <p class="model-description">Arquitetura Long Short-Term Memory para analisar histórico de ocorrências e prever zonas de risco e congestionamentos nas próximas 72 horas.</p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill purple" style="width: 94.2%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Transformers -->
+                    <div class="card model-card">
+                        <div class="model-card-header">
+                            <div class="model-icon" style="background: var(--blue-glow); color: var(--blue);">
+                                <i data-lucide="message-square"></i>
+                            </div>
+                            <div>
+                                <div class="model-name">Transformers - NLP</div>
+                                <div class="model-type">Análise de Redes Sociais e Notícias</div>
+                            </div>
+                        </div>
+                        <div class="model-stats">
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--blue);">92.1%</div>
+                                <div class="label">Acurácia</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--blue);">1.2B</div>
+                                <div class="label">Tokens</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--blue);">340</div>
+                                <div class="label">Fontes</div>
+                            </div>
+                        </div>
+                        <p class="model-description">Modelo Transformer focado em extração de contexto e análise de sentimento sobre a percepção urbana em redes sociais e chamados abertos.</p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill cyan" style="width: 92.1%; background: var(--blue);"></div>
+                        </div>
+                    </div>
+
+                    <!-- Autoencoders -->
+                    <div class="card model-card">
+                        <div class="model-card-header">
+                            <div class="model-icon" style="background: var(--red-glow); color: var(--red);">
+                                <i data-lucide="shield-alert"></i>
+                            </div>
+                            <div>
+                                <div class="model-name">Autoencoders - Anomalias</div>
+                                <div class="model-type">Detecção de Padrões Atípicos</div>
+                            </div>
+                        </div>
+                        <div class="model-stats">
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--red);">98.3%</div>
+                                <div class="label">Detecção</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--red);">0.94</div>
+                                <div class="label">F1-Score</div>
+                            </div>
+                            <div class="model-stat">
+                                <div class="value" style="color: var(--red);">1.2K</div>
+                                <div class="label">Anomalias</div>
+                            </div>
+                        </div>
+                        <p class="model-description">Sistema não-supervisionado projetado para encontrar comportamentos anômalos em sensores IoT e no consumo de energia nas vias públicas.</p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: 98.3%; background: var(--red);"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Previsões Temporais -->
+                <div class="dashboard-panel" style="margin-bottom: var(--space-xl);">
+                    <div class="panel-header">
+                        <h4><i data-lucide="activity"></i> Previsão vs. Realidade (30 Dias)</h4>
+                    </div>
+                    <div class="panel-body">
+                        <div class="chart-container chart-container-lg">
+                            <canvas id="predictionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Métricas -->
+                <div class="grid grid-3" style="margin-bottom: var(--space-xl);">
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="bar-chart"></i> Precisão Histórica</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="precisionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="pie-chart"></i> Matriz de Confusão (Agregada)</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="confusionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="git-commit"></i> Comparativo de Modelos</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="comparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabela de Anomalias -->
+                <div class="dashboard-panel">
+                    <div class="panel-header">
+                        <h4><i data-lucide="alert-triangle"></i> Últimas Anomalias Detectadas (Autoencoder)</h4>
+                    </div>
+                    <div class="panel-body panel-body-flush">
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tipo</th>
+                                        <th>Localização</th>
+                                        <th>Severidade</th>
+                                        <th>Data/Hora</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-mono">#AN-8902</td>
+                                        <td>Congestionamento Atípico</td>
+                                        <td>Av. Paulista, Bela Vista</td>
+                                        <td><span class="badge badge-red">Crítica</span></td>
+                                        <td>Hoje, 14:32</td>
+                                        <td>Em análise</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8901</td>
+                                        <td>Queda de Tensão IoT</td>
+                                        <td>Vila Mariana</td>
+                                        <td><span class="badge badge-yellow">Alta</span></td>
+                                        <td>Hoje, 13:15</td>
+                                        <td>Despachado</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8900</td>
+                                        <td>Aglomeração Não Prevista</td>
+                                        <td>Largo da Batata</td>
+                                        <td><span class="badge badge-blue">Média</span></td>
+                                        <td>Hoje, 12:40</td>
+                                        <td>Monitorando</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8899</td>
+                                        <td>Padrão Suspeito (Câmera)</td>
+                                        <td>Sé</td>
+                                        <td><span class="badge badge-red">Crítica</span></td>
+                                        <td>Hoje, 11:22</td>
+                                        <td>Resolvido</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8898</td>
+                                        <td>Falha de Semáforo em Massa</td>
+                                        <td>Pinheiros</td>
+                                        <td><span class="badge badge-yellow">Alta</span></td>
+                                        <td>Hoje, 10:05</td>
+                                        <td>Em análise</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8897</td>
+                                        <td>Ruído Extremo (Sensor)</td>
+                                        <td>Moema</td>
+                                        <td><span class="badge badge-green">Baixa</span></td>
+                                        <td>Hoje, 09:18</td>
+                                        <td>Falso Positivo</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8896</td>
+                                        <td>Anomalia Climática Local</td>
+                                        <td>Itaim Bibi</td>
+                                        <td><span class="badge badge-blue">Média</span></td>
+                                        <td>Hoje, 08:50</td>
+                                        <td>Monitorando</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-mono">#AN-8895</td>
+                                        <td>Fluxo Invertido de Pedestres</td>
+                                        <td>Estação Luz</td>
+                                        <td><span class="badge badge-yellow">Alta</span></td>
+                                        <td>Hoje, 08:12</td>
+                                        <td>Resolvido</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/analise.js"></script>
+</body>
+</html>

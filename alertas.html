@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alertas - Sentinel IA</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-icon">🛡️</div>
+                <div>
+                    <h3>Sentinel IA</h3>
+                    <span>v2.4.0-beta</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="sidebar-section-label">Principal</div>
+                <a href="dashboard.html" class="sidebar-link">
+                    <i data-lucide="layout-dashboard"></i> Dashboard
+                </a>
+                <a href="mapa.html" class="sidebar-link">
+                    <i data-lucide="map"></i> Mapa Interativo
+                </a>
+                <a href="analise.html" class="sidebar-link">
+                    <i data-lucide="brain"></i> Análise Preditiva
+                </a>
+                <a href="alertas.html" class="sidebar-link active">
+                    <i data-lucide="bell"></i> Alertas
+                    <span class="link-badge">23</span>
+                </a>
+                
+                <div style="margin-top: auto;"></div>
+                <div class="sidebar-section-label">Sistema</div>
+                <a href="index.html" class="sidebar-link">
+                    <i data-lucide="home"></i> Voltar ao Site
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-status">
+                    <span class="status-dot online"></span>
+                    Sistema Online
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Topbar -->
+            <header class="dashboard-topbar">
+                <div class="topbar-left">
+                    <button class="sidebar-toggle-btn" id="sidebarToggle">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div>
+                        <h2>Central de Alertas</h2>
+                        <p>Gerenciamento de eventos e respostas rápidas</p>
+                    </div>
+                </div>
+                <div class="topbar-right">
+                    <div class="topbar-time" id="liveClock">00:00:00</div>
+                </div>
+            </header>
+
+            <div class="dashboard-content">
+                
+                <div class="alerts-toolbar">
+                    <div class="alerts-filters" id="alertFilters">
+                        <button class="filter-btn active" data-filter="all">Todos</button>
+                        <button class="filter-btn" data-filter="critical" style="color: var(--red);">Crítico</button>
+                        <button class="filter-btn" data-filter="high" style="color: var(--yellow);">Alto</button>
+                        <button class="filter-btn" data-filter="medium" style="color: var(--blue);">Médio</button>
+                        <button class="filter-btn" data-filter="low" style="color: var(--green);">Baixo</button>
+                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                        Total exibido: <strong class="text-primary" id="alertCount">12</strong> alertas ativos
+                    </div>
+                </div>
+
+                <div class="dashboard-grid-wide">
+                    <!-- Lista de Alertas -->
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="list"></i> Feed de Ocorrências</h4>
+                        </div>
+                        <div class="panel-body panel-body-flush" style="height: 600px; overflow-y: auto;" id="alertList">
+                            <!-- Alertas renderizados via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Timeline -->
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="clock"></i> Últimas 24 Horas</h4>
+                        </div>
+                        <div class="panel-body" style="height: 600px; overflow-y: auto;">
+                            <div class="timeline">
+                                <div class="timeline-item critical">
+                                    <div class="timeline-time">Hoje, 14:30</div>
+                                    <div class="timeline-content">
+                                        <h5>Alerta Máximo Disparado</h5>
+                                        <p>Múltiplas ocorrências de alagamento reportadas na região da Marginal Tietê.</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item warning">
+                                    <div class="timeline-time">Hoje, 12:15</div>
+                                    <div class="timeline-content">
+                                        <h5>Pico de Congestionamento</h5>
+                                        <p>Detectado aumento atípico de 45% no trânsito da Zona Sul.</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">Hoje, 09:00</div>
+                                    <div class="timeline-content">
+                                        <h5>Atualização de Modelos</h5>
+                                        <p>O modelo LSTM concluiu o retreinamento diário com sucesso (Acurácia: 94.2%).</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item warning">
+                                    <div class="timeline-time">Hoje, 07:45</div>
+                                    <div class="timeline-content">
+                                        <h5>Acidente Múltiplo</h5>
+                                        <p>Colisão detectada na Av. 23 de Maio pelas câmeras CNN.</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item">
+                                    <div class="timeline-time">Ontem, 23:20</div>
+                                    <div class="timeline-content">
+                                        <h5>Varredura Noturna</h5>
+                                        <p>Sistema iniciou protocolo de monitoramento reduzido (economia de energia).</p>
+                                    </div>
+                                </div>
+                                <div class="timeline-item critical">
+                                    <div class="timeline-content">
+                                        <h5>Início do Histórico</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráficos -->
+                <div class="dashboard-grid">
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="map-pin"></i> Alertas por Região</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="regionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-panel">
+                        <div class="panel-header">
+                            <h4><i data-lucide="pie-chart"></i> Distribuição por Severidade</h4>
+                        </div>
+                        <div class="panel-body">
+                            <div class="chart-container chart-container-sm">
+                                <canvas id="severityChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/alertas.js"></script>
+</body>
+</html>
