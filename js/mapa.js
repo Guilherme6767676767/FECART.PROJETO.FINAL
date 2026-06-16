@@ -187,41 +187,46 @@
     `;
   }
 
-  // ── Animated Markers Styles ──
+  // ── Animated Markers Styles (Neon Premium) ──
   const markerStyles = document.createElement('style');
   markerStyles.innerHTML = `
-    .marker-pulse {
+    .marker-neon {
       border-radius: 50%;
-      box-sizing: border-box;
-      animation: pulseAnim 2s infinite;
-      cursor: pointer;
-      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       position: relative;
+      cursor: pointer;
+      animation: neonPulse 2s infinite;
+      transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
-    .marker-pulse::after {
+    .marker-neon::after {
       content: '';
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: 4px;
-      height: 4px;
-      background: #fff;
+      width: 6px;
+      height: 6px;
+      background: #ffffff;
       border-radius: 50%;
-      opacity: 0.8;
+      box-shadow: 0 0 4px #ffffff;
     }
     .custom-animated-marker {
       transition: all 0.2s ease;
     }
-    .custom-animated-marker:hover .marker-pulse {
+    .custom-animated-marker:hover .marker-neon {
       transform: scale(1.6);
       z-index: 1000 !important;
       animation-play-state: paused;
     }
-    @keyframes pulseAnim {
-      0% { box-shadow: 0 0 0 0 var(--pulse-color); }
-      70% { box-shadow: 0 0 0 20px transparent; }
-      100% { box-shadow: 0 0 0 0 transparent; }
+    @keyframes neonPulse {
+      0% { 
+        box-shadow: 0 0 0 0 var(--pulse-color), 0 0 12px var(--pulse-color); 
+      }
+      70% { 
+        box-shadow: 0 0 0 18px transparent, 0 0 12px var(--pulse-color); 
+      }
+      100% { 
+        box-shadow: 0 0 0 0 transparent, 0 0 12px var(--pulse-color); 
+      }
     }
   `;
   document.head.appendChild(markerStyles);
@@ -231,15 +236,14 @@
     
     const icon = L.divIcon({
       className: 'custom-animated-marker',
-      html: `<div class="marker-pulse" style="
-        width: 18px; 
-        height: 18px; 
-        background: ${style.fillColor}; 
-        border: ${style.borderWidth}px solid ${style.color}; 
-        --pulse-color: ${style.color}80;
+      html: `<div class="marker-neon" style="
+        width: 14px; 
+        height: 14px; 
+        background: ${style.color}; 
+        --pulse-color: ${style.color};
       "></div>`,
-      iconSize: [18, 18],
-      iconAnchor: [9, 9]
+      iconSize: [14, 14],
+      iconAnchor: [7, 7]
     });
 
     const marker = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
