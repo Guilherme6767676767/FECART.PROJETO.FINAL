@@ -511,6 +511,49 @@
     });
   }
 
+  // ── Navegação Direta via URL (Parâmetros de Alerta) ──
+  function checkURLAlertParams() {
+    const params = new URLSearchParams(window.location.search);
+    const lat = parseFloat(params.get('lat'));
+    const lng = parseFloat(params.get('lng'));
+    const search = params.get('search');
+
+    if (search) {
+      const input = document.getElementById('mapSearchInput');
+      if (input) input.value = decodeURIComponent(search);
+    }
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      setTimeout(() => {
+        map.flyTo([lat, lng], 15, { animate: true, duration: 1.8 });
+        
+        // Encontra o marcador correspondente
+        const nearest = activeMarkers.find(item => 
+          Math.abs(item.data.lat - lat) < 0.03 && Math.abs(item.data.lng - lng) < 0.03
+        );
+
+        if (nearest) {
+          nearest.marker.openPopup();
+          showToastNotification(
+            `📍 Navegação Direta: ${nearest.data.name}`,
+            `Visualizando alerta de ${nearest.data.type}.`,
+            nearest.data.severity
+          );
+        } else if (search) {
+          showToastNotification(
+            `📍 Navegação para Alerta`,
+            `Câmera focada no alerta em ${decodeURIComponent(search)}.`,
+            'critical'
+          );
+        }
+      }, 500);
+    } else if (search) {
+      setTimeout(() => performSearch(), 500);
+    }
+  }
+
+  checkURLAlertParams();
+
   // ── Motor em Tempo Real (Gerador de Novas Notificações) ──
   const realTimeEvents = [
     { type: 'Roubo de Veículo em Progresso', severity: 'critical', name: 'Pinheiros — Marginal Pinheiros' },

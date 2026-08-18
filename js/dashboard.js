@@ -502,6 +502,12 @@ function initAlertFeed() {
   }, 8000);
 }
 
+// Função Global de Navegação para o Mapa
+window.viewAlertOnMap = function(lat, lng, locationName) {
+  if (window.event) window.event.stopPropagation();
+  window.location.href = `mapa.html?lat=${lat || -23.5505}&lng=${lng || -46.6333}&search=${encodeURIComponent(locationName || 'Centro')}`;
+};
+
 function createAlertElement(alert, timeStr) {
   const el = document.createElement('div');
   el.className = 'alert-item';
@@ -514,6 +520,11 @@ function createAlertElement(alert, timeStr) {
       <p>${alert.desc} — ${alert.area}</p>
     </div>
     <span class="alert-item-time">${timeStr}</span>
+    <div class="alert-item-actions">
+      <button class="btn-view-map" onclick="viewAlertOnMap(null, null, '${alert.area}')">
+        <i data-lucide="map-pin" style="width:14px;height:14px"></i> Ver no Mapa
+      </button>
+    </div>
   `;
   // Re-render lucide icons in the new element
   setTimeout(() => lucide.createIcons(), 10);

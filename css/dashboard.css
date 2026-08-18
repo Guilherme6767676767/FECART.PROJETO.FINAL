@@ -552,6 +552,29 @@
   color: #060a14;
 }
 
+.btn-view-map {
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--cyan, #00e5ff);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: var(--font-main);
+  text-decoration: none;
+}
+
+.btn-view-map:hover {
+  background: var(--cyan, #00e5ff);
+  color: #060a14;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.5);
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }

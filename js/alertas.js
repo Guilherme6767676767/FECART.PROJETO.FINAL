@@ -18,23 +18,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Dados Simulados de Alertas
+    // Dados Simulados de Alertas
     const alertsData = [
-        { id: 1, type: 'critical', title: 'Acidente Grave na Av. Paulista', desc: 'Múltiplos veículos envolvidos. Interdição total da via no sentido Consolação.', time: 'Agora', icon: 'alert-octagon' },
-        { id: 2, type: 'high', title: 'Alagamento Iminente', desc: 'Sensor IoT detectou aumento rápido do nível d\'água na Marginal Tietê (Ponte das Bandeiras).', time: '10 min atrás', icon: 'waves' },
-        { id: 3, type: 'critical', title: 'Suspeita de Assalto em Progresso', desc: 'Padrão detectado pelas câmeras CNN na região da Sé. Viaturas acionadas.', time: '15 min atrás', icon: 'shield-alert' },
-        { id: 4, type: 'medium', title: 'Congestionamento Atípico', desc: 'Trânsito 40% acima da média histórica para o horário na Radial Leste.', time: '22 min atrás', icon: 'car' },
-        { id: 5, type: 'low', title: 'Falha em Semáforo', desc: 'Semáforo inoperante no cruzamento da Faria Lima com Rebouças.', time: '35 min atrás', icon: 'traffic-cone' },
-        { id: 6, type: 'high', title: 'Aglomeração Detectada', desc: 'Concentração não prevista de pessoas no Largo da Batata.', time: '45 min atrás', icon: 'users' },
-        { id: 7, type: 'medium', title: 'Queda de Árvore', desc: 'Via parcialmente obstruída na Rua Augusta.', time: '1h atrás', icon: 'alert-triangle' },
-        { id: 8, type: 'low', title: 'Sensor Offline', desc: 'Perda de conexão com sensor climático na zona norte.', time: '1h 15m atrás', icon: 'wifi-off' },
-        { id: 9, type: 'high', title: 'Risco de Incêndio', desc: 'Câmera térmica detectou foco de calor anormal em galpão na Mooca.', time: '1h 30m atrás', icon: 'flame' },
-        { id: 10, type: 'critical', title: 'Evasão de Pedágio / Veículo Roubado', desc: 'Leitura de placa (LPR) confirmou veículo com queixa de roubo na Dutra.', time: '2h atrás', icon: 'camera' },
-        { id: 11, type: 'medium', title: 'Poluição Atmosférica Elevada', desc: 'Índice de qualidade do ar ruim detectado na região central.', time: '2h 10m atrás', icon: 'wind' },
-        { id: 12, type: 'low', title: 'Manutenção Preventiva', desc: 'Equipe em via na Av. Brasil. Trânsito lento.', time: '3h atrás', icon: 'tool' }
+        { id: 1, type: 'critical', title: 'Acidente Grave na Av. Paulista', desc: 'Múltiplos veículos envolvidos. Interdição total da via no sentido Consolação.', time: 'Agora', icon: 'alert-octagon', lat: -23.5614, lng: -46.6560, locationName: 'Av. Paulista' },
+        { id: 2, type: 'high', title: 'Alagamento Iminente', desc: 'Sensor IoT detectou aumento rápido do nível d\'água na Marginal Tietê (Ponte das Bandeiras).', time: '10 min atrás', icon: 'waves', lat: -23.5150, lng: -46.6400, locationName: 'Marginal Tietê' },
+        { id: 3, type: 'critical', title: 'Suspeita de Assalto em Progresso', desc: 'Padrão detectado pelas câmeras CNN na região da Sé. Viaturas acionadas.', time: '15 min atrás', icon: 'shield-alert', lat: -23.5505, lng: -46.6333, locationName: 'Praça da Sé' },
+        { id: 4, type: 'medium', title: 'Congestionamento Atípico', desc: 'Trânsito 40% acima da média histórica para o horário na Radial Leste.', time: '22 min atrás', icon: 'car', lat: -23.5410, lng: -46.5750, locationName: 'Tatuapé' },
+        { id: 5, type: 'low', title: 'Falha em Semáforo', desc: 'Semáforo inoperante no cruzamento da Faria Lima com Rebouças.', time: '35 min atrás', icon: 'traffic-cone', lat: -23.5675, lng: -46.6920, locationName: 'Pinheiros' },
+        { id: 6, type: 'high', title: 'Aglomeração Detectada', desc: 'Concentração não prevista de pessoas no Largo da Batata.', time: '45 min atrás', icon: 'users', lat: -23.5780, lng: -46.6750, locationName: 'Pinheiros' },
+        { id: 7, type: 'medium', title: 'Queda de Árvore', desc: 'Via parcialmente obstruída na Rua Augusta.', time: '1h atrás', icon: 'alert-triangle', lat: -23.5530, lng: -46.6550, locationName: 'Consolação' },
+        { id: 8, type: 'low', title: 'Sensor Offline', desc: 'Perda de conexão com sensor climático na zona norte.', time: '1h 15m atrás', icon: 'wifi-off', lat: -23.5050, lng: -46.6260, locationName: 'Santana' },
+        { id: 9, type: 'high', title: 'Risco de Incêndio', desc: 'Câmera térmica detectou foco de calor anormal em galpão na Mooca.', time: '1h 30m atrás', icon: 'flame', lat: -23.5550, lng: -46.5980, locationName: 'Mooca' },
+        { id: 10, type: 'critical', title: 'Evasão de Pedágio / Veículo Roubado', desc: 'Leitura de placa (LPR) confirmou veículo com queixa de roubo na Dutra.', time: '2h atrás', icon: 'camera', lat: -23.4620, lng: -46.5330, locationName: 'Guarulhos' },
+        { id: 11, type: 'medium', title: 'Poluição Atmosférica Elevada', desc: 'Índice de qualidade do ar ruim detectado na região central.', time: '2h 10m atrás', icon: 'wind', lat: -23.5489, lng: -46.6388, locationName: 'Praça da Sé' },
+        { id: 12, type: 'low', title: 'Manutenção Preventiva', desc: 'Equipe em via na Av. Brasil. Trânsito lento.', time: '3h atrás', icon: 'tool', lat: -23.5650, lng: -46.6650, locationName: 'Jardins' }
     ];
 
     const alertListContainer = document.getElementById('alertList');
     const alertCountElement = document.getElementById('alertCount');
+
+    // Função Global de Navegação para o Mapa
+    window.viewAlertOnMap = function(lat, lng, locationName) {
+        if (window.event) window.event.stopPropagation();
+        window.location.href = `mapa.html?lat=${lat}&lng=${lng}&search=${encodeURIComponent(locationName)}`;
+    };
 
     // Função para renderizar alertas
     function renderAlerts(filterType = 'all') {
@@ -58,6 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="alert-item-time">${alert.time}</div>
                         <div class="alert-item-actions">
+                            <button class="btn-view-map" onclick="viewAlertOnMap(${alert.lat}, ${alert.lng}, '${alert.locationName}')">
+                                <i data-lucide="map-pin" style="width:14px;height:14px"></i> Visualizar no Mapa
+                            </button>
                             <button class="btn-acknowledge" onclick="acknowledgeAlert(${alert.id})">
                                 <i data-lucide="check" style="width:14px;height:14px"></i> Reconhecer
                             </button>
