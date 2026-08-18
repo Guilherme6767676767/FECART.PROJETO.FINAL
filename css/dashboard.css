@@ -917,3 +917,234 @@
   from { opacity: 0; transform: translateY(-5px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ============================================
+   Mapa em 5 Cores + Notificações & Controles
+   ============================================ */
+.layer-color-dot.purple,
+.layer-color-dot.infra { background: #a855f7; }
+.layer-color-dot.green,
+.layer-color-dot.safe  { background: #10b981; }
+
+.popup-badge.infra { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.popup-badge.safe  { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.popup-severity.infra { background: #a855f7; box-shadow: 0 0 8px rgba(168, 85, 247, 0.6); }
+.popup-severity.safe  { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
+
+/* Legenda do Mapa em 5 Cores */
+.map-legend-panel {
+  position: absolute;
+  top: var(--space-md);
+  left: 60px;
+  z-index: 500;
+  background: rgba(6, 10, 20, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  max-width: calc(100% - 320px);
+  flex-wrap: wrap;
+}
+
+.legend-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-right: 0.25rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 6px currentColor;
+}
+.legend-dot.red    { background: #ef4444; color: #ef4444; }
+.legend-dot.yellow { background: #f59e0b; color: #f59e0b; }
+.legend-dot.blue   { background: #3b82f6; color: #3b82f6; }
+.legend-dot.purple { background: #a855f7; color: #a855f7; }
+.legend-dot.green  { background: #10b981; color: #10b981; }
+
+/* Busca de Bairros no Mapa */
+.map-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(6, 10, 20, 0.92);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.75rem;
+  min-width: 240px;
+}
+
+.map-search-input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: var(--font-main);
+  outline: none;
+  width: 100%;
+}
+
+.map-search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.map-search-btn {
+  background: var(--cyan-glow);
+  color: var(--cyan);
+  border: 1px solid var(--cyan-dim);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.map-search-btn:hover {
+  background: var(--cyan);
+  color: #060a14;
+}
+
+/* Toast Notifications Container */
+.sentinel-toast-container {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 380px;
+  width: 100%;
+}
+
+.sentinel-toast {
+  pointer-events: auto;
+  background: rgba(10, 16, 30, 0.96);
+  backdrop-filter: blur(16px);
+  border-left: 4px solid var(--cyan);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  color: #fff;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  animation: toastSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s ease;
+}
+
+.sentinel-toast.critical { border-left-color: #ef4444; }
+.sentinel-toast.warning  { border-left-color: #f59e0b; }
+.sentinel-toast.climate  { border-left-color: #3b82f6; }
+.sentinel-toast.infra    { border-left-color: #a855f7; }
+.sentinel-toast.safe     { border-left-color: #10b981; }
+
+.sentinel-toast-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.sentinel-toast-desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.sentinel-toast-time {
+  font-size: 0.68rem;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(50px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Modal de Relatório Instantâneo */
+.sentinel-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease;
+}
+
+.sentinel-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  max-width: 650px;
+  width: 100%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  overflow: hidden;
+}
+
+.sentinel-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sentinel-modal-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sentinel-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.sentinel-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+

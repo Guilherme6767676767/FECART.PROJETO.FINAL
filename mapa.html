@@ -288,11 +288,24 @@
             <i data-lucide="menu"></i>
           </button>
           <div>
-            <h2>Mapa de Monitoramento</h2>
-            <p>Visualização geoespacial em tempo real</p>
+            <h2>Mapa de Monitoramento Urbano</h2>
+            <p>Monitoramento em Tempo Real por Zonas e Bairros</p>
           </div>
         </div>
-        <div class="topbar-right">
+        <div class="topbar-right" style="gap: 1rem;">
+          <!-- Busca de Bairros -->
+          <div class="map-search-box">
+            <i data-lucide="search" style="width:16px;height:16px;color:var(--text-tertiary)"></i>
+            <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Buscar bairro ou região..." />
+            <button class="map-search-btn" id="mapSearchBtn">Buscar</button>
+          </div>
+
+          <!-- Botão Gerar Relatório -->
+          <button class="btn btn-primary btn-sm" id="btnGenerateReport" style="gap:0.4rem; font-weight:600;">
+            <i data-lucide="file-text" style="width:16px;height:16px"></i>
+            Relatório ao Vivo
+          </button>
+
           <div class="live-indicator">
             <div class="live-dot"></div>
             Ao vivo
@@ -305,39 +318,58 @@
       <div class="map-page-wrapper">
         <div id="mainMap" style="width: 100%; height: 100%; z-index: 1;"></div>
 
+        <!-- Legenda Explicativa de 5 Cores (top-left do mapa) -->
+        <div class="map-legend-panel">
+          <span class="legend-title">Níveis de Notificação:</span>
+          <div class="legend-item"><span class="legend-dot red"></span> Vermelho (Emergência)</div>
+          <div class="legend-item"><span class="legend-dot yellow"></span> Amarelo (Atenção/Trânsito)</div>
+          <div class="legend-item"><span class="legend-dot blue"></span> Azul (Clima/Ambiente)</div>
+          <div class="legend-item"><span class="legend-dot purple"></span> Roxo (Infra/IA OCR)</div>
+          <div class="legend-item"><span class="legend-dot green"></span> Verde (Zona Segura)</div>
+        </div>
+
         <!-- Layer Toggle Overlay (top-right) -->
         <div class="map-overlay">
           <div class="map-layer-toggle">
-            <h5>Camadas de Dados</h5>
+            <h5>Filtro por Cor de Alerta</h5>
 
             <label class="map-layer-item">
-              <input type="checkbox" id="layerCrime" checked>
+              <input type="checkbox" id="layerCritical" checked>
               <span class="layer-color-dot crime"></span>
-              Criminalidade
+              🔴 Vermelho (Crítico)
             </label>
 
             <label class="map-layer-item">
-              <input type="checkbox" id="layerTraffic" checked>
+              <input type="checkbox" id="layerWarning" checked>
               <span class="layer-color-dot traffic"></span>
-              Trânsito
+              🟡 Amarelo (Alerta)
             </label>
 
             <label class="map-layer-item">
-              <input type="checkbox" id="layerClimate">
+              <input type="checkbox" id="layerClimate" checked>
               <span class="layer-color-dot climate"></span>
-              Clima
+              🔵 Azul (Clima)
             </label>
 
             <label class="map-layer-item">
-              <input type="checkbox" id="layerHealth">
-              <span class="layer-color-dot health"></span>
-              Saúde
+              <input type="checkbox" id="layerInfra" checked>
+              <span class="layer-color-dot purple"></span>
+              🟣 Roxo (Infra/IA)
             </label>
 
             <label class="map-layer-item">
-              <input type="checkbox" id="layerInfra">
-              <span class="layer-color-dot infra"></span>
-              Infraestrutura
+              <input type="checkbox" id="layerSafe" checked>
+              <span class="layer-color-dot green"></span>
+              🟢 Verde (Zona Segura)
+            </label>
+
+            <hr style="border:none; border-top:1px solid var(--border); margin:0.5rem 0;">
+
+            <h5>Camada Térmica</h5>
+            <label class="map-layer-item">
+              <input type="checkbox" id="layerHeatmap" checked>
+              <span class="layer-color-dot" style="background: linear-gradient(90deg, #ef4444, #f59e0b, #3b82f6);"></span>
+              Mapa de Calor
             </label>
           </div>
         </div>
@@ -346,11 +378,15 @@
         <div class="map-info-panel" id="mapInfoPanel">
           <div class="map-info-item">
             <div class="value" id="statOcorrencias">234</div>
-            <div class="label">Ocorrências</div>
+            <div class="label">Total Notificações</div>
           </div>
           <div class="map-info-item">
             <div class="value" id="statZonas" style="color: var(--red);">12</div>
-            <div class="label">Zonas Críticas</div>
+            <div class="label">Zonas Críticas (Vermelho)</div>
+          </div>
+          <div class="map-info-item">
+            <div class="value" id="statAlertasMedios" style="color: var(--yellow);">18</div>
+            <div class="label">Alertas (Amarelo)</div>
           </div>
           <div class="map-info-item">
             <div class="value" id="statCameras" style="color: var(--cyan);">1.847</div>
@@ -358,10 +394,13 @@
           </div>
           <div class="map-info-item">
             <div class="value" id="statSensores" style="color: var(--green);">3.421</div>
-            <div class="label">Sensores IoT</div>
+            <div class="label">Zonas Verificadas (Verde)</div>
           </div>
         </div>
       </div>
+
+      <!-- Container de Notificações Toast em Tempo Real -->
+      <div class="sentinel-toast-container" id="toastContainer"></div>
     </main>
   </div>
 

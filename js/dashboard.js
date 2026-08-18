@@ -388,20 +388,20 @@ function initMap() {
     });
   }
 
-  // Simulated incident markers in São Paulo
+  // Simulated incident markers in São Paulo with 5-color system
   const incidents = [
-    { lat: -23.5489, lng: -46.6388, title: 'Acidente de trânsito', area: 'Av. Paulista', color: '#ef4444', severity: 'Crítico' },
-    { lat: -23.5632, lng: -46.6542, title: 'Alagamento detectado', area: 'Liberdade', color: '#f59e0b', severity: 'Alto' },
-    { lat: -23.5357, lng: -46.6350, title: 'Concentração suspeita', area: 'Consolação', color: '#ef4444', severity: 'Crítico' },
-    { lat: -23.5870, lng: -46.6580, title: 'Queda de energia', area: 'Saúde', color: '#a855f7', severity: 'Médio' },
-    { lat: -23.5230, lng: -46.6120, title: 'Tráfego intenso', area: 'Santana', color: '#00e5ff', severity: 'Baixo' },
-    { lat: -23.5690, lng: -46.6920, title: 'Poluição elevada', area: 'Pinheiros', color: '#f59e0b', severity: 'Alto' },
-    { lat: -23.5450, lng: -46.6750, title: 'Incêndio reportado', area: 'Perdizes', color: '#ef4444', severity: 'Crítico' },
-    { lat: -23.5110, lng: -46.6250, title: 'Via interditada', area: 'Tucuruvi', color: '#3b82f6', severity: 'Baixo' },
-    { lat: -23.5740, lng: -46.6230, title: 'Furto em andamento', area: 'Ipiranga', color: '#ef4444', severity: 'Crítico' },
-    { lat: -23.5580, lng: -46.6680, title: 'Ruído excessivo', area: 'Vila Madalena', color: '#3b82f6', severity: 'Baixo' },
-    { lat: -23.5950, lng: -46.6370, title: 'Deslizamento de terra', area: 'Jabaquara', color: '#f59e0b', severity: 'Alto' },
-    { lat: -23.5320, lng: -46.6480, title: 'Semáforo inoperante', area: 'Barra Funda', color: '#a855f7', severity: 'Médio' },
+    { lat: -23.5489, lng: -46.6388, title: 'Roubo de Veículo em Andamento', area: 'Praça da Sé — Centro', color: '#ef4444', severity: '🔴 Emergência' },
+    { lat: -23.5632, lng: -46.6542, title: 'Leitor de Placas OCR (IA)', area: 'Av. Paulista — Bela Vista', color: '#a855f7', severity: '🟣 Infra / IA' },
+    { lat: -23.6010, lng: -46.6620, title: 'Sensor Pluviométrico (Chuva)', area: 'Moema — Ibirapuera', color: '#3b82f6', severity: '🔵 Clima' },
+    { lat: -23.6260, lng: -46.6990, title: 'Trânsito Intenso / Congestionamento', area: 'Santo Amaro — Largo Treze', color: '#f59e0b', severity: '🟡 Alerta' },
+    { lat: -23.5675, lng: -46.6920, title: 'Posto Policial Ativo / Segura', area: 'Pinheiros — Faria Lima', color: '#10b981', severity: '🟢 Zona Segura' },
+    { lat: -23.5227, lng: -46.6872, title: 'Anomalia no Fluxo Veicular', area: 'Barra Funda — Terminal', color: '#f59e0b', severity: '🟡 Alerta' },
+    { lat: -23.5450, lng: -46.6750, title: 'Alarme de Incêndio Disparado', area: 'Perdizes — Sumaré', color: '#ef4444', severity: '🔴 Emergência' },
+    { lat: -23.5050, lng: -46.6260, name: 'Operação Policial Preventiva', area: 'Santana — Zona Norte', color: '#10b981', severity: '🟢 Zona Segura' },
+    { lat: -23.5370, lng: -46.4680, title: 'Câmeras OCR Inteligentes', area: 'Itaquera — Arena Corinthians', color: '#a855f7', severity: '🟣 Infra / IA' },
+    { lat: -23.6540, lng: -46.5310, title: 'Estação Pluviométrica 30mm', area: 'Santo André — Centro', color: '#3b82f6', severity: '🔵 Clima' },
+    { lat: -23.5320, lng: -46.7920, title: 'Assalto Detectado via IA', area: 'Osasco — Calçadão', color: '#ef4444', severity: '🔴 Emergência' },
+    { lat: -23.4620, lng: -46.5330, title: 'Obras na Pista com Lentidão', area: 'Guarulhos — Av. Tiradentes', color: '#f59e0b', severity: '🟡 Alerta' },
   ];
 
   incidents.forEach((inc) => {
@@ -410,17 +410,17 @@ function initMap() {
       <div style="
         font-family: 'Inter', sans-serif;
         color: #f1f5f9;
-        min-width: 180px;
+        min-width: 190px;
       ">
         <strong style="font-size: 13px;">${inc.title}</strong>
         <div style="margin-top: 4px; font-size: 11px; color: #8b9dc3;">
           📍 ${inc.area}
         </div>
-        <div style="margin-top: 4px;">
+        <div style="margin-top: 6px;">
           <span style="
             display: inline-block;
             font-size: 10px;
-            font-weight: 600;
+            font-weight: 700;
             padding: 2px 8px;
             border-radius: 999px;
             background: ${inc.color}25;
