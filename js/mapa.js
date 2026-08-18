@@ -45,6 +45,8 @@
   const map = L.map('mainMap', {
     center: SP_CENTER,
     zoom: SP_ZOOM,
+    minZoom: 10,
+    maxZoom: 18,
     zoomControl: true,
     attributionControl: true
   });
@@ -251,17 +253,127 @@
   // Adicionar todos os pontos iniciais
   initialLocations.forEach(addMarker);
 
-  // ── Camada Térmica (Heatmap) ──
-  function generateHeatPoints() {
-    return initialLocations.map(l => [l.lat, l.lng, Math.random()]);
+  // ── Auto-enquadrar a Câmera nos Marcadores da Região ──
+  function fitMapToBounds() {
+    if (activeMarkers.length > 0) {
+      const group = L.featureGroup(activeMarkers.map(m => m.marker));
+      map.fitBounds(group.getBounds().pad(0.08));
+    }
+  }
+
+  // Chamar o enquadramento inicial
+  fitMapToBounds();
+  setTimeout(() => {
+    map.invalidateSize();
+    fitMapToBounds();
+  }, 300);
+
+  const btnFocus = document.getElementById('btnFocusMap');
+  if (btnFocus) {
+    btnFocus.addEventListener('click', fitMapToBounds);
+  }
+
+  // ── Polígonos de Cobertura Translúcida (Zonas com Textura Suave) ──
+  const zonePolygons = [
+    // 🔴 ZONA CENTRAL / EMERGÊNCIA (Vermelho Translúcido)
+    {
+      coords: [
+        [-23.5350, -46.6500],
+        [-23.5320, -46.6200],
+        [-23.5600, -46.6150],
+        [-23.5650, -46.6450]
+      ],
+      color: '#ef4444',
+      fillOpacity: 0.18,
+      name: 'Zona Central de Emergência & Risco'
+    },
+    // 🟡 ZONA DE ALERTA & MARGINAIS (Amarelo Translúcido)
+    {
+      coords: [
+        [-23.5150, -46.7200],
+        [-23.5050, -46.6400],
+        [-23.5350, -46.6450],
+        [-23.5450, -46.7150]
+      ],
+      color: '#f59e0b',
+      fillOpacity: 0.16,
+      name: 'Corredor de Trânsito & Marginais'
+    },
+    // 🔵 ZONA SUL & BACIA PLUVIOMÉTRICA (Azul Translúcido)
+    {
+      coords: [
+        [-23.5950, -46.7200],
+        [-23.5850, -46.6400],
+        [-23.6700, -46.6200],
+        [-23.6800, -46.7100]
+      ],
+      color: '#3b82f6',
+      fillOpacity: 0.16,
+      name: 'Bacia Hidrográfica & Monitoramento de Chuvas'
+    },
+    // 🟣 EIXO PAULISTA & BERINI (Roxo Translúcido - IA OCR)
+    {
+      coords: [
+        [-23.5550, -46.6750],
+        [-23.5500, -46.6500],
+        [-23.6150, -46.6850],
+        [-23.6200, -46.7050]
+      ],
+      color: '#a855f7',
+      fillOpacity: 0.18,
+      name: 'Eixo Financeiro — Câmeras OCR & IA'
+    },
+    // 🟢 ZONA LESTE & PARQUES SEGUROS (Verde Translúcido)
+    {
+      coords: [
+        [-23.5250, -46.5900],
+        [-23.5150, -46.4300],
+        [-23.5900, -46.4500],
+        [-23.5950, -46.5800]
+      ],
+      color: '#10b981',
+      fillOpacity: 0.16,
+      name: 'Zona Leste — Área Monitorada & Segura'
+    }
+  ];
+
+  const zoneLayerGroup = L.layerGroup().addTo(map);
+
+  zonePolygons.forEach(z => {
+    const poly = L.polygon(z.coords, {
+      color: z.color,
+      weight: 1.5,
+      dashArray: '5, 5',
+      fillColor: z.color,
+      fillOpacity: z.fillOpacity
+    }).addTo(zoneLayerGroup);
+
+    poly.bindTooltip(`<b>${z.name}</b><br>Textura de Cobertura Translúcida`, {
+      sticky: true,
+      className: 'dark-popup'
+    });
+  });
+
+  // ── Camada Térmica (Grade Contínua de Calor pela Cidade) ──
+  function generateFullCityHeatPoints() {
+    const points = [];
+    // Gerar grade suave de pontos por toda a SP
+    for (let lat = -23.45; lat >= -23.70; lat -= 0.015) {
+      for (let lng = -46.45; lng >= -46.75; lng -= 0.015) {
+        const val = 0.2 + Math.random() * 0.7;
+        points.push([lat, lng, val]);
+      }
+    }
+    return points;
   }
 
   let heatLayer = null;
   if (typeof L.heatLayer === 'function') {
-    heatLayer = L.heatLayer(generateHeatPoints(), {
-      radius: 28,
-      blur: 20,
+    heatLayer = L.heatLayer(generateFullCityHeatPoints(), {
+      radius: 42,
+      blur: 32,
       maxZoom: 15,
+      minOpacity: 0.15,
       gradient: { 0.2: '#10b981', 0.4: '#3b82f6', 0.6: '#a855f7', 0.8: '#f59e0b', 1.0: '#ef4444' }
     }).addTo(map);
   }
@@ -301,6 +413,14 @@
       cb.addEventListener('change', updateVisibleMarkers);
     }
   });
+
+  const cbZones = document.getElementById('layerZones');
+  if (cbZones && zoneLayerGroup) {
+    cbZones.addEventListener('change', function () {
+      if (this.checked) map.addLayer(zoneLayerGroup);
+      else map.removeLayer(zoneLayerGroup);
+    });
+  }
 
   const cbHeatmap = document.getElementById('layerHeatmap');
   if (cbHeatmap && heatLayer) {
