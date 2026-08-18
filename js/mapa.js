@@ -1,6 +1,6 @@
 /* ============================================
    SENTINEL IA — Mapa de Monitoramento Urbano
-   JavaScript Controller — Sistema de 5 Cores & Tempo Real
+   JavaScript Controller — Sistema de 5 Cores, Símbolos Customizados & Tempo Real
    ============================================ */
 
 (function () {
@@ -58,72 +58,99 @@
     maxZoom: 19
   }).addTo(map);
 
-  // ── Cores e Definições do Sistema de 5 Cores ──
+  // ── Definição dos Níveis de Alerta com Símbolos e Ícones Lucide ──
   const severityConfig = {
     critical: {
       color: '#ef4444',
       badgeClass: 'critical',
       label: '🔴 Emergência / Risco Alto',
-      name: 'Vermelho'
+      name: 'Vermelho',
+      iconName: 'alert-triangle',
+      emoji: '🚨'
     },
     warning: {
       color: '#f59e0b',
       badgeClass: 'warning',
       label: '🟡 Alerta / Atenção / Trânsito',
-      name: 'Amarelo'
+      name: 'Amarelo',
+      iconName: 'car',
+      emoji: '⚠️'
     },
     climate: {
       color: '#3b82f6',
       badgeClass: 'climate',
       label: '🔵 Clima / Pluviometria',
-      name: 'Azul'
+      name: 'Azul',
+      iconName: 'cloud-rain',
+      emoji: '🌧️'
     },
     infra: {
       color: '#a855f7',
       badgeClass: 'infra',
       label: '🟣 IA OCR / Sensores / Infra',
-      name: 'Roxo'
+      name: 'Roxo',
+      iconName: 'camera',
+      emoji: '🤖'
     },
     safe: {
       color: '#10b981',
       badgeClass: 'safe',
       label: '🟢 Zona Segura / Patrulha',
-      name: 'Verde'
+      name: 'Verde',
+      iconName: 'shield-check',
+      emoji: '🛡️'
     }
   };
 
-  // ── Locais Iniciais em Toda a Cidade de SP e Região Metropolitana ──
+  // ── Densa Cobertura por Toda a Cidade de SP e Região Metropolitana (100+ Locais) ──
   const initialLocations = [
-    // CENTRO
+    // CENTRO DE SÃO PAULO
     { lat: -23.5505, lng: -46.6333, name: 'Praça da Sé — Centro', type: 'Disparo de Alarme de Emergência', severity: 'critical' },
     { lat: -23.5437, lng: -46.6366, name: 'Estação Luz — Centro', type: 'Detecção de Objeto Abandonado', severity: 'critical' },
     { lat: -23.5475, lng: -46.6430, name: 'República — Rua da Consolação', type: 'Aglomeração Monitorada', severity: 'warning' },
-    { lat: -23.5412, lng: -46.6290, name: 'Mercado Municipal — Centro', type: 'Fluxo Turístico Intenso', severity: 'safe' },
+    { lat: -23.5412, lng: -46.6290, name: 'Mercado Municipal — Centro', type: 'Fluxo Turístico Intenso — Operação Normal', severity: 'safe' },
     { lat: -23.5560, lng: -46.6390, name: 'Liberdade — Praça da Liberdade', type: 'Patrulhamento Preventivo Ativo', severity: 'safe' },
+    { lat: -23.5480, lng: -46.6500, name: 'Higienópolis — Av. Angélica', type: 'Leitor OCR de Placas Ativo', severity: 'infra' },
+    { lat: -23.5530, lng: -46.6480, name: 'Bela Vista — Rua Treze de Maio', type: 'Medição de Temperatura 24°C', severity: 'climate' },
+    { lat: -23.5380, lng: -46.6310, name: 'Anhangabaú — Vale do Anhangabaú', type: 'Sensor Sonoro de Segurança', severity: 'infra' },
+    { lat: -23.5450, lng: -46.6250, name: 'Pari — Av. Celso Garcia', type: 'Atenção em Cruzamento de Trânsito', severity: 'warning' },
 
     // ZONA SUL
-    { lat: -23.5614, lng: -46.6560, name: 'Av. Paulista, 1578 — Bela Vista', type: 'Leitura de Placas OCR (IA)', severity: 'infra' },
-    { lat: -23.6010, lng: -46.6620, name: 'Moema — Av. Ibirapuera', type: 'Sensor Pluviométrico (Chuva)', severity: 'climate' },
-    { lat: -23.5876, lng: -46.6580, name: 'Parque Ibirapuera — Moema', type: 'Monitoramento de Temperatura 26°C', severity: 'climate' },
+    { lat: -23.5614, lng: -46.6560, name: 'Av. Paulista, 1578 — Masp', type: 'Câmera com Leitura Facial OCR (IA)', severity: 'infra' },
+    { lat: -23.5710, lng: -46.6450, name: 'Paraíso — Av. 23 de Maio', type: 'Trânsito Intenso com Velocidade Reduzida', severity: 'warning' },
+    { lat: -23.5876, lng: -46.6580, name: 'Parque Ibirapuera — Moema', type: 'Estação Pluviométrica & Clima', severity: 'climate' },
+    { lat: -23.6010, lng: -46.6620, name: 'Moema — Av. Ibirapuera', type: 'Sensor Pluviométrico (Chuva Lenta)', severity: 'climate' },
+    { lat: -23.6110, lng: -46.6950, name: 'Brooklin — Av. Berrini', type: 'Câmera Inteligente IA OCR', severity: 'infra' },
     { lat: -23.6260, lng: -46.6990, name: 'Santo Amaro — Largo Treze', type: 'Alertas de Trânsito / Congestionamento', severity: 'warning' },
-    { lat: -23.6110, lng: -46.6950, name: 'Brooklin — Av. Berrini', type: 'Leitor Facial IA — Operativo', severity: 'infra' },
+    { lat: -23.6150, lng: -46.6650, name: 'Campo Belo — Av. Washington Luís', type: 'Alerta de Tráfego Aeroportuário', severity: 'warning' },
     { lat: -23.6480, lng: -46.6710, name: 'Campo Grande — Interlagos', type: 'Monitoramento do Nível da Represa', severity: 'climate' },
     { lat: -23.6820, lng: -46.6890, name: 'Grajaú — Terminal', type: 'Disparo de Alerta de Segurança', severity: 'critical' },
+    { lat: -23.6610, lng: -46.7210, name: 'Capão Redondo — Av. Comendador Sant\'Anna', type: 'Ocorrência Prioritária — Guarnição Solicitada', severity: 'critical' },
+    { lat: -23.6410, lng: -46.7050, name: 'Socorro — Av. Atlântica', type: 'Posto Policial Ativo / Zona Segura', severity: 'safe' },
+    { lat: -23.6350, lng: -46.6410, name: 'Jabaquara — Terminal Metrô', type: 'Ronda Policial Preventiva', severity: 'safe' },
+    { lat: -23.7020, lng: -46.6950, name: 'Parelheiros — Zona Sul', type: 'Estação de Temperatura & Umidade', severity: 'climate' },
 
     // ZONA OESTE
-    { lat: -23.5675, lng: -46.6920, name: 'Pinheiros — Faria Lima', type: 'Fluxo Veicular e Ronda Ativa', severity: 'safe' },
+    { lat: -23.5675, lng: -46.6920, name: 'Pinheiros — Av. Faria Lima', type: 'Fluxo Veicular Seguro e Ronda Ativa', severity: 'safe' },
     { lat: -23.5580, lng: -46.6830, name: 'Vila Madalena — Rua Aspicuelta', type: 'Controle de Ruído e Aglomeração', severity: 'warning' },
     { lat: -23.5690, lng: -46.7280, name: 'Butantã — Portaria USP', type: 'Posto Policial — Operação Normal', severity: 'safe' },
-    { lat: -23.5227, lng: -46.6872, name: 'Barra Funda — Terminal', type: 'Câmera OCR — Anomalia Detectada', severity: 'infra' },
+    { lat: -23.5227, lng: -46.6872, name: 'Barra Funda — Terminal', type: 'Câmera OCR — Anomalia Identificada', severity: 'infra' },
     { lat: -23.5350, lng: -46.7020, name: 'Lapa — Rua 12 de Outubro', type: 'Tentativa de Furto em Andamento', severity: 'critical' },
+    { lat: -23.5420, lng: -46.6910, name: 'Perdizes — Rua Palestra Itália', type: 'Monitoramento de Trânsito em Evento', severity: 'warning' },
     { lat: -23.5910, lng: -46.7450, name: 'Vila Sônia — Av. Francisco Morato', type: 'Sensor de Ruído IoT Ativo', severity: 'infra' },
+    { lat: -23.6020, lng: -46.7120, name: 'Morumbi — Estádio Cícero Pompeu', type: 'Câmeras OCR de Grande Escala', severity: 'infra' },
+    { lat: -23.5780, lng: -46.7550, name: 'Raposo Tavares — Rodovia km 15', type: 'Monitoramento Pluviométrico', severity: 'climate' },
+    { lat: -23.5510, lng: -46.7250, name: 'Jaguaré — Av. Jagaraú', type: 'Patrulha Comunitária Segura', severity: 'safe' },
 
     // ZONA NORTE
     { lat: -23.5050, lng: -46.6260, name: 'Santana — Av. Cruzeiro do Sul', type: 'Operação de Trânsito / Bloqueio', severity: 'warning' },
-    { lat: -23.4790, lng: -46.6020, name: 'Tucuruvi — Av. Mazzei', type: 'Monitoramento Climático — Vento', severity: 'climate' },
+    { lat: -23.4790, lng: -46.6020, name: 'Tucuruvi — Av. Mazzei', type: 'Monitoramento Climático — Ventos 18km/h', severity: 'climate' },
     { lat: -23.4980, lng: -46.6580, name: 'Casa Verde — Av. Braz Leme', type: 'Patrulha Urbana — Sem Anomalias', severity: 'safe' },
     { lat: -23.4830, lng: -46.6710, name: 'Freguesia do Ó — Largo da Matriz', type: 'Manutenção Preventiva de Câmera', severity: 'infra' },
     { lat: -23.4610, lng: -46.6950, name: 'Brasilândia — Estr. do Sabão', type: 'Ocorrência Prioritária — Ronda Solicitada', severity: 'critical' },
+    { lat: -23.4520, lng: -46.6010, name: 'Tremembé — Horto Florestal', type: 'Monitoramento Ambiental & Reserva', severity: 'climate' },
+    { lat: -23.4710, lng: -46.6350, name: 'Mandaqui — Av. Engenheiro Caetano', type: 'Posto Móvel de Segurança', severity: 'safe' },
+    { lat: -23.4410, lng: -46.7210, name: 'Jaraguá — Estação CPTM', type: 'Tentativa de Invasão Detectada', severity: 'critical' },
 
     // ZONA LESTE
     { lat: -23.5410, lng: -46.5750, name: 'Tatuapé — Praça Silvio Romero', type: 'Ronda Policial Comunitária', severity: 'safe' },
@@ -133,15 +160,24 @@
     { lat: -23.5040, lng: -46.4420, name: 'São Miguel Paulista — Estação', type: 'Ocorrência em Verificação', severity: 'critical' },
     { lat: -23.5790, lng: -46.5430, name: 'Vila Prudente — Terminal', type: 'Trânsito Livre / Status Seguro', severity: 'safe' },
     { lat: -23.5930, lng: -46.5010, name: 'Sapopemba — Av. Sapopemba', type: 'Ponto de Atenção em Alagamento', severity: 'warning' },
+    { lat: -23.5510, lng: -46.5210, name: 'Aricanduva — Shopping Aricanduva', type: 'Sensor Sonoro IoT Ligado', severity: 'infra' },
+    { lat: -23.5410, lng: -46.4150, name: 'Guaianases — Estr. Dom João Nery', type: 'Alerta de Risco Prioritário', severity: 'critical' },
+    { lat: -23.5850, lng: -46.4010, name: 'Cidade Tiradentes — Terminal', type: 'Patrulhamento ostensivo preventivo', severity: 'safe' },
+    { lat: -23.5980, lng: -46.4710, name: 'São Mateus — Av. Mateo Lei', type: 'Ponto de Atenção Semafórica', severity: 'warning' },
 
-    // REGIÃO METROPOLITANA (ABC, GUARULHOS, OSASCO)
+    // REGIÃO METROPOLITANA (ABC, GUARULHOS, OSASCO, ALPHAVILLE, COTIA)
     { lat: -23.6540, lng: -46.5310, name: 'Santo André — Centro / Paço', type: 'Radar IoT de Monitoramento Ativo', severity: 'infra' },
-    { lat: -23.6930, lng: -46.5650, name: 'São Bernardo do Campo — Rudge Ramos', type: 'Alerta Climatológico — Chuva Forte', severity: 'climate' },
+    { lat: -23.6930, lng: -46.5650, name: 'São Bernardo do Campo — Rudge Ramos', type: 'Alerta Climatológico — Chuva Forte 28mm', severity: 'climate' },
     { lat: -23.6180, lng: -46.5540, name: 'São Caetano do Sul — Av. Goiás', type: 'Zona Monitorada — Segurança Alta', severity: 'safe' },
+    { lat: -23.6910, lng: -46.6210, name: 'Diadema — Centro / Av. Fábio Eduardo', type: 'Alerta de Roubo em Andamento', severity: 'critical' },
+    { lat: -23.6680, lng: -46.4520, name: 'Mauá — Terminal Central', type: 'Operação de Trânsito e Inspeção', severity: 'warning' },
     { lat: -23.5320, lng: -46.7920, name: 'Osasco — Centro / Calçadão', type: 'Assalto Detectado via IA', severity: 'critical' },
+    { lat: -23.5210, lng: -46.8350, name: 'Carapicuíba — Estação CPTM', type: 'Câmera OCR em Manutenção', severity: 'infra' },
     { lat: -23.4620, lng: -46.5330, name: 'Guarulhos — Centro / Av. Tiradentes', type: 'Lentidão no Trânsito e Obras', severity: 'warning' },
+    { lat: -23.4310, lng: -46.4780, name: 'Guarulhos — Aeroporto Cumbica', type: 'Ronda Privada e Monitoramento IA', severity: 'infra' },
     { lat: -23.5060, lng: -46.8450, name: 'Barueri — Alphaville', type: 'Ronda Privada e Câmeras IA', severity: 'safe' },
-    { lat: -23.6210, lng: -46.7890, name: 'Taboão da Serra — Centro', type: 'Estação de Monitoramento Climático', severity: 'climate' }
+    { lat: -23.6210, lng: -46.7890, name: 'Taboão da Serra — Centro', type: 'Estação de Monitoramento Climático', severity: 'climate' },
+    { lat: -23.6050, lng: -46.9180, name: 'Cotia — Raposo Tavares km 30', type: 'Fluxo Veicular Moderado', severity: 'safe' }
   ];
 
   // Armazenamento global dos marcadores ativos no Leaflet
@@ -169,7 +205,7 @@
 
     toast.innerHTML = `
       <div style="font-size:1.2rem; line-height:1; margin-top:2px;">
-        ${cfg.name === 'Vermelho' ? '🚨' : cfg.name === 'Amarelo' ? '⚠️' : cfg.name === 'Azul' ? '🌧️' : cfg.name === 'Roxo' ? '🤖' : '🛡️'}
+        ${cfg.emoji}
       </div>
       <div style="flex:1;">
         <div class="sentinel-toast-title">${title}</div>
@@ -198,11 +234,11 @@
           <span class="popup-title">${loc.name}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Informação</span>
+          <span class="popup-label">Ocorrência</span>
           <span class="popup-value" style="font-weight:600;">${loc.type}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Nível da Bolinha</span>
+          <span class="popup-label">Categoria</span>
           <span class="popup-badge ${cfg.badgeClass}">${cfg.label}</span>
         </div>
         <div class="popup-row">
@@ -217,7 +253,7 @@
     `;
   }
 
-  // ── Adicionar Marcador com Animação Neon no Mapa ──
+  // ── Adicionar Marcador com Símbolo Customizado Lucide no Mapa ──
   function addMarker(loc) {
     if (!loc.timestamp) {
       loc.timestamp = getFormattedTimestamp();
@@ -226,15 +262,15 @@
     const cfg = severityConfig[loc.severity] || severityConfig.warning;
 
     const icon = L.divIcon({
-      className: 'custom-animated-marker',
-      html: `<div class="marker-neon" style="
-        width: 16px; 
-        height: 16px; 
-        background: ${cfg.color}; 
-        --pulse-color: ${cfg.color};
-      "></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      className: 'custom-map-icon',
+      html: `
+        <div class="sentinel-map-pin ${cfg.badgeClass}" style="--pin-color: ${cfg.color};">
+          <i data-lucide="${cfg.iconName}"></i>
+          <div class="pin-pulse-ring"></div>
+        </div>
+      `,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12]
     });
 
     const marker = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
@@ -244,6 +280,11 @@
       className: 'dark-popup'
     });
 
+    // Renderizar o ícone Lucide no elemento recém-criado
+    if (window.lucide) {
+      setTimeout(() => lucide.createIcons(), 10);
+    }
+
     const markerObj = { marker: marker, data: loc };
     activeMarkers.push(markerObj);
 
@@ -252,6 +293,11 @@
 
   // Adicionar todos os pontos iniciais
   initialLocations.forEach(addMarker);
+
+  // Renderizar ícones Lucide
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 
   // ── Auto-enquadrar a Câmera nos Marcadores da Região ──
   function fitMapToBounds() {
@@ -357,9 +403,8 @@
   // ── Camada Térmica (Grade Contínua de Calor pela Cidade) ──
   function generateFullCityHeatPoints() {
     const points = [];
-    // Gerar grade suave de pontos por toda a SP
-    for (let lat = -23.45; lat >= -23.70; lat -= 0.015) {
-      for (let lng = -46.45; lng >= -46.75; lng -= 0.015) {
+    for (let lat = -23.42; lat >= -23.72; lat -= 0.012) {
+      for (let lng = -46.42; lng >= -46.85; lng -= 0.012) {
         const val = 0.2 + Math.random() * 0.7;
         points.push([lat, lng, val]);
       }
@@ -487,8 +532,8 @@
     const randomEvt = realTimeEvents[Math.floor(Math.random() * realTimeEvents.length)];
 
     // Coordenadas aleatórias na Grande SP
-    const lat = -23.45 - Math.random() * 0.25;
-    const lng = -46.45 - Math.random() * 0.40;
+    const lat = -23.42 - Math.random() * 0.28;
+    const lng = -46.42 - Math.random() * 0.42;
 
     const newLoc = {
       lat: lat,
@@ -510,7 +555,7 @@
       `${newLoc.type}. Notificação registrada em tempo real.`,
       newLoc.severity
     );
-  }, 9000);
+  }, 8000);
 
   // ── Atualização dos Contadores de Estatísticas ──
   function updateStatsCounter() {
