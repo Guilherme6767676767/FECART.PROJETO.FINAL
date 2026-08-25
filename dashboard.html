@@ -83,13 +83,26 @@
             <p id="topbarDate"></p>
           </div>
         </div>
-        <div class="topbar-right">
+        <div class="topbar-right" style="display:flex; align-items:center; gap:12px;">
           <div class="topbar-time" id="liveClock">--:--:--</div>
+          
+          <div class="badge badge-green" id="apiStatusBadge" style="font-family: monospace; font-size: 0.72rem; padding: 4px 10px;">
+            <span class="status-dot online" style="width:6px;height:6px;"></span>
+            API Live: 200 OK • 14ms
+          </div>
+
+          <button class="btn btn-secondary btn-sm" id="btnSimulateEvent" title="Simular Novo Alerta via IA em Tempo Real">
+            <i data-lucide="sparkles" style="width:14px;height:14px;color:var(--cyan)"></i>
+            Simular Ocorrência
+          </button>
+
+          <button class="btn btn-primary btn-sm" id="btnExportCSV" title="Exportar Relatório Completo CSV">
+            <i data-lucide="download" style="width:14px;height:14px"></i>
+            Exportar CSV
+          </button>
+
           <button class="btn-icon" aria-label="Notificações">
             <i data-lucide="bell" style="width:18px;height:18px"></i>
-          </button>
-          <button class="btn-icon" aria-label="Configurações">
-            <i data-lucide="settings" style="width:18px;height:18px"></i>
           </button>
         </div>
       </header>
@@ -325,6 +338,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="js/api-service.js"></script>
   <script src="js/dashboard.js"></script>
   <script src="js/ai-assistant.js"></script>
 </body>

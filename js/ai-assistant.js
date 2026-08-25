@@ -50,6 +50,8 @@
       </div>
 
       <div class="ai-prompt-chips" id="aiPromptChips">
+        <button class="ai-chip-btn" data-prompt="Quais são as Áreas de Interesse (AOIs) no mapa?">🗺️ AOIs Geoespaciais</button>
+        <button class="ai-chip-btn" data-prompt="Qual o status e latência da API em tempo real?">⚡ Status da API</button>
         <button class="ai-chip-btn" data-prompt="Quais são as áreas com maior risco agora em São Paulo?">🚨 Riscos em SP</button>
         <button class="ai-chip-btn" data-prompt="Como está o trânsito nas Marginais e Av. Paulista?">🚗 Trânsito Paulista</button>
         <button class="ai-chip-btn" data-prompt="Existe risco de chuva ou alagamento hoje em SP?">🌧️ Chuva & Clima</button>
@@ -81,6 +83,31 @@
   // ── Knowledge Base e Motor de Respostas da IA ──
   function generateAIResponse(query) {
     const q = query.toLowerCase().trim();
+
+    // 🗺️ Perguntas sobre AOI (Área de Interesse Geoespacial)
+    if (q.includes('aoi') || q.includes('área de interesse') || q.includes('area de interesse') || q.includes('perimetro') || q.includes('poligono')) {
+      return `
+        🗺️ <strong>Áreas de Interesse Geoespacial (AOIs Ativas):</strong><br><br>
+        • <strong>AOI Alpha (Av. Paulista):</strong> Risco 68% (Médio) • 84 Câmeras • 412 Sensores<br>
+        • <strong>AOI Bravo (Centro & Sé):</strong> Risco 92% (Crítico) • 120 Câmeras • 320 Sensores<br>
+        • <strong>AOI Charlie (Faria Lima):</strong> Risco 24% (Baixo) • 96 Câmeras • 530 Sensores<br>
+        • <strong>AOI Delta (Marginal Tietê):</strong> Risco 81% (Alto) • 64 Câmeras • 289 Sensores<br><br>
+        💡 <em>Você pode visualizar os polígonos geoespaciais translúcidos diretamente no Mapa Interativo!</em>
+      `;
+    }
+
+    // ⚡ Perguntas sobre API / Status / Telemetria
+    if (q.includes('api') || q.includes('status') || q.includes('ping') || q.includes('conexao') || q.includes('servidor')) {
+      const telem = window.SentinelAPI ? window.SentinelAPI.fetchSystemTelemetry() : { apiStatus: '200 OK', latency: '14ms', activeModels: 4 };
+      return `
+        ⚡ <strong>Status da API & Telemetria em Tempo Real:</strong><br><br>
+        • <strong>Status REST/WebSocket API:</strong> <span style="color:#10b981;">${telem.apiStatus}</span><br>
+        • <strong>Latência da Rede:</strong> ${telem.latency}<br>
+        • <strong>Vazão de Processamento:</strong> 4.8 GB/s<br>
+        • <strong>Modelos IA Ativos:</strong> ${telem.activeModels} (CNN, LSTM, Transformers, Autoencoders)<br>
+        • <strong>Frames Processados Hoje:</strong> 2.415.800+
+      `;
+    }
 
     // 🚨 Perguntas sobre Risco / Crime / Emergência / Vermelho
     if (q.includes('risco') || q.includes('crime') || q.includes('assalto') || q.includes('perigo') || q.includes('vermelho') || q.includes('emergencia')) {

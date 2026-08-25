@@ -434,6 +434,30 @@ function initMap() {
     });
   });
 
+  // Render AOI (Areas of Interest) GeoJSON Polygons on Map
+  if (window.SentinelAPI && window.SentinelAPI.aoiZones) {
+    window.SentinelAPI.aoiZones.forEach(aoi => {
+      const poly = L.polygon(aoi.bounds, {
+        color: aoi.color,
+        weight: 2,
+        dashArray: '4, 6',
+        fillColor: aoi.fillColor,
+        fillOpacity: 0.18
+      }).addTo(map);
+
+      poly.bindTooltip(`
+        <div style="font-family:'Inter',sans-serif; padding:4px;">
+          <strong style="color:${aoi.color};">${aoi.name}</strong><br/>
+          <span>Risco AI: ${aoi.riskLevel} (${aoi.riskScore}%)</span><br/>
+          <small style="color:#aaa;">Câmeras Ativas: ${aoi.activeCameras} | Sensores: ${aoi.activeSensors}</small>
+        </div>
+      `, { sticky: true, className: 'dark-popup' });
+    });
+  }
+
+  // Save map instance globally for simulator access
+  window.dashboardLeafletMap = map;
+
   // Style the popups for dark mode
   const popupStyle = document.createElement('style');
   popupStyle.textContent = `
@@ -605,3 +629,77 @@ window.changeChartType = function(canvasId, newType) {
     }, 50);
   }
 };
+
+/* ============================================
+   Live Simulation & Report Exporter Handlers
+   ============================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  const btnSimulate = document.getElementById('btnSimulateEvent');
+  const btnExport = document.getElementById('btnExportCSV');
+
+  if (btnSimulate) {
+    btnSimulate.addEventListener('click', () => {
+      if (window.SentinelAPI && window.SentinelAPI.generateLiveEvent) {
+        const evt = window.SentinelAPI.generateLiveEvent();
+        const feed = document.getElementById('alertFeed');
+
+        if (feed) {
+          const alertObj = {
+            icon: evt.icon,
+            severity: evt.severity === 'Crítica' ? 'critical' : evt.severity === 'Alta' ? 'high' : 'medium',
+            title: evt.title,
+            desc: evt.category + ' — ' + evt.id,
+            area: evt.location
+          };
+          const newEl = createAlertElement(alertObj, 'Agora mesmo');
+          newEl.style.animation = 'pulse 1s ease-in-out';
+          feed.insertBefore(newEl, feed.firstChild);
+        }
+
+        // Increment active alert count KPI
+        const kpiAlerts = document.querySelector('.kpi-card.red .kpi-value');
+        if (kpiAlerts) {
+          const curVal = parseInt(kpiAlerts.textContent.replace(/\D/g, '')) || 23;
+          kpiAlerts.textContent = curVal + 1;
+        }
+
+        // Flash toast notification
+        const toast = document.createElement('div');
+        toast.className = 'sentinel-toast critical';
+        toast.style.position = 'fixed';
+        toast.style.bottom = '24px';
+        toast.style.right = '24px';
+        toast.style.zIndex = '9999';
+        toast.style.background = 'rgba(12, 18, 34, 0.95)';
+        toast.style.border = '1px solid #ef4444';
+        toast.style.borderRadius = '10px';
+        toast.style.padding = '14px 18px';
+        toast.style.color = '#fff';
+        toast.style.boxShadow = '0 10px 30px rgba(239, 68, 68, 0.3)';
+        toast.innerHTML = `
+          <strong>🚨 [Simulação IA] Novo Alerta Detectado!</strong><br/>
+          <span style="font-size:0.85rem; color:#cbd5e1;">${evt.title} em <strong>${evt.location}</strong> (${evt.severity})</span>
+        `;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 4500);
+      }
+    });
+  }
+
+  if (btnExport) {
+    btnExport.addEventListener('click', () => {
+      const csvHeader = 'ID,Titulo,Categoria,Severidade,Localizacao,Horario,Status\n';
+      const csvRows = [
+        '#ALT-9481,Colisao na Marginal Tiete,Transito,Alta,Marginal Tiete,14:22,Em Atendimento',
+        '#ALT-9482,Aglomeracao Atipica,Seguranca,Critica,Praca da Se,14:25,Despachado',
+        '#ALT-9483,Alerta Pluviometrico 35mm,Clima,Media,Zona Sul,14:28,Monitorando',
+        '#ALT-9484,Camera OCR Anomalia,Infraestrutura,Baixa,Av Paulista,14:30,Resolvido'
+      ];
+      const blob = new Blob([csvHeader + csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `Sentinel_IA_Relatorio_${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+    });
+  }
+});
