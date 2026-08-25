@@ -1,21 +1,48 @@
 /* ============================================
-   SENTINEL IA — Live API & Telemetry Engine
-   Simula endpoints REST/WebSocket de alta fidelidade 
-   e conexão com serviços reais (OpenStreetMap, Weather & IoT)
+   SENTINEL IA — Live API, Telemetry & Supabase DB Engine
+   Simula endpoints REST/WebSocket de alta fidelidade,
+   conexão com serviços reais (Open-Meteo, CartoDB) e 
+   integração nativa com Banco de Dados PostgreSQL via Supabase
    ============================================ */
 
 (function () {
   'use strict';
 
+  // ── Configuração do Supabase (PostgreSQL na Nuvem) ──
+  const SUPABASE_CONFIG = {
+    url: window.SENTINEL_SUPABASE_URL || 'https://mohdtlyvvyhwvanlizfu.supabase.co',
+    anonKey: window.SENTINEL_SUPABASE_KEY || 'sb_publishable_E82Xv77N2ZaXsQDRrF8j4w__6DeG0cs',
+    tableName: 'alerts'
+  };
+
+  let supabaseClient = null;
+
+  // Inicializa o cliente do Supabase se a biblioteca estiver carregada no HTML
+  function initSupabase() {
+    if (window.supabase && typeof window.supabase.createClient === 'function') {
+      try {
+        if (!supabaseClient && SUPABASE_CONFIG.url && !SUPABASE_CONFIG.url.includes('SEU_PROJETO')) {
+          supabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+          console.log('🟢 Supabase Engine Conectado: PostgreSQL Ready');
+        }
+      } catch (e) {
+        console.warn('⚠️ Supabase operando em modo simulação local:', e);
+      }
+    }
+    return supabaseClient;
+  }
+
   const SentinelAPI = {
-    version: '3.2.1-api',
+    version: '3.3.0-supabase',
     status: 'ONLINE',
     pingMs: 14,
+    dbType: 'PostgreSQL (Supabase)',
 
     // Áreas de Interesse (AOIs) Geoespaciais em São Paulo
     aoiZones: [
       {
         id: 'AOI-01',
+        code: 'AOI-ALPHA',
         name: 'AOI Alpha — Av. Paulista & Bela Vista',
         riskLevel: 'MÉDIO',
         riskScore: 68,
@@ -34,6 +61,7 @@
       },
       {
         id: 'AOI-02',
+        code: 'AOI-BRAVO',
         name: 'AOI Bravo — Centro Histórico & Sé',
         riskLevel: 'CRÍTICO',
         riskScore: 92,
@@ -52,6 +80,7 @@
       },
       {
         id: 'AOI-03',
+        code: 'AOI-CHARLIE',
         name: 'AOI Charlie — Vila Olímpia & Faria Lima',
         riskLevel: 'BAIXO',
         riskScore: 24,
@@ -70,6 +99,7 @@
       },
       {
         id: 'AOI-04',
+        code: 'AOI-DELTA',
         name: 'AOI Delta — Marginal Tietê & Lapa',
         riskLevel: 'ALTO',
         riskScore: 81,
@@ -88,12 +118,15 @@
       }
     ],
 
-    // Obter dados em tempo real da API
+    // Telemetria da API e do Banco
     fetchSystemTelemetry: function () {
+      const isConnected = !!initSupabase();
       return {
         timestamp: new Date().toISOString(),
         apiStatus: '200 OK',
-        latency: Math.floor(Math.random() * 8) + 12 + 'ms',
+        databaseStatus: isConnected ? 'PostgreSQL Live (Supabase)' : 'PostgreSQL Simulation / LocalStorage',
+        dbConnected: isConnected,
+        latency: Math.floor(Math.random() * 6) + 12 + 'ms',
         throughput: '4.8 GB/s',
         activeModels: 4,
         processedFramesToday: (2415800 + Math.floor(Math.random() * 500)).toLocaleString('pt-BR'),
@@ -102,7 +135,7 @@
       };
     },
 
-    // Buscar dados do tempo reais da API pública (Open-Meteo) para São Paulo
+    // Buscar dados reais de clima via Open-Meteo REST API
     fetchLiveWeather: async function () {
       try {
         const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current_weather=true');
@@ -121,7 +154,85 @@
       return { temp: '25°C', windspeed: '12 km/h', isDay: true };
     },
 
-    // Simular novo evento/alerta recebido via WebSocket
+    // ── Módulos do Supabase (Banco de Dados PostgreSQL) ──
+    supabaseEngine: {
+      get client() {
+        return initSupabase();
+      },
+
+      // Buscar todos os alertas do Supabase (PostgreSQL)
+      fetchAlertsFromDB: async function () {
+        const client = initSupabase();
+        if (!client) {
+          console.log('📦 Supabase não configurado. Retornando dados locais simulados.');
+          return null;
+        }
+
+        try {
+          const { data, error } = await client
+            .from('alerts')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          if (error) {
+            console.error('Erro na consulta Supabase:', error);
+            return null;
+          }
+          return data;
+        } catch (e) {
+          console.error('Erro de conexão Supabase:', e);
+          return null;
+        }
+      },
+
+      // Inserir um novo alerta no banco PostgreSQL no Supabase
+      saveAlertToDB: async function (alertData) {
+        const client = initSupabase();
+        if (!client) return false;
+
+        try {
+          const payload = {
+            name: alertData.location || alertData.name || 'São Paulo',
+            type: alertData.title || alertData.type || 'Ocorrência Detectada',
+            severity: (alertData.severity || 'warning').toLowerCase(),
+            lat: alertData.lat || -23.5505,
+            lng: alertData.lng || -46.6333,
+            created_at: new Date().toISOString()
+          };
+
+          const { data, error } = await client.from('alerts').insert([payload]);
+          if (error) {
+            console.error('Erro ao salvar alerta no Supabase:', error);
+            return false;
+          }
+          console.log('✅ Alerta salvo no Supabase PostgreSQL com sucesso:', data);
+          return true;
+        } catch (e) {
+          console.error('Falha de rede Supabase:', e);
+          return false;
+        }
+      },
+
+      // Assinar atualizações em tempo real (Realtime WebSocket) do Supabase
+      subscribeRealtime: function (onNewAlertCallback) {
+        const client = initSupabase();
+        if (!client || typeof client.channel !== 'function') return null;
+
+        const channel = client
+          .channel('public:alerts')
+          .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'alerts' }, payload => {
+            console.log('⚡ Novo alerta recebido via Supabase WebSocket:', payload.new);
+            if (typeof onNewAlertCallback === 'function') {
+              onNewAlertCallback(payload.new);
+            }
+          })
+          .subscribe();
+
+        return channel;
+      }
+    },
+
+    // Simular novo evento/alerta recebido via WebSocket/API
     generateLiveEvent: function () {
       const types = [
         { title: 'Congestionamento Detectado (IA OCR)', category: 'Trânsito', severity: 'Alta', color: 'badge-yellow', icon: 'car' },
@@ -142,7 +253,7 @@
       const loc = locations[Math.floor(Math.random() * locations.length)];
       const id = '#ALT-' + Math.floor(1000 + Math.random() * 9000);
 
-      return {
+      const generated = {
         id: id,
         title: evt.title,
         location: loc,
@@ -152,6 +263,13 @@
         icon: evt.icon,
         time: 'Agora mesmo (' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ')'
       };
+
+      // Tentar salvar no Supabase de forma assíncrona
+      if (this.supabaseEngine) {
+        this.supabaseEngine.saveAlertToDB(generated);
+      }
+
+      return generated;
     }
   };
 
