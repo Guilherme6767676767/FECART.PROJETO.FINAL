@@ -12,6 +12,9 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+
+  <!-- Auth Script (Guarda de Autenticação) -->
+  <script src="js/auth.js"></script>
 </head>
 <body>
   <div class="dashboard-layout">
@@ -56,6 +59,11 @@
         <a href="index.html" class="sidebar-link">
           <i data-lucide="home"></i>
           Voltar ao Site
+        </a>
+
+        <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+          <i data-lucide="log-out" style="color:#ef4444;"></i>
+          Sair (Bloquear)
         </a>
       </nav>
 

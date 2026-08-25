@@ -15,6 +15,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Auth Script (Guarda de Autenticação) -->
+    <script src="js/auth.js"></script>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -48,6 +50,9 @@
                 <div class="sidebar-section-label">Sistema</div>
                 <a href="index.html" class="sidebar-link">
                     <i data-lucide="home"></i> Voltar ao Site
+                </a>
+                <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+                    <i data-lucide="log-out" style="color:#ef4444;"></i> Sair (Bloquear)
                 </a>
             </nav>
             

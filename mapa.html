@@ -13,6 +13,9 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+  <!-- Auth Script (Guarda de Autenticação) -->
+  <script src="js/auth.js"></script>
+
   <!-- Page-specific inline styles for map popups & overlays -->
   <style>
     /* Full-height map override */
@@ -268,6 +271,11 @@
         <a href="index.html" class="sidebar-link">
           <i data-lucide="home"></i>
           Página Inicial
+        </a>
+
+        <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+          <i data-lucide="log-out" style="color:#ef4444;"></i>
+          Sair (Bloquear)
         </a>
       </nav>
 
