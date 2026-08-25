@@ -178,10 +178,40 @@
             console.error('Erro na consulta Supabase:', error);
             return null;
           }
+
+          // Se o Supabase tiver poucos dados (ex: apenas os 4 iniciais do SQL), insere as ocorrências do Feed para sincronizar 100%
+          if (data && data.length < 8) {
+            this.seedFullAlertFeedToSupabase();
+          }
+
           return data;
         } catch (e) {
           console.error('Erro de conexão Supabase:', e);
           return null;
+        }
+      },
+
+      // Popular todas as ocorrências do Feed no Supabase se ainda não existirem
+      seedFullAlertFeedToSupabase: async function () {
+        const client = initSupabase();
+        if (!client) return;
+
+        const initialAlerts = [
+          { name: 'Av. Paulista, Cerqueira César', type: 'Acidente Grave na Av. Paulista', severity: 'critical', lat: -23.5614, lng: -46.6560 },
+          { name: 'Marginal Tietê, Ponte das Bandeiras', type: 'Alagamento Iminente na Marginal', severity: 'warning', lat: -23.5190, lng: -46.6920 },
+          { name: 'Região da Sé, Centro', type: 'Suspeita de Assalto em Progresso', severity: 'critical', lat: -23.5505, lng: -46.6333 },
+          { name: 'Radial Leste, Tatuapé', type: 'Congestionamento Atípico no Corredor', severity: 'warning', lat: -23.5410, lng: -46.5750 },
+          { name: 'Av. Faria Lima x Rebouças', type: 'Falha de Sinalização em Semáforo', severity: 'infra', lat: -23.5675, lng: -46.6920 },
+          { name: 'Largo da Batata, Pinheiros', type: 'Aglomeração Não Prevista de Pessoas', severity: 'warning', lat: -23.5680, lng: -46.6940 },
+          { name: 'Rua Augusta, Consolação', type: 'Queda de Árvore Obstruindo a Via', severity: 'warning', lat: -23.5530, lng: -46.6520 },
+          { name: 'Santana, Zona Norte', type: 'Sensor Climático IoT Offline', severity: 'climate', lat: -23.5050, lng: -46.6260 }
+        ];
+
+        try {
+          await client.from('alerts').insert(initialAlerts);
+          console.log('🌱 Feed de Ocorrências populado com sucesso no Supabase PostgreSQL!');
+        } catch (e) {
+          console.warn('Seed Supabase já existente ou pulado:', e);
         }
       },
 

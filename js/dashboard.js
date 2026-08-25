@@ -500,24 +500,48 @@ const alertTemplates = [
   { icon: 'alert-circle', severity: 'critical', title: 'Alerta de segurança', desc: 'Movimento atípico identificado por IA', area: 'Brás' },
 ];
 
-function initAlertFeed() {
+async function initAlertFeed() {
   const feed = document.getElementById('alertFeed');
+  if (!feed) return;
 
-  // Initial alerts
-  const initial = alertTemplates.slice(0, 6);
-  initial.forEach((alert, i) => {
-    const timeOffset = i * 3 + 1;
-    feed.appendChild(createAlertElement(alert, `${timeOffset} min atrás`));
-  });
+  // Tentar buscar ocorrências reais salvas no banco Supabase
+  if (window.SentinelAPI && window.SentinelAPI.supabaseEngine) {
+    try {
+      const dbData = await window.SentinelAPI.supabaseEngine.fetchAlertsFromDB();
+      if (dbData && dbData.length > 0) {
+        feed.innerHTML = '';
+        dbData.slice(0, 10).forEach((dbRow) => {
+          const alertObj = {
+            icon: dbRow.severity === 'critical' ? 'alert-triangle' : dbRow.severity === 'climate' ? 'cloud-rain' : dbRow.severity === 'infra' ? 'camera' : 'car',
+            severity: dbRow.severity === 'critical' ? 'critical' : dbRow.severity === 'warning' ? 'high' : 'medium',
+            title: dbRow.type || 'Ocorrência Detectada',
+            desc: dbRow.type,
+            area: dbRow.name || 'São Paulo'
+          };
+          feed.appendChild(createAlertElement(alertObj, 'PostgreSQL DB'));
+        });
+      }
+    } catch (err) {
+      console.warn('Usando feed local de fallback:', err);
+    }
+  }
 
-  // Add new alerts periodically
+  // Se o feed ainda estiver vazio, preenche com os templates locais
+  if (feed.children.length === 0) {
+    const initial = alertTemplates.slice(0, 6);
+    initial.forEach((alert, i) => {
+      const timeOffset = i * 3 + 1;
+      feed.appendChild(createAlertElement(alert, `${timeOffset} min atrás`));
+    });
+  }
+
+  // Manter adição periódica de novos alertas
   let alertIndex = 6;
   setInterval(() => {
     const alert = alertTemplates[alertIndex % alertTemplates.length];
     const newEl = createAlertElement(alert, 'Agora');
     feed.insertBefore(newEl, feed.firstChild);
 
-    // Keep max 10 alerts visible
     while (feed.children.length > 10) {
       feed.removeChild(feed.lastChild);
     }
