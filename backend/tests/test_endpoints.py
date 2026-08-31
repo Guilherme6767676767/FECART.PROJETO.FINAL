@@ -91,11 +91,31 @@ def test_simulacao_endpoints():
     assert resp_limpar.status_code == 200
     print("   -> Limpeza de simulações concluída com sucesso.")
 
+
+def test_chat_endpoint():
+    print("\n🤖 Testando POST /api/v1/chat (Perguntas, Telemetria e Comandos de Ação)...")
+    payload = {
+        "message": "Simule uma tempestade na Marginal Tietê e abra o mapa",
+        "current_page": "dashboard.html"
+    }
+    resp = client.post("/api/v1/chat", json=payload)
+    if resp.status_code != 200:
+        print("ERRO NO CHAT:", resp.status_code, resp.text)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "response" in data
+    assert len(data["response"]) > 20
+    assert "actions" in data
+    print(f"   -> Resposta do Chat ({data['model_used']}): {data['response'][:80]}...")
+    print(f"   -> Ações Táticas Detectadas: {len(data['actions'])} comandos (Ex: {[a['type'] for a in data['actions']]})")
+
+
 if __name__ == "__main__":
     test_health()
     test_clima_endpoint()
     test_ocorrencias_endpoint()
     test_resumo_endpoint()
     test_simulacao_endpoints()
-    print("\n🎯 TODOS OS TESTES DE ENDPOINTS E SIMULAÇÃO DA API PASSARAM COM 100% DE SUCESSO!")
+    test_chat_endpoint()
+    print("\n🎯 TODOS OS TESTES (INCLUINDO CHATBOT COM AÇÕES E TELEMETRIA) PASSARAM COM 100% DE SUCESSO!")
 

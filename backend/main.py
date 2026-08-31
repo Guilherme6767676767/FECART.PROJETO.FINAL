@@ -10,7 +10,9 @@ from schemas import (
     ResumoEstatistico,
     CriarSimulacaoRequest,
     SimulacaoCenarioRequest,
-    SimulacaoResult
+    SimulacaoResult,
+    ChatRequest,
+    ChatResponse
 )
 from database import (
     buscar_ocorrencias, 
@@ -20,6 +22,7 @@ from database import (
     limpar_ocorrencias_simuladas
 )
 from services.weather_service import get_sao_paulo_weather
+from services.chat_service import processar_mensagem_chat
 
 load_dotenv()
 
@@ -214,6 +217,30 @@ async def limpar_simulacoes():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao limpar simulações: {str(e)}"
+        )
+
+
+# ----------------------------------------------------
+# ROTAS: CHATBOT IA & AÇÕES ACIONÁVEIS
+# ----------------------------------------------------
+@app.post(
+    "/api/v1/chat",
+    response_model=ChatResponse,
+    summary="Processar Mensagem do Usuário com IA & Ações",
+    tags=["Assistente IA"]
+)
+async def chat_endpoint(req: ChatRequest):
+    """
+    Processa perguntas com IA (LLM/Groq/Gemini/OpenAI ou NLP Sentinel),
+    reconhece intenções de controle da interface e gera comandos de ação.
+    """
+    try:
+        resultado = await processar_mensagem_chat(req)
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro no assistente de IA: {str(e)}"
         )
 
 

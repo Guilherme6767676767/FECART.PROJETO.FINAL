@@ -80,3 +80,29 @@ class SimulacaoResult(BaseModel):
     acoes_recomendadas: List[str]
     afeta_aoi: Optional[str] = None
 
+
+# ==========================================
+# SCHEMAS - CHATBOT IA & AÇÕES EXECUTÁVEIS
+# ==========================================
+class ChatMessage(BaseModel):
+    role: str = Field(..., description="'user', 'assistant' ou 'system'")
+    content: str = Field(..., description="Texto da mensagem")
+
+
+class ChatAction(BaseModel):
+    type: str = Field(..., description="Tipo de ação: 'navigate', 'simulate_scenario', 'create_incident', 'filter_map', 'highlight_aoi'")
+    target: Optional[str] = Field(None, description="Destino ou parâmetro (ex: 'mapa.html', 'simulacoes.html', 'tempestade_marginal')")
+    payload: Optional[dict] = Field(default_factory=dict, description="Dados adicionais da ação executada")
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., description="Mensagem/pergunta do usuário")
+    history: Optional[List[ChatMessage]] = Field(default_factory=list, description="Histórico de mensagens da sessão")
+    current_page: Optional[str] = Field(default="dashboard.html", description="Página atual do usuário para contexto")
+
+
+class ChatResponse(BaseModel):
+    response: str = Field(..., description="Resposta inteligente formatada em HTML/Markdown")
+    actions: List[ChatAction] = Field(default_factory=list, description="Ações táticas a serem executadas no frontend")
+    suggestions: List[str] = Field(default_factory=list, description="Sugestões de próximas perguntas ou comandos rápidos")
+    model_used: str = Field(default="sentinel-nlp-v3", description="Modelo ou motor utilizado")
