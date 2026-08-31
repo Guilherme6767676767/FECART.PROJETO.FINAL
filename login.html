@@ -115,9 +115,9 @@
     }
 
     .auth-tab-btn.active {
-      background: var(--cyan-glow, rgba(0, 229, 255, 0.15));
+      background: var(--cyan-glow, rgba(0, 229, 255, 0.18));
       color: var(--cyan, #00e5ff);
-      box-shadow: 0 2px 10px rgba(0, 229, 255, 0.2);
+      box-shadow: 0 2px 10px rgba(0, 229, 255, 0.25);
     }
 
     .form-group {
@@ -246,13 +246,13 @@
     }
 
     .login-alert-msg.error {
-      background: rgba(239, 68, 68, 0.15);
+      background: rgba(239, 68, 68, 0.18);
       border: 1px solid #ef4444;
       color: #ef4444;
     }
 
     .login-alert-msg.success {
-      background: rgba(16, 185, 129, 0.15);
+      background: rgba(16, 185, 129, 0.18);
       border: 1px solid #10b981;
       color: #10b981;
     }
@@ -281,10 +281,10 @@
 
       <!-- Alternador de Abas -->
       <div class="auth-tab-nav">
-        <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">
+        <button type="button" class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">
           🔑 Entrar no Sistema
         </button>
-        <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">
+        <button type="button" class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">
           ✨ Criar Nova Conta
         </button>
       </div>
@@ -294,7 +294,7 @@
 
       <!-- SEÇÃO 1: FORMULÁRIO DE LOGIN -->
       <div class="auth-section active" id="secLogin">
-        <form id="loginForm">
+        <form id="loginForm" onsubmit="handleLoginSubmit(event)">
           <div class="form-group">
             <label class="form-label" for="usernameInput">Usuário / E-mail</label>
             <div class="form-input-wrap">
@@ -331,12 +331,12 @@
 
       <!-- SEÇÃO 2: FORMULÁRIO DE CRIAR CONTA -->
       <div class="auth-section" id="secRegister">
-        <form id="registerForm">
+        <form id="registerForm" onsubmit="handleRegisterSubmit(event)">
           <div class="form-group">
             <label class="form-label" for="regNameInput">Nome Completo</label>
             <div class="form-input-wrap">
               <i data-lucide="user-check"></i>
-              <input type="text" id="regNameInput" class="form-input" placeholder="Ex: Agente Carlos Silva" required />
+              <input type="text" id="regNameInput" class="form-input" placeholder="Ex: Eduardo Pinheiro" required />
             </div>
           </div>
 
@@ -358,7 +358,7 @@
             <label class="form-label" for="regEmailInput">E-mail Corporativo / Usuário</label>
             <div class="form-input-wrap">
               <i data-lucide="mail"></i>
-              <input type="email" id="regEmailInput" class="form-input" placeholder="seu.nome@sentinel.ia" required />
+              <input type="text" id="regEmailInput" class="form-input" placeholder="seu.nome@sentinel.ia ou usuario" required />
             </div>
           </div>
 
@@ -366,7 +366,7 @@
             <label class="form-label" for="regPassInput">Senha de Acesso</label>
             <div class="form-input-wrap">
               <i data-lucide="lock"></i>
-              <input type="password" id="regPassInput" class="form-input" placeholder="Crie uma senha segura (min. 4 carac.)..." required />
+              <input type="password" id="regPassInput" class="form-input" placeholder="Crie uma senha de acesso..." required />
             </div>
           </div>
 
@@ -427,8 +427,8 @@
     };
 
     // Submissão do Login
-    document.getElementById('loginForm').addEventListener('submit', function (e) {
-      e.preventDefault();
+    window.handleLoginSubmit = function (e) {
+      if (e) e.preventDefault();
       hideAlert();
       const user = document.getElementById('usernameInput').value;
       const pass = document.getElementById('passwordInput').value;
@@ -440,12 +440,13 @@
       } else {
         showAlert(res.message, false);
       }
-    });
+    };
 
     // Submissão do Cadastro / Criar Conta
-    document.getElementById('registerForm').addEventListener('submit', function (e) {
-      e.preventDefault();
+    window.handleRegisterSubmit = function (e) {
+      if (e) e.preventDefault();
       hideAlert();
+
       const name = document.getElementById('regNameInput').value;
       const role = document.getElementById('regRoleSelect').value;
       const email = document.getElementById('regEmailInput').value;
@@ -457,11 +458,11 @@
         showAlert(res.message, true);
         setTimeout(() => {
           window.location.href = 'dashboard.html';
-        }, 1200);
+        }, 900);
       } else {
         showAlert(res.message, false);
       }
-    });
+    };
 
     // Botão de Acesso Rápido Admin
     document.getElementById('btnQuickAccess').addEventListener('click', function () {

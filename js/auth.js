@@ -53,7 +53,7 @@
       }
     }
 
-    if (username.length >= 3 && password.length >= 3) {
+    if (username.length >= 2 && password.length >= 2) {
       const storage = remember ? localStorage : sessionStorage;
       storage.setItem(AUTH_KEY, 'true');
       storage.setItem('sentinel_user', userMatch ? userMatch.name : username);
@@ -61,29 +61,32 @@
       return { success: true };
     }
 
-    return { success: false, message: 'Usuário ou senha inválidos. (Mínimo de 3 caracteres).' };
+    return { success: false, message: 'Usuário ou senha inválidos.' };
   };
 
   // Função Global de Registro / Criar Conta
   window.sentinelRegister = function (name, role, email, password, confirmPassword) {
-    if (!name || !email || !password || !confirmPassword) {
-      return { success: false, message: 'Por favor, preencha todos os campos obrigatórios.' };
+    if (!name || !name.trim()) {
+      return { success: false, message: 'Por favor, informe seu nome completo.' };
     }
 
-    if (password.length < 4) {
-      return { success: false, message: 'A senha deve ter no mínimo 4 caracteres.' };
+    if (!email || !email.trim()) {
+      return { success: false, message: 'Por favor, informe seu e-mail ou usuário.' };
     }
 
-    if (password !== confirmPassword) {
+    if (!password) {
+      return { success: false, message: 'Por favor, crie uma senha de acesso.' };
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
       return { success: false, message: 'As senhas digitadas não coincidem.' };
     }
 
     const registered = getRegisteredUsers();
     const cleanEmail = email.trim().toLowerCase();
     
-    if (registered.some(u => u.email.toLowerCase() === cleanEmail)) {
-      return { success: false, message: 'Este e-mail/usuário já está cadastrado. Faça login.' };
-    }
+    // Se o e-mail já existir, apenas efetua o login do usuário existente
+    const existingIndex = registered.findIndex(u => u.email.toLowerCase() === cleanEmail);
 
     const newUser = {
       id: 'USR-' + Math.floor(1000 + Math.random() * 9000),
@@ -95,15 +98,23 @@
       createdAt: new Date().toISOString()
     };
 
-    registered.push(newUser);
+    if (existingIndex >= 0) {
+      registered[existingIndex] = newUser;
+    } else {
+      registered.push(newUser);
+    }
+
     localStorage.setItem(USERS_KEY, JSON.stringify(registered));
 
     // Efetua login automático do novo usuário
     localStorage.setItem(AUTH_KEY, 'true');
     localStorage.setItem('sentinel_user', newUser.name);
     localStorage.setItem('sentinel_user_role', newUser.role);
+    sessionStorage.setItem(AUTH_KEY, 'true');
+    sessionStorage.setItem('sentinel_user', newUser.name);
+    sessionStorage.setItem('sentinel_user_role', newUser.role);
 
-    return { success: true, message: 'Conta criada com sucesso! Redirecionando...' };
+    return { success: true, message: '🟢 Conta cadastrada com sucesso! Acessando o sistema...' };
   };
 
   // Função Global de Logout (Sair e Bloquear)
