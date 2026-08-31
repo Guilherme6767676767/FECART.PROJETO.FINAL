@@ -1,47 +1,49 @@
 /* ============================================
    SENTINEL IA — Mapa de Monitoramento Urbano
-   JavaScript Controller — Sistema de 5 Cores, Símbolos Customizados & Tempo Real
+   VERSÃO 4.0 — Integração com FastAPI Backend
+   - Leaflet.js com CartoDB Dark (OpenStreetMap)
+   - Marcadores interativos com dados reais da API /api/v1/ocorrencias
+   - Heatmap real com posições de BOs carregados do backend
+   - Filtros por gravidade (CRITICA, ALTA, MEDIA, BAIXA)
+   - Auto-refresh de 30s para dados ao vivo
    ============================================ */
 
 (function () {
   'use strict';
 
-  // ── Initialize Lucide Icons ──
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+  // ── Constantes de configuração ──────────────────────────────────────────────
+  const API_BASE_URL = window.SENTINEL_API_URL || 'http://localhost:8000/api/v1';
+  const SP_CENTER    = [-23.5505, -46.6333];
+  const SP_ZOOM      = 12;
+  const REFRESH_MS   = 30 * 1000; // Auto-refresh a cada 30 segundos
 
-  // ── Clock ──
+  // ── Inicializar Lucide ────────────────────────────────────────────────────
+  if (window.lucide) lucide.createIcons();
+
+  // ── Relógio ao vivo ───────────────────────────────────────────────────────
   function updateClock() {
-    const now = new Date();
-    const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
     const el = document.getElementById('topbarTime');
-    if (el) el.textContent = time;
+    if (el) {
+      el.textContent = new Date().toLocaleTimeString('pt-BR', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
   }
   updateClock();
   setInterval(updateClock, 1000);
 
-  // ── Sidebar Toggle (Mobile) ──
+  // ── Sidebar toggle ────────────────────────────────────────────────────────
   const sidebarToggle = document.getElementById('sidebarToggle');
   const sidebar = document.getElementById('sidebar');
   if (sidebarToggle && sidebar) {
-    sidebarToggle.addEventListener('click', function () {
-      sidebar.classList.toggle('open');
-    });
+    sidebarToggle.addEventListener('click', () => sidebar.classList.toggle('open'));
     const mainMapEl = document.getElementById('mainMap');
     if (mainMapEl) {
-      mainMapEl.addEventListener('click', function () {
-        if (sidebar.classList.contains('open')) {
-          sidebar.classList.remove('open');
-        }
-      });
+      mainMapEl.addEventListener('click', () => sidebar.classList.remove('open'));
     }
   }
 
-  // ── Map Configuration & Initialization ──
-  const SP_CENTER = [-23.5505, -46.6333];
-  const SP_ZOOM = 12;
-
+  // ── Inicialização do Mapa Leaflet ─────────────────────────────────────────
   const map = L.map('mainMap', {
     center: SP_CENTER,
     zoom: SP_ZOOM,
@@ -51,215 +53,126 @@
     attributionControl: true
   });
 
-  // Dark CartoDB tile layer
+  // Tile layer escuro (CartoDB Dark + OpenStreetMap)
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19
   }).addTo(map);
 
-  // ── Definição dos Níveis de Alerta com Símbolos e Ícones Lucide ──
-  const severityConfig = {
-    critical: {
+  // ── Configuração de Severidade → Cores e Símbolos ─────────────────────────
+  // Mapeia as severidades da API (CRITICA, ALTA, MEDIA, BAIXA) para estilos visuais
+  const gravityConfig = {
+    CRITICA: {
       color: '#ef4444',
       badgeClass: 'critical',
-      label: '🔴 Emergência / Risco Alto',
-      name: 'Vermelho',
+      label: '🔴 Severidade Crítica',
+      emoji: '🚨',
       iconName: 'alert-triangle',
-      emoji: '🚨'
+      popupClass: 'critical',
+      heatIntensity: 1.0
     },
-    warning: {
+    ALTA: {
       color: '#f59e0b',
       badgeClass: 'warning',
-      label: '🟡 Alerta / Atenção / Trânsito',
-      name: 'Amarelo',
-      iconName: 'car',
-      emoji: '⚠️'
+      label: '🟡 Severidade Alta',
+      emoji: '⚠️',
+      iconName: 'alert-circle',
+      popupClass: 'warning',
+      heatIntensity: 0.7
     },
-    climate: {
+    MEDIA: {
       color: '#3b82f6',
-      badgeClass: 'climate',
-      label: '🔵 Clima / Pluviometria',
-      name: 'Azul',
-      iconName: 'cloud-rain',
-      emoji: '🌧️'
+      badgeClass: 'info',
+      label: '🔵 Severidade Média',
+      emoji: '🔵',
+      iconName: 'info',
+      popupClass: 'info',
+      heatIntensity: 0.45
     },
-    infra: {
-      color: '#a855f7',
-      badgeClass: 'infra',
-      label: '🟣 IA OCR / Sensores / Infra',
-      name: 'Roxo',
-      iconName: 'camera',
-      emoji: '🤖'
-    },
-    safe: {
+    BAIXA: {
       color: '#10b981',
       badgeClass: 'safe',
-      label: '🟢 Zona Segura / Patrulha',
-      name: 'Verde',
+      label: '🟢 Severidade Baixa',
+      emoji: '🛡️',
       iconName: 'shield-check',
-      emoji: '🛡️'
+      popupClass: 'safe',
+      heatIntensity: 0.2
     }
   };
 
-  // ── Densa Cobertura por Toda a Cidade de SP e Região Metropolitana (100+ Locais) ──
-  const initialLocations = [
-    // CENTRO DE SÃO PAULO
-    { lat: -23.5505, lng: -46.6333, name: 'Praça da Sé — Centro', type: 'Disparo de Alarme de Emergência', severity: 'critical' },
-    { lat: -23.5437, lng: -46.6366, name: 'Estação Luz — Centro', type: 'Detecção de Objeto Abandonado', severity: 'critical' },
-    { lat: -23.5475, lng: -46.6430, name: 'República — Rua da Consolação', type: 'Aglomeração Monitorada', severity: 'warning' },
-    { lat: -23.5412, lng: -46.6290, name: 'Mercado Municipal — Centro', type: 'Fluxo Turístico Intenso — Operação Normal', severity: 'safe' },
-    { lat: -23.5560, lng: -46.6390, name: 'Liberdade — Praça da Liberdade', type: 'Patrulhamento Preventivo Ativo', severity: 'safe' },
-    { lat: -23.5480, lng: -46.6500, name: 'Higienópolis — Av. Angélica', type: 'Leitor OCR de Placas Ativo', severity: 'infra' },
-    { lat: -23.5530, lng: -46.6480, name: 'Bela Vista — Rua Treze de Maio', type: 'Medição de Temperatura 24°C', severity: 'climate' },
-    { lat: -23.5380, lng: -46.6310, name: 'Anhangabaú — Vale do Anhangabaú', type: 'Sensor Sonoro de Segurança', severity: 'infra' },
-    { lat: -23.5450, lng: -46.6250, name: 'Pari — Av. Celso Garcia', type: 'Atenção em Cruzamento de Trânsito', severity: 'warning' },
-
-    // ZONA SUL
-    { lat: -23.5614, lng: -46.6560, name: 'Av. Paulista, 1578 — Masp', type: 'Câmera com Leitura Facial OCR (IA)', severity: 'infra' },
-    { lat: -23.5710, lng: -46.6450, name: 'Paraíso — Av. 23 de Maio', type: 'Trânsito Intenso com Velocidade Reduzida', severity: 'warning' },
-    { lat: -23.5876, lng: -46.6580, name: 'Parque Ibirapuera — Moema', type: 'Estação Pluviométrica & Clima', severity: 'climate' },
-    { lat: -23.6010, lng: -46.6620, name: 'Moema — Av. Ibirapuera', type: 'Sensor Pluviométrico (Chuva Lenta)', severity: 'climate' },
-    { lat: -23.6110, lng: -46.6950, name: 'Brooklin — Av. Berrini', type: 'Câmera Inteligente IA OCR', severity: 'infra' },
-    { lat: -23.6260, lng: -46.6990, name: 'Santo Amaro — Largo Treze', type: 'Alertas de Trânsito / Congestionamento', severity: 'warning' },
-    { lat: -23.6150, lng: -46.6650, name: 'Campo Belo — Av. Washington Luís', type: 'Alerta de Tráfego Aeroportuário', severity: 'warning' },
-    { lat: -23.6480, lng: -46.6710, name: 'Campo Grande — Interlagos', type: 'Monitoramento do Nível da Represa', severity: 'climate' },
-    { lat: -23.6820, lng: -46.6890, name: 'Grajaú — Terminal', type: 'Disparo de Alerta de Segurança', severity: 'critical' },
-    { lat: -23.6610, lng: -46.7210, name: 'Capão Redondo — Av. Comendador Sant\'Anna', type: 'Ocorrência Prioritária — Guarnição Solicitada', severity: 'critical' },
-    { lat: -23.6410, lng: -46.7050, name: 'Socorro — Av. Atlântica', type: 'Posto Policial Ativo / Zona Segura', severity: 'safe' },
-    { lat: -23.6350, lng: -46.6410, name: 'Jabaquara — Terminal Metrô', type: 'Ronda Policial Preventiva', severity: 'safe' },
-    { lat: -23.7020, lng: -46.6950, name: 'Parelheiros — Zona Sul', type: 'Estação de Temperatura & Umidade', severity: 'climate' },
-
-    // ZONA OESTE
-    { lat: -23.5675, lng: -46.6920, name: 'Pinheiros — Av. Faria Lima', type: 'Fluxo Veicular Seguro e Ronda Ativa', severity: 'safe' },
-    { lat: -23.5580, lng: -46.6830, name: 'Vila Madalena — Rua Aspicuelta', type: 'Controle de Ruído e Aglomeração', severity: 'warning' },
-    { lat: -23.5690, lng: -46.7280, name: 'Butantã — Portaria USP', type: 'Posto Policial — Operação Normal', severity: 'safe' },
-    { lat: -23.5227, lng: -46.6872, name: 'Barra Funda — Terminal', type: 'Câmera OCR — Anomalia Identificada', severity: 'infra' },
-    { lat: -23.5350, lng: -46.7020, name: 'Lapa — Rua 12 de Outubro', type: 'Tentativa de Furto em Andamento', severity: 'critical' },
-    { lat: -23.5420, lng: -46.6910, name: 'Perdizes — Rua Palestra Itália', type: 'Monitoramento de Trânsito em Evento', severity: 'warning' },
-    { lat: -23.5910, lng: -46.7450, name: 'Vila Sônia — Av. Francisco Morato', type: 'Sensor de Ruído IoT Ativo', severity: 'infra' },
-    { lat: -23.6020, lng: -46.7120, name: 'Morumbi — Estádio Cícero Pompeu', type: 'Câmeras OCR de Grande Escala', severity: 'infra' },
-    { lat: -23.5780, lng: -46.7550, name: 'Raposo Tavares — Rodovia km 15', type: 'Monitoramento Pluviométrico', severity: 'climate' },
-    { lat: -23.5510, lng: -46.7250, name: 'Jaguaré — Av. Jagaraú', type: 'Patrulha Comunitária Segura', severity: 'safe' },
-
-    // ZONA NORTE
-    { lat: -23.5050, lng: -46.6260, name: 'Santana — Av. Cruzeiro do Sul', type: 'Operação de Trânsito / Bloqueio', severity: 'warning' },
-    { lat: -23.4790, lng: -46.6020, name: 'Tucuruvi — Av. Mazzei', type: 'Monitoramento Climático — Ventos 18km/h', severity: 'climate' },
-    { lat: -23.4980, lng: -46.6580, name: 'Casa Verde — Av. Braz Leme', type: 'Patrulha Urbana — Sem Anomalias', severity: 'safe' },
-    { lat: -23.4830, lng: -46.6710, name: 'Freguesia do Ó — Largo da Matriz', type: 'Manutenção Preventiva de Câmera', severity: 'infra' },
-    { lat: -23.4610, lng: -46.6950, name: 'Brasilândia — Estr. do Sabão', type: 'Ocorrência Prioritária — Ronda Solicitada', severity: 'critical' },
-    { lat: -23.4520, lng: -46.6010, name: 'Tremembé — Horto Florestal', type: 'Monitoramento Ambiental & Reserva', severity: 'climate' },
-    { lat: -23.4710, lng: -46.6350, name: 'Mandaqui — Av. Engenheiro Caetano', type: 'Posto Móvel de Segurança', severity: 'safe' },
-    { lat: -23.4410, lng: -46.7210, name: 'Jaraguá — Estação CPTM', type: 'Tentativa de Invasão Detectada', severity: 'critical' },
-
-    // ZONA LESTE
-    { lat: -23.5410, lng: -46.5750, name: 'Tatuapé — Praça Silvio Romero', type: 'Ronda Policial Comunitária', severity: 'safe' },
-    { lat: -23.5550, lng: -46.5980, name: 'Mooca — Rua da Mooca', type: 'Alerta de Tráfego Lento', severity: 'warning' },
-    { lat: -23.5370, lng: -46.4680, name: 'Itaquera — Arena Corinthians', type: 'Câmeras Inteligentes com OCR', severity: 'infra' },
-    { lat: -23.5230, lng: -46.5490, name: 'Penha — Av. Amador Bueno', type: 'Sensor Ambientalista Pluviométrico', severity: 'climate' },
-    { lat: -23.5040, lng: -46.4420, name: 'São Miguel Paulista — Estação', type: 'Ocorrência em Verificação', severity: 'critical' },
-    { lat: -23.5790, lng: -46.5430, name: 'Vila Prudente — Terminal', type: 'Trânsito Livre / Status Seguro', severity: 'safe' },
-    { lat: -23.5930, lng: -46.5010, name: 'Sapopemba — Av. Sapopemba', type: 'Ponto de Atenção em Alagamento', severity: 'warning' },
-    { lat: -23.5510, lng: -46.5210, name: 'Aricanduva — Shopping Aricanduva', type: 'Sensor Sonoro IoT Ligado', severity: 'infra' },
-    { lat: -23.5410, lng: -46.4150, name: 'Guaianases — Estr. Dom João Nery', type: 'Alerta de Risco Prioritário', severity: 'critical' },
-    { lat: -23.5850, lng: -46.4010, name: 'Cidade Tiradentes — Terminal', type: 'Patrulhamento ostensivo preventivo', severity: 'safe' },
-    { lat: -23.5980, lng: -46.4710, name: 'São Mateus — Av. Mateo Lei', type: 'Ponto de Atenção Semafórica', severity: 'warning' },
-
-    // REGIÃO METROPOLITANA (ABC, GUARULHOS, OSASCO, ALPHAVILLE, COTIA)
-    { lat: -23.6540, lng: -46.5310, name: 'Santo André — Centro / Paço', type: 'Radar IoT de Monitoramento Ativo', severity: 'infra' },
-    { lat: -23.6930, lng: -46.5650, name: 'São Bernardo do Campo — Rudge Ramos', type: 'Alerta Climatológico — Chuva Forte 28mm', severity: 'climate' },
-    { lat: -23.6180, lng: -46.5540, name: 'São Caetano do Sul — Av. Goiás', type: 'Zona Monitorada — Segurança Alta', severity: 'safe' },
-    { lat: -23.6910, lng: -46.6210, name: 'Diadema — Centro / Av. Fábio Eduardo', type: 'Alerta de Roubo em Andamento', severity: 'critical' },
-    { lat: -23.6680, lng: -46.4520, name: 'Mauá — Terminal Central', type: 'Operação de Trânsito e Inspeção', severity: 'warning' },
-    { lat: -23.5320, lng: -46.7920, name: 'Osasco — Centro / Calçadão', type: 'Assalto Detectado via IA', severity: 'critical' },
-    { lat: -23.5210, lng: -46.8350, name: 'Carapicuíba — Estação CPTM', type: 'Câmera OCR em Manutenção', severity: 'infra' },
-    { lat: -23.4620, lng: -46.5330, name: 'Guarulhos — Centro / Av. Tiradentes', type: 'Lentidão no Trânsito e Obras', severity: 'warning' },
-    { lat: -23.4310, lng: -46.4780, name: 'Guarulhos — Aeroporto Cumbica', type: 'Ronda Privada e Monitoramento IA', severity: 'infra' },
-    { lat: -23.5060, lng: -46.8450, name: 'Barueri — Alphaville', type: 'Ronda Privada e Câmeras IA', severity: 'safe' },
-    { lat: -23.6210, lng: -46.7890, name: 'Taboão da Serra — Centro', type: 'Estação de Monitoramento Climático', severity: 'climate' },
-    { lat: -23.6050, lng: -46.9180, name: 'Cotia — Raposo Tavares km 30', type: 'Fluxo Veicular Moderado', severity: 'safe' }
-  ];
-
-  // Armazenamento global dos marcadores ativos no Leaflet
-  const activeMarkers = [];
-
-  // Helper para formatar hora atual
-  function getFormattedTimestamp() {
-    const now = new Date();
-    const day = String(now.getDate()).padStart(2, '0');
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = now.getFullYear();
-    const time = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    return `${day}/${month}/${year} ${time}`;
+  // Fallback para gravidades não mapeadas
+  function getGravityConfig(gravidade) {
+    return gravityConfig[String(gravidade).toUpperCase()] || gravityConfig.MEDIA;
   }
 
-  // ── Notificações Toast em Tempo Real ──
-  function showToastNotification(title, desc, severity) {
-    const container = document.getElementById('toastContainer');
-    if (!container) return;
-
-    const toast = document.createElement('div');
-    toast.className = `sentinel-toast ${severity}`;
-
-    const cfg = severityConfig[severity] || severityConfig.warning;
-
-    toast.innerHTML = `
-      <div style="font-size:1.2rem; line-height:1; margin-top:2px;">
-        ${cfg.emoji}
-      </div>
-      <div style="flex:1;">
-        <div class="sentinel-toast-title">${title}</div>
-        <div class="sentinel-toast-desc">${desc}</div>
-        <div class="sentinel-toast-time">${getFormattedTimestamp()} • Notificação enviada ao cliente</div>
-      </div>
-    `;
-
-    container.appendChild(toast);
-
-    // Auto remove após 5 segundos
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateX(50px)';
-      setTimeout(() => toast.remove(), 400);
-    }, 5000);
+  // ── Formatador de Data/Hora ───────────────────────────────────────────────
+  function formatarDataHora(isoString) {
+    try {
+      const d = new Date(isoString);
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      const ano = d.getFullYear();
+      const hora = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      return `${dia}/${mes}/${ano} ${hora}`;
+    } catch {
+      return isoString || 'Data desconhecida';
+    }
   }
 
-  // ── Gerar Pop-up HTML Customizado ──
-  function createPopupHTML(loc) {
-    const cfg = severityConfig[loc.severity] || severityConfig.warning;
+  // ── Gerador de HTML do Popup interativo ──────────────────────────────────
+  function criarPopupHTML(bo) {
+    const cfg = getGravityConfig(bo.gravidade);
+    const dataFormatada = formatarDataHora(bo.data_hora);
+
     return `
       <div class="popup-card">
         <div class="popup-header">
-          <span class="popup-severity ${cfg.badgeClass}"></span>
-          <span class="popup-title">${loc.name}</span>
+          <span class="popup-severity ${cfg.popupClass}"></span>
+          <span class="popup-title">${bo.tipo_crime || 'Ocorrência'}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Ocorrência</span>
-          <span class="popup-value" style="font-weight:600;">${loc.type}</span>
+          <span class="popup-label">Nº BO</span>
+          <span class="popup-value mono">${bo.numero_bo || '—'}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Categoria</span>
-          <span class="popup-badge ${cfg.badgeClass}">${cfg.label}</span>
+          <span class="popup-label">Bairro</span>
+          <span class="popup-value">${bo.bairro || '—'}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Horário</span>
-          <span class="popup-value mono">${loc.timestamp}</span>
+          <span class="popup-label">Logradouro</span>
+          <span class="popup-value" style="font-size:0.75rem;">${bo.logradouro || '—'}</span>
         </div>
         <div class="popup-row">
-          <span class="popup-label">Coordenadas</span>
-          <span class="popup-value mono">${loc.lat.toFixed(4)}, ${loc.lng.toFixed(4)}</span>
+          <span class="popup-label">Data / Horário</span>
+          <span class="popup-value mono">${dataFormatada}</span>
+        </div>
+        <div class="popup-row">
+          <span class="popup-label">Severidade</span>
+          <span class="popup-badge ${cfg.popupClass}">${cfg.label}</span>
+        </div>
+        <div class="popup-row">
+          <span class="popup-label">Status</span>
+          <span class="popup-value">${bo.status || 'Em Análise'}</span>
+        </div>
+        <div class="popup-row">
+          <span class="popup-label">Coord.</span>
+          <span class="popup-value mono">${Number(bo.latitude).toFixed(4)}, ${Number(bo.longitude).toFixed(4)}</span>
         </div>
       </div>
     `;
   }
 
-  // ── Adicionar Marcador com Símbolo Customizado Lucide no Mapa ──
-  function addMarker(loc) {
-    if (!loc.timestamp) {
-      loc.timestamp = getFormattedTimestamp();
-    }
+  // ── Estado Global dos Layers ─────────────────────────────────────────────
+  const markersLayerGroup = L.layerGroup().addTo(map);  // Grupo de marcadores da API
+  const staticLayerGroup  = L.layerGroup().addTo(map);  // Polígonos de zona (estáticos)
+  let heatLayer = null;
+  let allApiMarkers = [];  // Cache de {marker, bo} para filtros
+  let lastBoData = [];     // Cache dos BOs para atualização do heatmap
 
-    const cfg = severityConfig[loc.severity] || severityConfig.warning;
+  // ── Adicionar Marcador de BO com Ícone Dinâmico ──────────────────────────
+  function adicionarMarcadorBO(bo) {
+    const cfg = getGravityConfig(bo.gravidade);
 
     const icon = L.divIcon({
       className: 'custom-map-icon',
@@ -273,117 +186,298 @@
       iconAnchor: [12, 12]
     });
 
-    const marker = L.marker([loc.lat, loc.lng], { icon: icon }).addTo(map);
+    const marker = L.marker([bo.latitude, bo.longitude], { icon }).addTo(markersLayerGroup);
 
-    marker.bindPopup(createPopupHTML(loc), {
-      maxWidth: 290,
+    marker.bindPopup(criarPopupHTML(bo), {
+      maxWidth: 300,
       className: 'dark-popup'
     });
 
-    // Renderizar o ícone Lucide no elemento recém-criado
+    // Renderizar ícones Lucide nos pins recém-criados
     if (window.lucide) {
-      setTimeout(() => lucide.createIcons(), 10);
+      setTimeout(() => lucide.createIcons(), 15);
     }
 
-    const markerObj = { marker: marker, data: loc };
-    activeMarkers.push(markerObj);
-
-    return markerObj;
+    return { marker, bo };
   }
 
-  // Adicionar todos os pontos iniciais
-  initialLocations.forEach(addMarker);
+  // ── Atualizar Heatmap com dados reais dos BOs ────────────────────────────
+  function atualizarHeatmap(bos) {
+    // Converter BOs em pontos de calor: [lat, lng, intensidade]
+    const heatPoints = bos
+      .filter(bo => bo.latitude && bo.longitude)
+      .map(bo => {
+        const cfg = getGravityConfig(bo.gravidade);
+        return [
+          parseFloat(bo.latitude),
+          parseFloat(bo.longitude),
+          cfg.heatIntensity
+        ];
+      });
 
-  // Renderizar ícones Lucide
-  if (window.lucide) {
-    lucide.createIcons();
-  }
+    // Remover layer antiga antes de criar nova
+    if (heatLayer) {
+      map.removeLayer(heatLayer);
+      heatLayer = null;
+    }
 
-  // ── Auto-enquadrar a Câmera nos Marcadores da Região ──
-  function fitMapToBounds() {
-    if (activeMarkers.length > 0) {
-      const group = L.featureGroup(activeMarkers.map(m => m.marker));
-      map.fitBounds(group.getBounds().pad(0.08));
+    if (typeof L.heatLayer === 'function' && heatPoints.length > 0) {
+      heatLayer = L.heatLayer(heatPoints, {
+        radius: 38,
+        blur: 28,
+        maxZoom: 15,
+        minOpacity: 0.2,
+        gradient: {
+          0.2: '#10b981',   // Verde — baixa concentração
+          0.4: '#3b82f6',   // Azul — média
+          0.6: '#a855f7',   // Roxo — alta
+          0.8: '#f59e0b',   // Amarelo — muito alta
+          1.0: '#ef4444'    // Vermelho — crítica
+        }
+      }).addTo(map);
+    }
+
+    // Toggle de visibilidade controlado pelo checkbox
+    const cbHeatmap = document.getElementById('layerHeatmap');
+    if (cbHeatmap && heatLayer && !cbHeatmap.checked) {
+      map.removeLayer(heatLayer);
     }
   }
 
-  // Chamar o enquadramento inicial
-  fitMapToBounds();
-  setTimeout(() => {
-    map.invalidateSize();
-    fitMapToBounds();
-  }, 300);
+  // ── Atualizar contadores do painel de estatísticas ──────────────────────
+  function atualizarEstatisticas(bos, total) {
+    const criticas  = bos.filter(b => String(b.gravidade).toUpperCase() === 'CRITICA').length;
+    const altas     = bos.filter(b => String(b.gravidade).toUpperCase() === 'ALTA').length;
+    const outras    = bos.filter(b => !['CRITICA', 'ALTA'].includes(String(b.gravidade).toUpperCase())).length;
 
-  const btnFocus = document.getElementById('btnFocusMap');
-  if (btnFocus) {
-    btnFocus.addEventListener('click', fitMapToBounds);
+    const elTotal    = document.getElementById('statOcorrencias');
+    const elCritical = document.getElementById('statZonas');
+    const elWarning  = document.getElementById('statAlertasMedios');
+    const elSafe     = document.getElementById('statSensores');
+
+    if (elTotal)    elTotal.textContent    = total || bos.length;
+    if (elCritical) elCritical.textContent = criticas;
+    if (elWarning)  elWarning.textContent  = altas;
+    if (elSafe)     elSafe.textContent     = outras;
   }
 
-  // ── Polígonos de Cobertura Translúcida (Zonas com Textura Suave) ──
+  // ── Aplicar Filtros de Gravidade (Checkboxes) ────────────────────────────
+  const filtroMap = {
+    layerCritical: 'CRITICA',
+    layerWarning:  'ALTA',
+    layerClimate:  'MEDIA',
+    layerInfra:    'MEDIA',   // mantido por compatibilidade HTML
+    layerSafe:     'BAIXA'
+  };
+
+  function aplicarFiltros() {
+    const critica   = document.getElementById('layerCritical')?.checked ?? true;
+    const alta      = document.getElementById('layerWarning')?.checked ?? true;
+    const media     = document.getElementById('layerClimate')?.checked ?? true;
+    const baixa     = document.getElementById('layerSafe')?.checked ?? true;
+
+    allApiMarkers.forEach(({ marker, bo }) => {
+      const g = String(bo.gravidade).toUpperCase();
+      const visivel =
+        (g === 'CRITICA' && critica) ||
+        (g === 'ALTA'    && alta)    ||
+        (g === 'MEDIA'   && media)   ||
+        (g === 'BAIXA'   && baixa);
+
+      if (visivel) {
+        if (!markersLayerGroup.hasLayer(marker)) markersLayerGroup.addLayer(marker);
+      } else {
+        if (markersLayerGroup.hasLayer(marker)) markersLayerGroup.removeLayer(marker);
+      }
+    });
+  }
+
+  // Vincular checkboxes existentes no HTML
+  ['layerCritical', 'layerWarning', 'layerClimate', 'layerInfra', 'layerSafe'].forEach(id => {
+    const cb = document.getElementById(id);
+    if (cb) cb.addEventListener('change', aplicarFiltros);
+  });
+
+  const cbZones = document.getElementById('layerZones');
+  if (cbZones) {
+    cbZones.addEventListener('change', function () {
+      if (this.checked) map.addLayer(staticLayerGroup);
+      else map.removeLayer(staticLayerGroup);
+    });
+  }
+
+  const cbHeatmap = document.getElementById('layerHeatmap');
+  if (cbHeatmap) {
+    cbHeatmap.addEventListener('change', function () {
+      if (!heatLayer) return;
+      if (this.checked) map.addLayer(heatLayer);
+      else map.removeLayer(heatLayer);
+    });
+  }
+
+  // ── BUSCA DE DADOS DA API FASTAPI ─────────────────────────────────────────
+  // Usa fetch nativo (não requer Axios no HTML puro) apontando para /api/v1/ocorrencias
+  async function fetchOcorrenciasAPI(page = 1, pageSize = 100) {
+    const url = `${API_BASE_URL}/ocorrencias?page=${page}&page_size=${pageSize}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`API retornou HTTP ${response.status}`);
+    }
+
+    return response.json(); // → { total, pagina, tamanho_pagina, total_paginas, ocorrencias: [...] }
+  }
+
+  // ── CARREGAR E RENDERIZAR TODAS AS OCORRÊNCIAS ────────────────────────────
+  async function carregarOcorrenciasNoMapa(paginaAtual = 1, acumulados = []) {
+    try {
+      mostrarLoading(true);
+      const dados = await fetchOcorrenciasAPI(paginaAtual, 100);
+      const bos   = dados.ocorrencias || [];
+
+      // Acumular todos os BOs (caso haja múltiplas páginas)
+      const todos = [...acumulados, ...bos];
+
+      // Se houver mais páginas, carregar recursivamente
+      if (paginaAtual < dados.total_paginas) {
+        return await carregarOcorrenciasNoMapa(paginaAtual + 1, todos);
+      }
+
+      // — Renderização completa —
+      renderizarMarcadores(todos, dados.total);
+      atualizarHeatmap(todos);
+      atualizarEstatisticas(todos, dados.total);
+      lastBoData = todos;
+
+      // Enquadrar câmera nos marcadores reais (se houver)
+      if (todos.length > 0) {
+        const group = L.featureGroup(allApiMarkers.map(m => m.marker));
+        if (group.getBounds().isValid()) {
+          map.fitBounds(group.getBounds().pad(0.06));
+        }
+      }
+
+      mostrarLoading(false);
+      mostrarToast('✅ Mapa Atualizado', `${todos.length} BOs carregados da API FastAPI`, 'safe');
+
+    } catch (err) {
+      mostrarLoading(false);
+      console.warn('[Sentinel Mapa] Falha na API — usando dados estáticos de fallback:', err.message);
+      mostrarToast('⚠️ Backend Offline', 'Exibindo dados locais. Inicie o FastAPI em http://localhost:8000', 'warning');
+
+      // Fallback: mostrar pontos estáticos se a API falhar
+      carregarFallbackEstatico();
+    }
+  }
+
+  // ── Renderizar marcadores de BO na tela ───────────────────────────────────
+  function renderizarMarcadores(bos, total) {
+    // Limpar marcadores anteriores
+    markersLayerGroup.clearLayers();
+    allApiMarkers = [];
+
+    bos.forEach(bo => {
+      // Ignorar BOs sem coordenadas válidas
+      if (!bo.latitude || !bo.longitude) return;
+      const lat = parseFloat(bo.latitude);
+      const lng = parseFloat(bo.longitude);
+      if (isNaN(lat) || isNaN(lng)) return;
+
+      const obj = adicionarMarcadorBO(bo);
+      allApiMarkers.push(obj);
+    });
+
+    aplicarFiltros();
+
+    if (window.lucide) lucide.createIcons();
+    invalidarMapa();
+  }
+
+  // ── Loading indicator (injetado dinamicamente no mapa) ───────────────────
+  function mostrarLoading(ativo) {
+    let el = document.getElementById('mapLoadingOverlay');
+    if (ativo) {
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'mapLoadingOverlay';
+        el.style.cssText = `
+          position: absolute; top: 50%; left: 50%;
+          transform: translate(-50%, -50%);
+          background: rgba(6,10,20,0.92);
+          border: 1px solid rgba(0,229,255,0.25);
+          border-radius: 12px;
+          padding: 1rem 1.5rem;
+          z-index: 9999;
+          color: #00e5ff;
+          font-family: inherit;
+          font-size: 0.85rem;
+          font-weight: 600;
+          display: flex;
+          align-items: center;
+          gap: 0.6rem;
+          backdrop-filter: blur(12px);
+        `;
+        el.innerHTML = `
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+          </svg>
+          Sincronizando BOs com a API FastAPI...
+        `;
+        const wrapper = document.querySelector('.map-page-wrapper');
+        if (wrapper) wrapper.appendChild(el);
+      }
+    } else if (el) {
+      el.remove();
+    }
+  }
+
+  // ── Toast Notifications ──────────────────────────────────────────────────
+  function mostrarToast(title, desc, severity) {
+    const container = document.getElementById('toastContainer');
+    if (!container) return;
+
+    const cfg = {
+      safe: { emoji: '✅', color: '#10b981' },
+      warning: { emoji: '⚠️', color: '#f59e0b' },
+      critical: { emoji: '🚨', color: '#ef4444' },
+      info: { emoji: '🔵', color: '#3b82f6' }
+    }[severity] || { emoji: '📡', color: '#00e5ff' };
+
+    const toast = document.createElement('div');
+    toast.className = `sentinel-toast ${severity}`;
+    toast.innerHTML = `
+      <div style="font-size:1.1rem; line-height:1; margin-top:2px;">${cfg.emoji}</div>
+      <div style="flex:1;">
+        <div class="sentinel-toast-title">${title}</div>
+        <div class="sentinel-toast-desc">${desc}</div>
+        <div class="sentinel-toast-time">${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})} • Sentinel IA</div>
+      </div>
+    `;
+    container.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(50px)';
+      setTimeout(() => toast.remove(), 400);
+    }, 5000);
+  }
+
+  // ── Invalidar tamanho do mapa (resolve bugs de tile) ─────────────────────
+  function invalidarMapa() {
+    setTimeout(() => map.invalidateSize(), 250);
+  }
+
+  // ── Polígonos de Zona AOI (camada estática) ───────────────────────────────
   const zonePolygons = [
-    // 🔴 ZONA CENTRAL / EMERGÊNCIA (Vermelho Translúcido)
-    {
-      coords: [
-        [-23.5350, -46.6500],
-        [-23.5320, -46.6200],
-        [-23.5600, -46.6150],
-        [-23.5650, -46.6450]
-      ],
-      color: '#ef4444',
-      fillOpacity: 0.18,
-      name: 'Zona Central de Emergência & Risco'
-    },
-    // 🟡 ZONA DE ALERTA & MARGINAIS (Amarelo Translúcido)
-    {
-      coords: [
-        [-23.5150, -46.7200],
-        [-23.5050, -46.6400],
-        [-23.5350, -46.6450],
-        [-23.5450, -46.7150]
-      ],
-      color: '#f59e0b',
-      fillOpacity: 0.16,
-      name: 'Corredor de Trânsito & Marginais'
-    },
-    // 🔵 ZONA SUL & BACIA PLUVIOMÉTRICA (Azul Translúcido)
-    {
-      coords: [
-        [-23.5950, -46.7200],
-        [-23.5850, -46.6400],
-        [-23.6700, -46.6200],
-        [-23.6800, -46.7100]
-      ],
-      color: '#3b82f6',
-      fillOpacity: 0.16,
-      name: 'Bacia Hidrográfica & Monitoramento de Chuvas'
-    },
-    // 🟣 EIXO PAULISTA & BERINI (Roxo Translúcido - IA OCR)
-    {
-      coords: [
-        [-23.5550, -46.6750],
-        [-23.5500, -46.6500],
-        [-23.6150, -46.6850],
-        [-23.6200, -46.7050]
-      ],
-      color: '#a855f7',
-      fillOpacity: 0.18,
-      name: 'Eixo Financeiro — Câmeras OCR & IA'
-    },
-    // 🟢 ZONA LESTE & PARQUES SEGUROS (Verde Translúcido)
-    {
-      coords: [
-        [-23.5250, -46.5900],
-        [-23.5150, -46.4300],
-        [-23.5900, -46.4500],
-        [-23.5950, -46.5800]
-      ],
-      color: '#10b981',
-      fillOpacity: 0.16,
-      name: 'Zona Leste — Área Monitorada & Segura'
-    }
+    { coords: [[-23.5350,-46.6500],[-23.5320,-46.6200],[-23.5600,-46.6150],[-23.5650,-46.6450]], color:'#ef4444', fillOpacity:0.12, name:'Zona Central — Risco Crítico' },
+    { coords: [[-23.5150,-46.7200],[-23.5050,-46.6400],[-23.5350,-46.6450],[-23.5450,-46.7150]], color:'#f59e0b', fillOpacity:0.12, name:'Corredor Trânsito & Marginais' },
+    { coords: [[-23.5950,-46.7200],[-23.5850,-46.6400],[-23.6700,-46.6200],[-23.6800,-46.7100]], color:'#3b82f6', fillOpacity:0.12, name:'Bacia Hidrográfica Sul' },
+    { coords: [[-23.5550,-46.6750],[-23.5500,-46.6500],[-23.6150,-46.6850],[-23.6200,-46.7050]], color:'#a855f7', fillOpacity:0.14, name:'Eixo Financeiro — IA OCR' },
+    { coords: [[-23.5250,-46.5900],[-23.5150,-46.4300],[-23.5900,-46.4500],[-23.5950,-46.5800]], color:'#10b981', fillOpacity:0.12, name:'Zona Leste — Monitorada' }
   ];
-
-  const zoneLayerGroup = L.layerGroup().addTo(map);
 
   zonePolygons.forEach(z => {
     const poly = L.polygon(z.coords, {
@@ -392,111 +486,36 @@
       dashArray: '5, 5',
       fillColor: z.color,
       fillOpacity: z.fillOpacity
-    }).addTo(zoneLayerGroup);
+    }).addTo(staticLayerGroup);
 
-    poly.bindTooltip(`<b>${z.name}</b><br>Textura de Cobertura Translúcida`, {
-      sticky: true,
-      className: 'dark-popup'
-    });
+    poly.bindTooltip(`<b>${z.name}</b>`, { sticky: true, className: 'dark-popup' });
   });
 
-  // ── Camada Térmica (Grade Contínua de Calor pela Cidade) ──
-  function generateFullCityHeatPoints() {
-    const points = [];
-    for (let lat = -23.42; lat >= -23.72; lat -= 0.012) {
-      for (let lng = -46.42; lng >= -46.85; lng -= 0.012) {
-        const val = 0.2 + Math.random() * 0.7;
-        points.push([lat, lng, val]);
-      }
-    }
-    return points;
-  }
-
-  let heatLayer = null;
-  if (typeof L.heatLayer === 'function') {
-    heatLayer = L.heatLayer(generateFullCityHeatPoints(), {
-      radius: 42,
-      blur: 32,
-      maxZoom: 15,
-      minOpacity: 0.15,
-      gradient: { 0.2: '#10b981', 0.4: '#3b82f6', 0.6: '#a855f7', 0.8: '#f59e0b', 1.0: '#ef4444' }
-    }).addTo(map);
-  }
-
-  // ── Filtro por Cor de Alerta (Checkboxes) ──
-  const filters = {
-    layerCritical: 'critical',
-    layerWarning: 'warning',
-    layerClimate: 'climate',
-    layerInfra: 'infra',
-    layerSafe: 'safe'
-  };
-
-  function updateVisibleMarkers() {
-    activeMarkers.forEach(item => {
-      const severity = item.data.severity;
-      let shouldShow = false;
-
-      Object.keys(filters).forEach(cbId => {
-        const checkbox = document.getElementById(cbId);
-        if (checkbox && checkbox.checked && filters[cbId] === severity) {
-          shouldShow = true;
-        }
-      });
-
-      if (shouldShow) {
-        if (!map.hasLayer(item.marker)) map.addLayer(item.marker);
-      } else {
-        if (map.hasLayer(item.marker)) map.removeLayer(item.marker);
-      }
-    });
-  }
-
-  Object.keys(filters).forEach(cbId => {
-    const cb = document.getElementById(cbId);
-    if (cb) {
-      cb.addEventListener('change', updateVisibleMarkers);
-    }
-  });
-
-  const cbZones = document.getElementById('layerZones');
-  if (cbZones && zoneLayerGroup) {
-    cbZones.addEventListener('change', function () {
-      if (this.checked) map.addLayer(zoneLayerGroup);
-      else map.removeLayer(zoneLayerGroup);
-    });
-  }
-
-  const cbHeatmap = document.getElementById('layerHeatmap');
-  if (cbHeatmap && heatLayer) {
-    cbHeatmap.addEventListener('change', function () {
-      if (this.checked) map.addLayer(heatLayer);
-      else map.removeLayer(heatLayer);
-    });
-  }
-
-  // ── Funcionalidade de Busca por Bairro / Região ──
+  // ── Busca de Bairro / Região no Mapa ─────────────────────────────────────
   function performSearch() {
     const input = document.getElementById('mapSearchInput');
     if (!input) return;
     const query = input.value.trim().toLowerCase();
     if (!query) return;
 
-    // Procura por nome equivalente
-    const found = activeMarkers.find(item => item.data.name.toLowerCase().includes(query));
+    const found = allApiMarkers.find(({ bo }) =>
+      (bo.bairro && bo.bairro.toLowerCase().includes(query)) ||
+      (bo.logradouro && bo.logradouro.toLowerCase().includes(query)) ||
+      (bo.tipo_crime && bo.tipo_crime.toLowerCase().includes(query))
+    );
 
     if (found) {
-      map.flyTo([found.data.lat, found.data.lng], 14, { animate: true, duration: 1.5 });
+      map.flyTo([found.bo.latitude, found.bo.longitude], 15, { animate: true, duration: 1.5 });
       found.marker.openPopup();
-      showToastNotification(
-        `Local Encontrado: ${found.data.name}`,
-        `Mostrando notificações no mapa com status ${found.data.type}.`,
-        found.data.severity
+      mostrarToast(
+        `📍 ${found.bo.bairro}`,
+        `Ocorrência: ${found.bo.tipo_crime} — ${formatarDataHora(found.bo.data_hora)}`,
+        'info'
       );
     } else {
-      showToastNotification(
+      mostrarToast(
         'Busca Geoespacial',
-        `Nenhuma ocorrência específica em "${query}". Tente buscar: Paulista, Moema, Tatuapé, Osasco, Guarulhos ou Centro.`,
+        `Nenhum resultado para "${query}". Tente: Sé, Pinheiros, Paulista, Moema, Tatuapé.`,
         'warning'
       );
     }
@@ -506,12 +525,18 @@
   const inputSearch = document.getElementById('mapSearchInput');
   if (btnSearch) btnSearch.addEventListener('click', performSearch);
   if (inputSearch) {
-    inputSearch.addEventListener('keypress', function (e) {
-      if (e.key === 'Enter') performSearch();
+    inputSearch.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
+  }
+
+  // ── Botão "Focar em SP" ───────────────────────────────────────────────────
+  const btnFocus = document.getElementById('btnFocusMap');
+  if (btnFocus) {
+    btnFocus.addEventListener('click', () => {
+      map.flyTo(SP_CENTER, SP_ZOOM, { animate: true, duration: 1.2 });
     });
   }
 
-  // ── Navegação Direta via URL (Parâmetros de Alerta) ──
+  // ── Navegação Direta via URL Params (?lat=...&lng=...&search=...) ─────────
   function checkURLAlertParams() {
     const params = new URLSearchParams(window.location.search);
     const lat = parseFloat(params.get('lat'));
@@ -526,182 +551,121 @@
     if (!isNaN(lat) && !isNaN(lng)) {
       setTimeout(() => {
         map.flyTo([lat, lng], 15, { animate: true, duration: 1.8 });
-        
-        // Encontra o marcador correspondente
-        const nearest = activeMarkers.find(item => 
-          Math.abs(item.data.lat - lat) < 0.03 && Math.abs(item.data.lng - lng) < 0.03
+        const nearest = allApiMarkers.find(({ bo }) =>
+          Math.abs(parseFloat(bo.latitude) - lat) < 0.03 &&
+          Math.abs(parseFloat(bo.longitude) - lng) < 0.03
         );
-
-        if (nearest) {
-          nearest.marker.openPopup();
-          showToastNotification(
-            `📍 Navegação Direta: ${nearest.data.name}`,
-            `Visualizando alerta de ${nearest.data.type}.`,
-            nearest.data.severity
-          );
-        } else if (search) {
-          showToastNotification(
-            `📍 Navegação para Alerta`,
-            `Câmera focada no alerta em ${decodeURIComponent(search)}.`,
-            'critical'
-          );
-        }
-      }, 500);
+        if (nearest) nearest.marker.openPopup();
+      }, 600);
     } else if (search) {
-      setTimeout(() => performSearch(), 500);
+      setTimeout(() => performSearch(), 600);
     }
   }
 
-  checkURLAlertParams();
-
-  // ── Motor em Tempo Real (Gerador de Novas Notificações) ──
-  const realTimeEvents = [
-    { type: 'Roubo de Veículo em Progresso', severity: 'critical', name: 'Pinheiros — Marginal Pinheiros' },
-    { type: 'Incêndio em Terreno Comercial', severity: 'critical', name: 'Brás — Rua das Rendas' },
-    { type: 'Acidente Grave com Bloqueio', severity: 'critical', name: 'Guarulhos — Rodovia Dutra' },
-    { type: 'Alagamento em Ponto Crítico', severity: 'warning', name: 'Mooca — Av. Anhaia Mello' },
-    { type: 'Aglomeração e Obra Sem Sinalização', severity: 'warning', name: 'Santo Amaro — Av. Santo Amaro' },
-    { type: 'Queda de Árvore com Trânsito Lento', severity: 'warning', name: 'Vila Mariana — Rua Domingos de Morais' },
-    { type: 'Sensor Pluviométrico: Chuva Forte 35mm', severity: 'climate', name: 'Parelheiros — Zona Sul' },
-    { type: 'Índice de Qualidade do Ar Excelente', severity: 'climate', name: 'Parque do Carmo — Itaquera' },
-    { type: 'Detector de Temperatura Baixa 14°C', severity: 'climate', name: 'Tremembé — Cantareira' },
-    { type: 'Leitor OCR: Veículo Procurado Identificado', severity: 'infra', name: 'Consolação — Av. Rebouças' },
-    { type: 'Manutenção Automática de Câmera IA', severity: 'infra', name: 'Moema — Av. dos Bandeirantes' },
-    { type: 'Posto Policial Móvel Ativo', severity: 'safe', name: 'Tatuapé — Radial Leste' },
-    { type: 'Ronda Noturna Urbana Segura', severity: 'safe', name: 'Santana — Av. Braz Leme' }
-  ];
-
-  setInterval(function () {
-    const randomEvt = realTimeEvents[Math.floor(Math.random() * realTimeEvents.length)];
-
-    // Coordenadas aleatórias na Grande SP
-    const lat = -23.42 - Math.random() * 0.28;
-    const lng = -46.42 - Math.random() * 0.42;
-
-    const newLoc = {
-      lat: lat,
-      lng: lng,
-      name: randomEvt.name,
-      type: randomEvt.type,
-      severity: randomEvt.severity,
-      timestamp: getFormattedTimestamp()
-    };
-
-    addMarker(newLoc);
-    updateVisibleMarkers();
-    updateStatsCounter();
-
-    // Notificar cliente via Toast
-    const cfg = severityConfig[newLoc.severity];
-    showToastNotification(
-      `Novo Evento (${cfg.name}): ${newLoc.name}`,
-      `${newLoc.type}. Notificação registrada em tempo real.`,
-      newLoc.severity
-    );
-  }, 8000);
-
-  // ── Atualização dos Contadores de Estatísticas ──
-  function updateStatsCounter() {
-    const criticalCount = activeMarkers.filter(m => m.data.severity === 'critical').length;
-    const warningCount = activeMarkers.filter(m => m.data.severity === 'warning').length;
-    const climateCount = activeMarkers.filter(m => m.data.severity === 'climate').length;
-    const infraCount = activeMarkers.filter(m => m.data.severity === 'infra').length;
-    const safeCount = activeMarkers.filter(m => m.data.severity === 'safe').length;
-
-    const elTotal = document.getElementById('statOcorrencias');
-    const elCritical = document.getElementById('statZonas');
-    const elWarning = document.getElementById('statAlertasMedios');
-    const elSafe = document.getElementById('statSensores');
-
-    if (elTotal) elTotal.textContent = activeMarkers.length;
-    if (elCritical) elCritical.textContent = criticalCount;
-    if (elWarning) elWarning.textContent = warningCount;
-    if (elSafe) elSafe.textContent = safeCount + climateCount + infraCount;
-  }
-  updateStatsCounter();
-
-  // ── Gerador de Relatório Instantâneo para o Cliente ──
+  // ── Relatório ao Vivo ─────────────────────────────────────────────────────
   const btnReport = document.getElementById('btnGenerateReport');
   if (btnReport) {
-    btnReport.addEventListener('click', function () {
-      const counts = {
-        critical: activeMarkers.filter(m => m.data.severity === 'critical').length,
-        warning: activeMarkers.filter(m => m.data.severity === 'warning').length,
-        climate: activeMarkers.filter(m => m.data.severity === 'climate').length,
-        infra: activeMarkers.filter(m => m.data.severity === 'infra').length,
-        safe: activeMarkers.filter(m => m.data.severity === 'safe').length
-      };
+    btnReport.addEventListener('click', () => {
+      const criticas = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'CRITICA').length;
+      const altas    = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'ALTA').length;
+      const medias   = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'MEDIA').length;
+      const baixas   = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'BAIXA').length;
 
-      const modalBackdrop = document.createElement('div');
-      modalBackdrop.className = 'sentinel-modal-backdrop';
-
-      modalBackdrop.innerHTML = `
+      const backdrop = document.createElement('div');
+      backdrop.className = 'sentinel-modal-backdrop';
+      backdrop.innerHTML = `
         <div class="sentinel-modal">
           <div class="sentinel-modal-header">
             <div class="sentinel-modal-title">
               <i data-lucide="shield" style="color:var(--cyan);"></i>
-              Relatório Geral em Tempo Real — Sentinel IA
+              Relatório de BOs — Sentinel IA (API Ativa)
             </div>
-            <button class="btn-icon" id="btnCloseModal" aria-label="Fechar">
-              <i data-lucide="x"></i>
-            </button>
+            <button class="btn-icon" id="btnCloseModal"><i data-lucide="x"></i></button>
           </div>
           <div class="sentinel-modal-body">
-            <p><strong>Status de Cobertura:</strong> Monitoramento ativo em 100% dos setores de São Paulo e Região Metropolitana.</p>
-            <p style="margin-bottom:1.25rem;"><strong>Emissão:</strong> ${getFormattedTimestamp()}</p>
-            
-            <h4 style="color:#fff; margin-bottom:0.75rem;">Resumo de Notificações por Nível de Alerta:</h4>
-            
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:10px; margin-bottom:1.5rem;">
+            <p><strong>Fonte:</strong> FastAPI Backend — <code>${API_BASE_URL}/ocorrencias</code></p>
+            <p style="margin-bottom:1.25rem;"><strong>Emissão:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+            <h4 style="color:#fff; margin-bottom:0.75rem;">Resumo por Severidade:</h4>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:10px; margin-bottom:1.5rem;">
               <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#ef4444;">${counts.critical}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🔴 Emergência</div>
+                <div style="font-size:1.4rem; font-weight:800; color:#ef4444;">${criticas}</div>
+                <div style="font-size:0.75rem; color:#aaa;">🔴 Críticas</div>
               </div>
               <div style="background:rgba(245,158,11,0.1); border:1px solid #f59e0b; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#f59e0b;">${counts.warning}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🟡 Alertas</div>
+                <div style="font-size:1.4rem; font-weight:800; color:#f59e0b;">${altas}</div>
+                <div style="font-size:0.75rem; color:#aaa;">🟡 Altas</div>
               </div>
               <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#3b82f6;">${counts.climate}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🔵 Clima</div>
-              </div>
-              <div style="background:rgba(168,85,247,0.1); border:1px solid #a855f7; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#a855f7;">${counts.infra}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🟣 Infra / IA</div>
+                <div style="font-size:1.4rem; font-weight:800; color:#3b82f6;">${medias}</div>
+                <div style="font-size:0.75rem; color:#aaa;">🔵 Médias</div>
               </div>
               <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#10b981;">${counts.safe}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🟢 Zonas Seguras</div>
+                <div style="font-size:1.4rem; font-weight:800; color:#10b981;">${baixas}</div>
+                <div style="font-size:0.75rem; color:#aaa;">🟢 Baixas</div>
               </div>
             </div>
-
-            <h4 style="color:#fff; margin-bottom:0.75rem;">Últimas Ocorrências Registradas:</h4>
+            <h4 style="color:#fff; margin-bottom:0.75rem;">Últimas 6 Ocorrências (API):</h4>
             <ul style="padding-left:1.2rem; display:flex; flex-direction:column; gap:6px;">
-              ${activeMarkers.slice(-6).reverse().map(m => `
-                <li><strong>[${m.data.name}]</strong> ${m.data.type} (${m.data.timestamp})</li>
+              ${allApiMarkers.slice(-6).reverse().map(({ bo }) => `
+                <li><strong>[${bo.bairro || '—'}]</strong> ${bo.tipo_crime} — BO ${bo.numero_bo} (${formatarDataHora(bo.data_hora)})</li>
               `).join('')}
             </ul>
           </div>
           <div class="sentinel-modal-footer">
-            <button class="btn btn-secondary btn-sm" id="btnPrintModal">Imprimir / Salvar PDF</button>
-            <button class="btn btn-primary btn-sm" id="btnCloseModal2">Fechar Relatório</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.print()">Imprimir / PDF</button>
+            <button class="btn btn-primary btn-sm" id="btnCloseModal2">Fechar</button>
           </div>
         </div>
       `;
-
-      document.body.appendChild(modalBackdrop);
+      document.body.appendChild(backdrop);
       if (window.lucide) lucide.createIcons();
 
-      const close1 = document.getElementById('btnCloseModal');
-      const close2 = document.getElementById('btnCloseModal2');
-      const printBtn = document.getElementById('btnPrintModal');
-
-      const closeModal = () => modalBackdrop.remove();
-
-      if (close1) close1.addEventListener('click', closeModal);
-      if (close2) close2.addEventListener('click', closeModal);
-      if (printBtn) printBtn.addEventListener('click', () => window.print());
+      const close = () => backdrop.remove();
+      document.getElementById('btnCloseModal')?.addEventListener('click', close);
+      document.getElementById('btnCloseModal2')?.addEventListener('click', close);
+      backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
     });
   }
+
+  // ── Dados Estáticos de Fallback (caso API offline) ───────────────────────
+  function carregarFallbackEstatico() {
+    const fallbackBOs = [
+      { id:'F-01', numero_bo:'BO-0001', data_hora: new Date().toISOString(), tipo_crime:'Furto a Pedestre', bairro:'Sé', logradouro:'Praça da Sé', latitude:-23.5505, longitude:-46.6333, gravidade:'CRITICA', status:'Em Atendimento' },
+      { id:'F-02', numero_bo:'BO-0002', data_hora: new Date().toISOString(), tipo_crime:'Acidente de Trânsito', bairro:'Pinheiros', logradouro:'Av. Faria Lima', latitude:-23.5675, longitude:-46.6920, gravidade:'ALTA', status:'Registrado' },
+      { id:'F-03', numero_bo:'BO-0003', data_hora: new Date().toISOString(), tipo_crime:'Monitoramento Climático', bairro:'Moema', logradouro:'Parque Ibirapuera', latitude:-23.5876, longitude:-46.6580, gravidade:'MEDIA', status:'Monitorando' },
+      { id:'F-04', numero_bo:'BO-0004', data_hora: new Date().toISOString(), tipo_crime:'Ronda Preventiva', bairro:'Tatuapé', logradouro:'Praça Silvio Romero', latitude:-23.5410, longitude:-46.5750, gravidade:'BAIXA', status:'Seguro' },
+      { id:'F-05', numero_bo:'BO-0005', data_hora: new Date().toISOString(), tipo_crime:'Furto de Veículo', bairro:'Lapa', logradouro:'Rua 12 de Outubro', latitude:-23.5350, longitude:-46.7020, gravidade:'CRITICA', status:'Em Atendimento' },
+      { id:'F-06', numero_bo:'BO-0006', data_hora: new Date().toISOString(), tipo_crime:'Alagamento', bairro:'Brás', logradouro:'Av. Rangel Pestana', latitude:-23.5480, longitude:-46.6050, gravidade:'ALTA', status:'Alerta Ativo' },
+      { id:'F-07', numero_bo:'BO-0007', data_hora: new Date().toISOString(), tipo_crime:'Câmera OCR Ativa', bairro:'Consolação', logradouro:'Av. Paulista, 1578', latitude:-23.5614, longitude:-46.6560, gravidade:'MEDIA', status:'Operacional' },
+      { id:'F-08', numero_bo:'BO-0008', data_hora: new Date().toISOString(), tipo_crime:'Roubo em Andamento', bairro:'Brasilândia', logradouro:'Est. do Sabão', latitude:-23.4610, longitude:-46.6950, gravidade:'CRITICA', status:'Urgente' }
+    ];
+    renderizarMarcadores(fallbackBOs, fallbackBOs.length);
+    atualizarHeatmap(fallbackBOs);
+    atualizarEstatisticas(fallbackBOs, fallbackBOs.length);
+    map.flyTo(SP_CENTER, SP_ZOOM);
+  }
+
+  // ── Início: Carregar API e configurar auto-refresh ────────────────────────
+  async function inicializar() {
+    await carregarOcorrenciasNoMapa();
+    checkURLAlertParams();
+
+    // Auto-refresh a cada 30s (dados ao vivo)
+    setInterval(async () => {
+      try {
+        const dados = await fetchOcorrenciasAPI(1, 100);
+        renderizarMarcadores(dados.ocorrencias || [], dados.total);
+        atualizarHeatmap(dados.ocorrencias || []);
+        atualizarEstatisticas(dados.ocorrencias || [], dados.total);
+      } catch (e) {
+        console.warn('[Auto-refresh] Falha na sincronização:', e.message);
+      }
+    }, REFRESH_MS);
+  }
+
+  inicializar();
+
+  // Corrigir tiles do mapa ao redimensionar janela
+  window.addEventListener('resize', invalidarMapa);
 
 })();
