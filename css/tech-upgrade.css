@@ -1,0 +1,897 @@
+/* ============================================
+   SENTINEL IA — TECH UPGRADE v5.0
+   Cyberpunk HUD · Neon Glow · Holographic UI
+   Particle Grid · Scanlines · Data Stream FX
+   ============================================ */
+
+/* ─── Google Fonts Extra ──────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Share+Tech+Mono&display=swap');
+
+/* ─── Variáveis Extras ───────────────────── */
+:root {
+  --hud-line: rgba(0, 229, 255, 0.12);
+  --neon-cyan: #00e5ff;
+  --neon-purple: #c026d3;
+  --neon-green: #00ff88;
+  --scanline-opacity: 0.03;
+  --glitch-offset: 3px;
+  --font-hud: 'Orbitron', var(--font-main);
+  --font-data: 'Share Tech Mono', var(--font-mono);
+}
+
+/* ============================================
+   1. BODY — Scanlines + Fundo Vivo
+   ============================================ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 229, 255, var(--scanline-opacity)) 2px,
+    rgba(0, 229, 255, var(--scanline-opacity)) 4px
+  );
+  pointer-events: none;
+  z-index: 9998;
+  animation: scanlineShift 8s linear infinite;
+}
+
+@keyframes scanlineShift {
+  0%   { background-position: 0 0; }
+  100% { background-position: 0 100vh; }
+}
+
+/* Vinheta de borda neon */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(168, 85, 247, 0.07) 0%, transparent 60%),
+    radial-gradient(ellipse at 0% 100%, rgba(0, 255, 136, 0.04) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   2. SIDEBAR — Holo HUD
+   ============================================ */
+.sidebar {
+  background: rgba(4, 8, 18, 0.98) !important;
+  border-right: 1px solid rgba(0, 229, 255, 0.15) !important;
+  box-shadow: 4px 0 30px rgba(0, 229, 255, 0.05);
+}
+
+/* Linha decorativa superior da sidebar */
+.sidebar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  animation: scanH 4s ease-in-out infinite;
+}
+
+@keyframes scanH {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; box-shadow: 0 0 12px var(--neon-cyan); }
+}
+
+/* Logo com efeito holo */
+.sidebar-header .logo-icon {
+  position: relative;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.4), inset 0 0 10px rgba(0, 229, 255, 0.1) !important;
+  animation: logoPulse 3s ease-in-out infinite;
+}
+
+@keyframes logoPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 255, 0.4), inset 0 0 10px rgba(0, 229, 255, 0.1); }
+  50%       { box-shadow: 0 0 35px rgba(0, 229, 255, 0.7), inset 0 0 15px rgba(0, 229, 255, 0.2); }
+}
+
+/* Links da sidebar com efeito neon */
+.sidebar-link {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease !important;
+}
+
+.sidebar-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.04), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.4s ease;
+}
+
+.sidebar-link:hover::after { transform: translateX(100%); }
+
+.sidebar-link:hover {
+  color: var(--neon-cyan) !important;
+  background: rgba(0, 229, 255, 0.06) !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+}
+
+.sidebar-link.active {
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.7) !important;
+}
+
+/* ============================================
+   3. TOPBAR — Command Center HUD
+   ============================================ */
+.dashboard-topbar {
+  background: rgba(4, 8, 18, 0.96) !important;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15) !important;
+  box-shadow: 0 1px 0 rgba(0, 229, 255, 0.1), 0 2px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Linha de progresso animada no topo da topbar */
+.dashboard-topbar::before {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+  animation: topbarScan 6s ease-in-out infinite;
+}
+
+@keyframes topbarScan {
+  0%   { left: -40%; opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* Relógio com fonte HUD */
+.topbar-time {
+  font-family: var(--font-data) !important;
+  color: var(--neon-cyan) !important;
+  border-color: rgba(0, 229, 255, 0.2) !important;
+  background: rgba(0, 229, 255, 0.04) !important;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
+  letter-spacing: 0.05em;
+}
+
+/* Título do topbar com fonte futurista */
+.topbar-left h2 {
+  font-family: var(--font-hud) !important;
+  font-size: 1.05rem !important;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ============================================
+   4. KPI CARDS — Holographic Panels
+   ============================================ */
+.kpi-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease !important;
+}
+
+/* Canto decorativo (corner bracket) */
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  border-top: 2px solid var(--neon-cyan);
+  border-right: 2px solid var(--neon-cyan);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.kpi-card:hover::before { opacity: 0.8; }
+
+/* Linha de scan dentro do card */
+.kpi-card::after {
+  height: 2px !important;
+  box-shadow: 0 0 8px currentColor !important;
+}
+
+.kpi-card.cyan::after  { background: var(--neon-cyan)  !important; }
+.kpi-card.purple::after{ background: var(--purple)      !important; }
+.kpi-card.green::after { background: var(--neon-green)  !important; }
+.kpi-card.red::after   { background: var(--red)         !important; }
+
+/* Número do KPI com glow */
+.kpi-value {
+  font-family: var(--font-data) !important;
+  letter-spacing: 0.02em;
+  text-shadow: 0 0 15px rgba(0, 229, 255, 0.3);
+}
+
+.kpi-card:hover .kpi-value {
+  text-shadow: 0 0 25px rgba(0, 229, 255, 0.6), 0 0 50px rgba(0, 229, 255, 0.2);
+}
+
+/* ============================================
+   5. DASHBOARD PANELS — Holo Frame
+   ============================================ */
+.dashboard-panel {
+  position: relative;
+  transition: all 0.3s ease !important;
+}
+
+/* Bordas de canto holográficas */
+.dashboard-panel::before,
+.dashboard-panel::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 2;
+}
+
+.dashboard-panel::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--neon-cyan);
+  border-left: 2px solid var(--neon-cyan);
+}
+
+.dashboard-panel::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 2px solid var(--neon-cyan);
+  border-right: 2px solid var(--neon-cyan);
+}
+
+.dashboard-panel:hover::before,
+.dashboard-panel:hover::after { opacity: 1; }
+
+/* Header dos painéis com barra neon */
+.panel-header {
+  position: relative;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  height: 1px;
+  background: linear-gradient(90deg, var(--neon-cyan), transparent);
+}
+
+/* ============================================
+   6. ALERT FEED — Neon Pulse Items
+   ============================================ */
+.alert-item {
+  position: relative;
+  transition: all 0.25s ease !important;
+}
+
+.alert-item:hover {
+  background: rgba(0, 229, 255, 0.04) !important;
+}
+
+/* Linha esquerda com gradiente */
+.alert-item.critical { border-left-color: var(--red) !important; }
+.alert-item.high     { border-left-color: var(--orange) !important; }
+.alert-item.medium   { border-left-color: var(--yellow) !important; }
+
+.alert-item-icon.critical {
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+  animation: iconPulseDanger 2s ease-in-out infinite;
+}
+
+@keyframes iconPulseDanger {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.3); }
+  50%       { box-shadow: 0 0 16px rgba(239, 68, 68, 0.6); }
+}
+
+/* ============================================
+   7. BOTÕES — Neon CTA
+   ============================================ */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.03em;
+}
+
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.15) 50%, transparent 80%);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.btn-primary:hover::after { transform: translateX(100%); }
+
+.btn-primary:hover {
+  box-shadow: 0 6px 30px rgba(0, 229, 255, 0.5), 0 0 60px rgba(0, 229, 255, 0.15) !important;
+}
+
+/* ============================================
+   8. CARDS — Glassmorphism Avançado
+   ============================================ */
+.card {
+  background: rgba(8, 13, 25, 0.88) !important;
+  border: 1px solid rgba(0, 229, 255, 0.08) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  transition: all 0.3s ease !important;
+}
+
+.card:hover {
+  background: rgba(10, 17, 32, 0.95) !important;
+  border-color: rgba(0, 229, 255, 0.25) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.12),
+    0 8px 40px rgba(0, 0, 0, 0.6),
+    0 0 30px rgba(0, 229, 255, 0.06) !important;
+  transform: translateY(-3px) !important;
+}
+
+/* ============================================
+   9. TIPOGRAFIA HUD
+   ============================================ */
+
+/* Título principal com fontes Orbitron */
+.topbar-left h2,
+.section-heading,
+.sentinel-modal-title {
+  font-family: var(--font-hud) !important;
+}
+
+/* Badge live indicator melhorado */
+.live-indicator {
+  font-family: var(--font-data) !important;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+
+.live-dot {
+  box-shadow: 0 0 8px var(--neon-green), 0 0 16px rgba(0, 255, 136, 0.3) !important;
+}
+
+/* Valores monospaced com glow */
+.popup-value.mono,
+.font-mono,
+[class*="mono"] {
+  font-family: var(--font-data) !important;
+}
+
+/* ============================================
+   10. PROGRESS BARS — Neon Fill
+   ============================================ */
+.progress-bar {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-bar-fill.cyan {
+  background: linear-gradient(90deg, #00e5ff, #a855f7) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar-fill.cyan::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  0%   { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* ============================================
+   11. BADGES — Holo Style
+   ============================================ */
+.badge-cyan,
+.badge-purple,
+.badge-green,
+.badge-red {
+  font-family: var(--font-data) !important;
+  letter-spacing: 0.06em;
+  position: relative;
+}
+
+.badge-cyan {
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.2), inset 0 0 6px rgba(0, 229, 255, 0.05) !important;
+}
+
+.badge-red {
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.25) !important;
+  animation: badgeDanger 2s ease-in-out infinite;
+}
+
+@keyframes badgeDanger {
+  0%, 100% { box-shadow: 0 0 8px rgba(239, 68, 68, 0.2); }
+  50%       { box-shadow: 0 0 16px rgba(239, 68, 68, 0.5); }
+}
+
+/* ============================================
+   12. MAP OVERLAY — Terminal Glass
+   ============================================ */
+.map-layer-toggle,
+.map-info-panel,
+.map-legend-panel {
+  background: rgba(4, 8, 18, 0.94) !important;
+  border: 1px solid rgba(0, 229, 255, 0.15) !important;
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.05), 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(20px) !important;
+}
+
+.map-layer-toggle h5 {
+  font-family: var(--font-hud) !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.1em;
+  color: var(--neon-cyan) !important;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+}
+
+.map-info-item .value {
+  font-family: var(--font-data) !important;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+/* ============================================
+   13. TOOLTIPS & POPUPS — Dark Glass
+   ============================================ */
+.leaflet-popup-content-wrapper,
+.dark-popup .leaflet-popup-content-wrapper {
+  background: rgba(4, 8, 18, 0.97) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.1), 0 10px 40px rgba(0, 0, 0, 0.8) !important;
+}
+
+.popup-title {
+  font-family: var(--font-hud) !important;
+  font-size: 0.82rem !important;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.3);
+}
+
+.popup-label {
+  font-family: var(--font-data) !important;
+  letter-spacing: 0.06em;
+}
+
+/* ============================================
+   14. TOAST NOTIFICATIONS — Alert HUD
+   ============================================ */
+.sentinel-toast {
+  border-left: 3px solid transparent !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.sentinel-toast::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.5), transparent);
+  animation: toastScan 2s ease-in-out infinite;
+}
+
+@keyframes toastScan {
+  0%, 100% { opacity: 0; }
+  50%       { opacity: 1; }
+}
+
+.sentinel-toast.critical {
+  border-left-color: var(--red) !important;
+  box-shadow: -4px 0 16px rgba(239, 68, 68, 0.3), 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.sentinel-toast.warning {
+  border-left-color: var(--yellow) !important;
+  box-shadow: -4px 0 16px rgba(245, 158, 11, 0.3), 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.sentinel-toast.safe {
+  border-left-color: var(--green) !important;
+  box-shadow: -4px 0 16px rgba(16, 185, 129, 0.3), 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.sentinel-toast-title {
+  font-family: var(--font-hud) !important;
+  font-size: 0.78rem !important;
+  letter-spacing: 0.04em;
+}
+
+/* ============================================
+   15. MODAL — Command Center Overlay
+   ============================================ */
+.sentinel-modal-backdrop {
+  backdrop-filter: blur(8px) !important;
+  background: rgba(4, 8, 18, 0.85) !important;
+}
+
+.sentinel-modal {
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.05),
+    0 0 60px rgba(0, 229, 255, 0.08),
+    0 20px 80px rgba(0, 0, 0, 0.8) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.sentinel-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-cyan) 30%, var(--purple) 70%, transparent);
+}
+
+.sentinel-modal-title {
+  font-family: var(--font-hud) !important;
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+/* ============================================
+   16. PIN / MARCADORES DO MAPA — Cyber Style
+   ============================================ */
+.sentinel-map-pin {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 8, 18, 0.92);
+  border: 1px solid var(--pin-color, #00e5ff);
+  box-shadow: 0 0 8px var(--pin-color, #00e5ff), 0 0 20px rgba(0, 229, 255, 0.2);
+  transition: all 0.2s ease;
+}
+
+.sentinel-map-pin:hover {
+  transform: scale(1.3);
+  box-shadow: 0 0 16px var(--pin-color, #00e5ff), 0 0 40px rgba(0, 229, 255, 0.4);
+}
+
+.sentinel-map-pin.critical {
+  border-color: var(--red);
+  box-shadow: 0 0 10px var(--red), 0 0 25px rgba(239, 68, 68, 0.3);
+  animation: pinPulseDanger 1.5s ease-in-out infinite;
+}
+
+@keyframes pinPulseDanger {
+  0%, 100% { box-shadow: 0 0 8px var(--red); }
+  50%       { box-shadow: 0 0 18px var(--red), 0 0 35px rgba(239, 68, 68, 0.4); }
+}
+
+/* Anel de pulso */
+.pin-pulse-ring {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  border-radius: 50%;
+  border: 1px solid var(--pin-color, #00e5ff);
+  opacity: 0;
+  animation: pinRingPulse 2.5s ease-out infinite;
+}
+
+@keyframes pinRingPulse {
+  0%   { transform: scale(0.5); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ============================================
+   17. TABELAS — Data Matrix Style
+   ============================================ */
+.sentinel-table th {
+  font-family: var(--font-hud) !important;
+  font-size: 0.7rem !important;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan) !important;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.15) !important;
+}
+
+.sentinel-table td {
+  font-family: var(--font-main);
+  transition: all 0.15s ease;
+}
+
+.sentinel-table tr.table-row:hover td {
+  background: rgba(0, 229, 255, 0.04) !important;
+}
+
+.font-mono.text-cyan-400 {
+  font-family: var(--font-data) !important;
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+  letter-spacing: 0.05em;
+}
+
+/* ============================================
+   18. STAT CARDS (QuickStats) — Holo Metric
+   ============================================ */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease !important;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor, transparent);
+  opacity: 0.4;
+}
+
+.stat-value {
+  font-family: var(--font-data) !important;
+  text-shadow: 0 0 12px rgba(0, 229, 255, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.stat-card:hover .stat-value {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.6), 0 0 40px rgba(0, 229, 255, 0.2);
+}
+
+/* ============================================
+   19. WEATHER CARD — Sensor Panel
+   ============================================ */
+.weather-card {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Grade de fundo do sensor */
+.weather-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.025) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.city-name {
+  font-family: var(--font-hud) !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.temp-number {
+  font-family: var(--font-data) !important;
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.4) !important;
+}
+
+.metric-val {
+  font-family: var(--font-data) !important;
+}
+
+/* ============================================
+   20. ANIMAÇÕES GLOBAIS — Entrada Cinematográfica
+   ============================================ */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.6; }
+  50%       { opacity: 1; }
+}
+
+/* Efeito de entrada para cards */
+.kpi-card,
+.dashboard-panel,
+.weather-card,
+.ocorrencias-container {
+  animation: fadeIn 0.5s ease both;
+}
+
+/* ============================================
+   21. SCROLLBAR — Cyber Style
+   ============================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: rgba(4, 8, 18, 0.8); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--neon-cyan), var(--purple));
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--neon-cyan); }
+
+/* ============================================
+   22. INPUTS & SELECTS — Terminal Style
+   ============================================ */
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--neon-cyan) !important;
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.1), 0 0 12px rgba(0, 229, 255, 0.15) !important;
+  outline: none;
+}
+
+/* Campo de busca do mapa */
+.map-search-input:focus {
+  background: rgba(0, 229, 255, 0.05) !important;
+  color: var(--neon-cyan);
+}
+
+/* ============================================
+   23. HERO GRID MELHORADO
+   ============================================ */
+.hero-grid::before {
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.08) 1px, transparent 1px) !important;
+  background-size: 50px 50px !important;
+  animation: gridMove 15s linear infinite !important;
+}
+
+@keyframes gridMove {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(50px); }
+}
+
+/* ============================================
+   24. SEÇÃO DE STATUS ONLINE — Pulsing HUD
+   ============================================ */
+.system-alert-banner {
+  background: rgba(239, 68, 68, 0.06) !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-left: 3px solid var(--red) !important;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.05) !important;
+}
+
+/* ============================================
+   25. FILTROS / FILTER BAR — Terminal
+   ============================================ */
+.filter-input,
+.filter-select {
+  font-family: var(--font-main) !important;
+  background: rgba(4, 8, 18, 0.8) !important;
+  border: 1px solid rgba(0, 229, 255, 0.1) !important;
+  transition: all 0.2s ease !important;
+}
+
+.filter-input:focus,
+.filter-select:focus {
+  border-color: rgba(0, 229, 255, 0.4) !important;
+  background: rgba(0, 229, 255, 0.03) !important;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.1) !important;
+}
+
+.btn-filter {
+  background: rgba(0, 229, 255, 0.08) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  color: var(--neon-cyan) !important;
+  font-family: var(--font-hud) !important;
+  font-size: 0.75rem !important;
+  letter-spacing: 0.05em;
+  transition: all 0.2s ease !important;
+}
+
+.btn-filter:hover {
+  background: rgba(0, 229, 255, 0.15) !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.2) !important;
+}
+
+/* ============================================
+   26. LEGENDA DO MAPA — HUD Corners
+   ============================================ */
+.map-legend-panel {
+  position: absolute;
+  bottom: 80px;
+  left: 1rem;
+  z-index: 500;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+}
+
+.legend-title {
+  font-family: var(--font-hud) !important;
+  font-size: 0.68rem !important;
+  letter-spacing: 0.08em;
+  color: var(--neon-cyan) !important;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.legend-dot.red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+.legend-dot.yellow { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+.legend-dot.blue   { background: var(--blue);   box-shadow: 0 0 6px var(--blue); }
+.legend-dot.purple { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+.legend-dot.green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+
+/* ============================================
+   27. SECTION HEADING — Orbitron
+   ============================================ */
+h2.section-heading {
+  font-family: var(--font-hud) !important;
+  font-size: 0.95rem !important;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ============================================
+   28. SIDEBAR USER INFO
+   ============================================ */
+#sidebarUserName {
+  font-family: var(--font-hud);
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  color: var(--text-primary);
+}
+
+#sidebarUserRole {
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+  color: var(--neon-cyan);
+  text-shadow: 0 0 6px rgba(0, 229, 255, 0.4);
+}
+
+/* ============================================
+   29. ANIMAÇÃO DE ENTRADA DA SIDEBAR
+   ============================================ */
+.sidebar {
+  animation: slideInLeft 0.4s ease both;
+}
+
+/* ============================================
+   30. EFEITO FINAL — Vinheta Lateral
+   ============================================ */
+.dashboard-main::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 300px;
+  height: 100%;
+  background: radial-gradient(ellipse at right, rgba(168, 85, 247, 0.04) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
