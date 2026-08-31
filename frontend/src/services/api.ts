@@ -9,6 +9,9 @@ import type {
   AOIZone
 } from '../types/sentinel';
 
+// Re-export the dedicated service module (preferred import path)
+export * from './sentinelService';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
 
 export const SP_AOI_ZONES: AOIZone[] = [
@@ -107,55 +110,39 @@ api.interceptors.response.use(
   }
 );
 
+/**
+ * sentinelService — mantido para compatibilidade retroativa.
+ * Prefira importar diretamente de './sentinelService'.
+ */
 export const sentinelService = {
-  // Obter clima atual
-  async getClima(forceRefresh: boolean = false): Promise<WeatherData> {
-    const { data } = await api.get<WeatherData>('/clima', {
-      params: { force_refresh: forceRefresh }
-    });
+  async getClima(forceRefresh = false): Promise<WeatherData> {
+    const { data } = await api.get<WeatherData>('/clima', { params: { force_refresh: forceRefresh } });
     return data;
   },
-
-  // Obter ocorrências paginadas e filtradas
   async getOcorrencias(filtros?: OcorrenciaFiltros): Promise<OcorrenciasResponse> {
-    const { data } = await api.get<OcorrenciasResponse>('/ocorrencias', {
-      params: filtros
-    });
+    const { data } = await api.get<OcorrenciasResponse>('/ocorrencias', { params: filtros });
     return data;
   },
-
-  // Obter métricas consolidadas
   async getResumoEstatistico(): Promise<ResumoEstatistico> {
     const { data } = await api.get<ResumoEstatistico>('/ocorrencias/resumo');
     return data;
   },
-
-  // Disparar uma simulação personalizada
   async dispararSimulacao(payload: CriarSimulacaoPayload): Promise<SimulacaoResult> {
     const { data } = await api.post<SimulacaoResult>('/simulacao/disparar', payload);
     return data;
   },
-
-  // Disparar um cenário pronto
-  async dispararCenario(cenarioId: string): Promise<any> {
+  async dispararCenario(cenarioId: string): Promise<unknown> {
     const { data } = await api.post('/simulacao/cenario', { cenario_id: cenarioId });
     return data;
   },
-
-  // Limpar ocorrências simuladas
-  async limparSimulacoes(): Promise<any> {
+  async limparSimulacoes(): Promise<unknown> {
     const { data } = await api.delete('/simulacao/limpar');
     return data;
   },
-
-  // Healthcheck do backend
   async checkHealth(): Promise<boolean> {
     try {
       const { data } = await api.get('/health', { baseURL: 'http://localhost:8000' });
-      return data.status === 'ONLINE';
-    } catch {
-      return false;
-    }
+      return data?.status === 'ONLINE';
+    } catch { return false; }
   }
 };
-
