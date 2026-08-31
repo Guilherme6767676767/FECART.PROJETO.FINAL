@@ -51,3 +51,32 @@ class ResumoEstatistico(BaseModel):
     baixas: int
     bairro_mais_afetado: str
     tipo_mais_frequente: str
+
+
+# ==========================================
+# SCHEMAS - SIMULAÇÃO URBANA PREDITIVA
+# ==========================================
+class CriarSimulacaoRequest(BaseModel):
+    titulo: str = Field(..., description="Nome ou descrição do evento simulado")
+    tipo_crime: str = Field(..., description="Categoria (ex: Alagamento, Furto, Acidente, Pane Semafórica)")
+    bairro: str = Field(..., description="Bairro de São Paulo")
+    logradouro: str = Field(..., description="Endereço ou via pública")
+    latitude: float = Field(..., description="Latitude aproximada em SP")
+    longitude: float = Field(..., description="Longitude aproximada em SP")
+    gravidade: str = Field(default="ALTA", description="BAIXA, MEDIA, ALTA ou CRITICA")
+    precipitacao_estimada_mm: Optional[float] = Field(default=0.0, description="Chuva associada ao evento")
+
+
+class SimulacaoCenarioRequest(BaseModel):
+    cenario_id: str = Field(..., description="Identificador do cenário pré-definido")
+
+
+class SimulacaoResult(BaseModel):
+    sucesso: bool
+    ocorrencia: OcorrenciaBO
+    score_risco_calculado: int
+    nivel_alerta: str
+    impacto_estimado: str
+    acoes_recomendadas: List[str]
+    afeta_aoi: Optional[str] = None
+

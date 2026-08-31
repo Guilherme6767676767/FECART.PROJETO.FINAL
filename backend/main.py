@@ -4,8 +4,21 @@ from fastapi import FastAPI, Query, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from schemas import WeatherResponse, OcorrenciasPaginadas, ResumoEstatistico
-from database import buscar_ocorrencias, obter_estatisticas_resumo
+from schemas import (
+    WeatherResponse, 
+    OcorrenciasPaginadas, 
+    ResumoEstatistico,
+    CriarSimulacaoRequest,
+    SimulacaoCenarioRequest,
+    SimulacaoResult
+)
+from database import (
+    buscar_ocorrencias, 
+    obter_estatisticas_resumo,
+    registrar_ocorrencia_simulada,
+    disparar_cenario_pronto,
+    limpar_ocorrencias_simuladas
+)
 from services.weather_service import get_sao_paulo_weather
 
 load_dotenv()
@@ -129,6 +142,78 @@ async def resumo_estatistico_ocorrencias():
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao calcular estatísticas: {str(e)}"
+        )
+
+
+# ----------------------------------------------------
+# ROTAS: SIMULAÇÃO PREDITIVA E CENÁRIOS URBANOS
+# ----------------------------------------------------
+@app.post(
+    "/api/v1/simulacao/disparar",
+    response_model=SimulacaoResult,
+    summary="Disparar Incidente Simulado com Análise de IA",
+    tags=["Simulador Urbano Preditivo"]
+)
+async def disparar_simulacao(req: CriarSimulacaoRequest):
+    """
+    Cria uma nova ocorrência simulada personalizada em São Paulo,
+    registra no banco de dados e calcula o impacto preditivo com IA.
+    """
+    try:
+        resultado = registrar_ocorrencia_simulada(req.model_dump())
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao processar simulação: {str(e)}"
+        )
+
+
+@app.post(
+    "/api/v1/simulacao/cenario",
+    summary="Disparar Cenário Preditivo Pré-Configurado",
+    tags=["Simulador Urbano Preditivo"]
+)
+async def disparar_cenario(req: SimulacaoCenarioRequest):
+    """
+    Dispara múltiplos eventos coordenados simulando crises urbanas:
+    - `tempestade_marginal`: Tempestade e alagamentos severos
+    - `arrastao_centro`: Alerta de roubo em massa na Sé
+    - `aglomeracao_paulista`: Bloqueio da Av. Paulista
+    - `pane_pinheiros`: Falha semafórica e acidentes em Pinheiros
+    """
+    try:
+        resultados = disparar_cenario_pronto(req.cenario_id)
+        return {
+            "cenario_id": req.cenario_id,
+            "eventos_gerados": len(resultados),
+            "detalhes": resultados
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao disparar cenário: {str(e)}"
+        )
+
+
+@app.delete(
+    "/api/v1/simulacao/limpar",
+    summary="Limpar Ocorrências Simuladas",
+    tags=["Simulador Urbano Preditivo"]
+)
+async def limpar_simulacoes():
+    """Remove todos os eventos gerados por simulação, restaurando os dados base."""
+    try:
+        total_restante = limpar_ocorrencias_simuladas()
+        return {
+            "status": "SUCESSO",
+            "mensagem": "Simulações removidas com sucesso.",
+            "total_ocorrencias_ativas": total_restante
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao limpar simulações: {str(e)}"
         )
 
 

@@ -57,3 +57,40 @@ export interface OcorrenciaFiltros {
   page?: number;
   page_size?: number;
 }
+
+export interface AOIZone {
+  id: string;
+  code: string;
+  name: string;
+  riskLevel: 'BAIXO' | 'MÉDIO' | 'ALTO' | 'CRÍTICO';
+  riskScore: number;
+  color: string;
+  fillColor: string;
+  bounds: [number, number][];
+  center: [number, number];
+  activeSensors: number;
+  activeCameras: number;
+  description: string;
+}
+
+export interface CriarSimulacaoPayload {
+  titulo: string;
+  tipo_crime: string;
+  bairro: string;
+  logradouro: string;
+  latitude: number;
+  longitude: number;
+  gravidade: GravidadeTipo;
+  precipitacao_estimada_mm?: number;
+}
+
+export interface SimulacaoResult {
+  sucesso: boolean;
+  ocorrencia: OcorrenciaBO;
+  score_risco_calculado: number;
+  nivel_alerta: string;
+  impacto_estimado: string;
+  acoes_recomendadas: string[];
+  afeta_aoi?: string;
+}
+

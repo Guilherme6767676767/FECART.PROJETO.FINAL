@@ -58,9 +58,44 @@ def test_resumo_endpoint():
     assert "bairro_mais_afetado" in data
     print(f"   -> Resumo: {data['total_ocorrencias']} BOs, {data['criticas']} críticas, mais afetado: {data['bairro_mais_afetado']}")
 
+def test_simulacao_endpoints():
+    print("\n⚡ Testando POST /api/v1/simulacao/disparar...")
+    payload = {
+        "titulo": "Alagamento Grave no Túnel",
+        "tipo_crime": "Alagamento Iminente",
+        "bairro": "Pinheiros",
+        "logradouro": "Av. Rebouças, 1500",
+        "latitude": -23.5675,
+        "longitude": -46.6920,
+        "gravidade": "CRITICA"
+    }
+    resp = client.post("/api/v1/simulacao/disparar", json=payload)
+    if resp.status_code != 200:
+        print("ERRO:", resp.status_code, resp.text)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["sucesso"] is True
+    assert data["score_risco_calculado"] >= 80
+    assert "acoes_recomendadas" in data
+    print(f"   -> Simulação individual: {data['ocorrencia']['numero_bo']} | Score: {data['score_risco_calculado']} | {data['nivel_alerta']}")
+
+    print("\n⚡ Testando POST /api/v1/simulacao/cenario (tempestade_marginal)...")
+    resp_cenario = client.post("/api/v1/simulacao/cenario", json={"cenario_id": "tempestade_marginal"})
+    assert resp_cenario.status_code == 200
+    cenario_data = resp_cenario.json()
+    assert cenario_data["eventos_gerados"] >= 2
+    print(f"   -> Cenário disparado: {cenario_data['cenario_id']} com {cenario_data['eventos_gerados']} eventos")
+
+    print("\n⚡ Testando DELETE /api/v1/simulacao/limpar...")
+    resp_limpar = client.delete("/api/v1/simulacao/limpar")
+    assert resp_limpar.status_code == 200
+    print("   -> Limpeza de simulações concluída com sucesso.")
+
 if __name__ == "__main__":
     test_health()
     test_clima_endpoint()
     test_ocorrencias_endpoint()
     test_resumo_endpoint()
-    print("\n🎯 TODOS OS TESTES DE ENDPOINTS DA API PASSARAM COM 100% DE SUCESSO!")
+    test_simulacao_endpoints()
+    print("\n🎯 TODOS OS TESTES DE ENDPOINTS E SIMULAÇÃO DA API PASSARAM COM 100% DE SUCESSO!")
+

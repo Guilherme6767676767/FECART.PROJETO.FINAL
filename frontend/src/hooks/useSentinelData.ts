@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { sentinelService } from '../services/api';
-import type { WeatherData, OcorrenciasResponse, ResumoEstatistico, OcorrenciaFiltros } from '../types/sentinel';
+import type { 
+  WeatherData, 
+  OcorrenciasResponse, 
+  ResumoEstatistico, 
+  OcorrenciaFiltros,
+  CriarSimulacaoPayload,
+  SimulacaoResult
+} from '../types/sentinel';
 
 export function useSentinelData() {
   const [clima, setClima] = useState<WeatherData | null>(null);
@@ -12,7 +19,9 @@ export function useSentinelData() {
   const [errorBOs, setErrorBOs] = useState<string | null>(null);
 
   const [resumo, setResumo] = useState<ResumoEstatistico | null>(null);
-  const [filtros, setFiltros] = useState<OcorrenciaFiltros>({ page: 1, page_size: 5 });
+  const [filtros, setFiltros] = useState<OcorrenciaFiltros>({ page: 1, page_size: 10 });
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [simLoading, setSimLoading] = useState<boolean>(false);
 
   // Buscar Clima
   const fetchClima = useCallback(async (forceRefresh: boolean = false) => {
@@ -57,17 +66,59 @@ export function useSentinelData() {
     }
   }, [filtros]);
 
+  // Disparar Incidente Simulado
+  const dispararSimulacao = async (payload: CriarSimulacaoPayload): Promise<SimulacaoResult | null> => {
+    try {
+      setSimLoading(true);
+      const result = await sentinelService.dispararSimulacao(payload);
+      await fetchOcorrencias();
+      return result;
+    } catch (err) {
+      console.error('Erro ao disparar simulação:', err);
+      return null;
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
+  // Disparar Cenário Pronto
+  const dispararCenario = async (cenarioId: string) => {
+    try {
+      setSimLoading(true);
+      await sentinelService.dispararCenario(cenarioId);
+      await fetchOcorrencias();
+    } catch (err) {
+      console.error('Erro ao disparar cenário:', err);
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
+  // Limpar Simulações
+  const limparSimulacoes = async () => {
+    try {
+      setSimLoading(true);
+      await sentinelService.limparSimulacoes();
+      await fetchOcorrencias();
+    } catch (err) {
+      console.error('Erro ao limpar simulações:', err);
+    } finally {
+      setSimLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchClima();
-    fetchOcorrencias({ page: 1, page_size: 5 });
+    fetchOcorrencias({ page: 1, page_size: 10 });
 
-    // Atualização em segundo plano a cada 5 minutos
     const timer = setInterval(() => {
       fetchClima();
     }, 5 * 60 * 1000);
 
     return () => clearInterval(timer);
   }, []);
+
+  const simulationCount = ocorrenciasData?.ocorrencias.filter((o) => o.id.startsWith('SIM-')).length || 0;
 
   return {
     clima,
@@ -80,5 +131,13 @@ export function useSentinelData() {
     errorBOs,
     filtros,
     fetchOcorrencias,
+    selectedLocation,
+    setSelectedLocation,
+    dispararSimulacao,
+    dispararCenario,
+    limparSimulacoes,
+    simLoading,
+    simulationCount,
   };
 }
+
