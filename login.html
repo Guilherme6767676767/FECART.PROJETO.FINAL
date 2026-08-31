@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sentinel IA — Tela de Bloqueio & Autenticação</title>
-  <meta name="description" content="Tela de Bloqueio e Login do Sentinel IA - Plataforma de Inteligência Preditiva Urbana.">
+  <title>Sentinel IA — Acesso & Cadastro de Usuário</title>
+  <meta name="description" content="Autenticação e Cadastro do Sentinel IA - Sistema de Inteligência Preditiva Urbana para São Paulo.">
 
   <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css?v=3">
@@ -45,24 +45,24 @@
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 440px;
+      max-width: 460px;
       padding: 1.5rem;
     }
 
     .login-card {
-      background: rgba(10, 16, 30, 0.92);
+      background: rgba(10, 16, 30, 0.94);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-hover, rgba(0, 229, 255, 0.25));
       border-radius: var(--radius-lg, 16px);
-      padding: 2.5rem 2rem;
+      padding: 2.25rem 2rem;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 229, 255, 0.1);
       animation: fadeIn 0.4s ease;
     }
 
     .login-header {
       text-align: center;
-      margin-bottom: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     .login-logo {
@@ -91,16 +91,45 @@
       margin: 0;
     }
 
+    /* Alternador de Abas: Login vs Cadastro */
+    .auth-tab-nav {
+      display: flex;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px;
+      border-radius: 10px;
+      margin-bottom: 1.5rem;
+    }
+
+    .auth-tab-btn {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary, #8b9dc3);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .auth-tab-btn.active {
+      background: var(--cyan-glow, rgba(0, 229, 255, 0.15));
+      color: var(--cyan, #00e5ff);
+      box-shadow: 0 2px 10px rgba(0, 229, 255, 0.2);
+    }
+
     .form-group {
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.15rem;
     }
 
     .form-label {
       display: block;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 600;
       color: var(--text-secondary, #cbd5e1);
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.35rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
@@ -120,20 +149,25 @@
       pointer-events: none;
     }
 
-    .form-input {
+    .form-input, .form-select {
       width: 100%;
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 10px;
       padding: 0.75rem 0.875rem 0.75rem 2.6rem;
       color: #fff;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-family: inherit;
       outline: none;
       transition: all 0.2s ease;
     }
 
-    .form-input:focus {
+    .form-select option {
+      background: #0a101e;
+      color: #fff;
+    }
+
+    .form-input:focus, .form-select:focus {
       border-color: var(--cyan, #00e5ff);
       box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
       background: rgba(0, 229, 255, 0.03);
@@ -143,7 +177,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.25rem;
       font-size: 0.82rem;
       color: var(--text-secondary, #cbd5e1);
     }
@@ -202,16 +236,34 @@
       border-color: var(--cyan, #00e5ff);
     }
 
-    .login-error-msg {
+    .login-alert-msg {
       display: none;
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid #ef4444;
-      color: #ef4444;
-      padding: 0.65rem;
+      padding: 0.65rem 0.85rem;
       border-radius: 8px;
       font-size: 0.82rem;
       margin-bottom: 1.25rem;
       text-align: center;
+    }
+
+    .login-alert-msg.error {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid #ef4444;
+      color: #ef4444;
+    }
+
+    .login-alert-msg.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid #10b981;
+      color: #10b981;
+    }
+
+    .auth-section {
+      display: none;
+    }
+
+    .auth-section.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
     }
   </style>
 </head>
@@ -224,46 +276,115 @@
           <i data-lucide="shield-check" style="width:32px;height:32px;"></i>
         </div>
         <h2>Sentinel <span style="color: var(--cyan, #00e5ff);">IA</span></h2>
-        <p>Sistema de Inteligência Preditiva Urbana — Acesso Restrito</p>
+        <p>Sistema de Inteligência Preditiva Urbana — São Paulo</p>
       </div>
 
-      <!-- Alerta de Erro -->
-      <div class="login-error-msg" id="loginErrorMsg"></div>
-
-      <!-- Formulário de Login -->
-      <form id="loginForm">
-        <div class="form-group">
-          <label class="form-label" for="usernameInput">Usuário / E-mail</label>
-          <div class="form-input-wrap">
-            <i data-lucide="user"></i>
-            <input type="text" id="usernameInput" class="form-input" placeholder="Digite seu usuário..." required />
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label" for="passwordInput">Senha de Acesso</label>
-          <div class="form-input-wrap">
-            <i data-lucide="lock"></i>
-            <input type="password" id="passwordInput" class="form-input" placeholder="Digite sua senha..." required />
-          </div>
-        </div>
-
-        <div class="form-options">
-          <label class="remember-me">
-            <input type="checkbox" id="rememberMeInput" checked />
-            Lembrar-me neste navegador
-          </label>
-        </div>
-
-        <button type="submit" class="btn-login">
-          <i data-lucide="key-round" style="width:18px;height:18px;"></i>
-          Entrar no Sistema
+      <!-- Alternador de Abas -->
+      <div class="auth-tab-nav">
+        <button class="auth-tab-btn active" id="tabLoginBtn" onclick="switchAuthTab('login')">
+          🔑 Entrar no Sistema
         </button>
-
-        <button type="button" class="btn-quick-access" id="btnQuickAccess">
-          🚀 Acesso Rápido de Teste (Admin)
+        <button class="auth-tab-btn" id="tabRegisterBtn" onclick="switchAuthTab('register')">
+          ✨ Criar Nova Conta
         </button>
-      </form>
+      </div>
+
+      <!-- Alerta de Mensagens -->
+      <div class="login-alert-msg" id="authAlertMsg"></div>
+
+      <!-- SEÇÃO 1: FORMULÁRIO DE LOGIN -->
+      <div class="auth-section active" id="secLogin">
+        <form id="loginForm">
+          <div class="form-group">
+            <label class="form-label" for="usernameInput">Usuário / E-mail</label>
+            <div class="form-input-wrap">
+              <i data-lucide="user"></i>
+              <input type="text" id="usernameInput" class="form-input" placeholder="Digite seu e-mail ou usuário..." required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="passwordInput">Senha de Acesso</label>
+            <div class="form-input-wrap">
+              <i data-lucide="lock"></i>
+              <input type="password" id="passwordInput" class="form-input" placeholder="Digite sua senha..." required />
+            </div>
+          </div>
+
+          <div class="form-options">
+            <label class="remember-me">
+              <input type="checkbox" id="rememberMeInput" checked />
+              Lembrar-me neste navegador
+            </label>
+          </div>
+
+          <button type="submit" class="btn-login">
+            <i data-lucide="key-round" style="width:18px;height:18px;"></i>
+            Entrar no Sistema
+          </button>
+
+          <button type="button" class="btn-quick-access" id="btnQuickAccess">
+            🚀 Acesso Rápido de Teste (Admin)
+          </button>
+        </form>
+      </div>
+
+      <!-- SEÇÃO 2: FORMULÁRIO DE CRIAR CONTA -->
+      <div class="auth-section" id="secRegister">
+        <form id="registerForm">
+          <div class="form-group">
+            <label class="form-label" for="regNameInput">Nome Completo</label>
+            <div class="form-input-wrap">
+              <i data-lucide="user-check"></i>
+              <input type="text" id="regNameInput" class="form-input" placeholder="Ex: Agente Carlos Silva" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regRoleSelect">Cargo / Organização</label>
+            <div class="form-input-wrap">
+              <i data-lucide="badge-check"></i>
+              <select id="regRoleSelect" class="form-select">
+                <option value="Agente de Segurança Pública (PM/GCM)">Agente de Segurança Pública (PM/GCM)</option>
+                <option value="Operador de Trânsito (CET)">Operador de Trânsito (CET)</option>
+                <option value="Analista de Defesa Civil">Analista de Defesa Civil</option>
+                <option value="Operador Urbano" selected>Operador Urbano</option>
+                <option value="Pesquisador / Cidadão">Pesquisador / Cidadão</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regEmailInput">E-mail Corporativo / Usuário</label>
+            <div class="form-input-wrap">
+              <i data-lucide="mail"></i>
+              <input type="email" id="regEmailInput" class="form-input" placeholder="seu.nome@sentinel.ia" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regPassInput">Senha de Acesso</label>
+            <div class="form-input-wrap">
+              <i data-lucide="lock"></i>
+              <input type="password" id="regPassInput" class="form-input" placeholder="Crie uma senha segura (min. 4 carac.)..." required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="regPassConfirmInput">Confirmar Senha</label>
+            <div class="form-input-wrap">
+              <i data-lucide="shield-alert"></i>
+              <input type="password" id="regPassConfirmInput" class="form-input" placeholder="Repita a senha digitada..." required />
+            </div>
+          </div>
+
+          <button type="submit" class="btn-login" style="margin-top: 0.5rem;">
+            <i data-lucide="user-plus" style="width:18px;height:18px;"></i>
+            Cadastrar e Acessar Sistema
+          </button>
+        </form>
+      </div>
+
     </div>
   </div>
 
@@ -272,32 +393,85 @@
   <script>
     lucide.createIcons();
 
-    const form = document.getElementById('loginForm');
-    const usernameInput = document.getElementById('usernameInput');
-    const passwordInput = document.getElementById('passwordInput');
-    const rememberMeInput = document.getElementById('rememberMeInput');
-    const errorMsg = document.getElementById('loginErrorMsg');
-    const quickBtn = document.getElementById('btnQuickAccess');
+    const alertMsg = document.getElementById('authAlertMsg');
 
-    function executeLogin(user, pass, remember) {
+    function showAlert(msg, isSuccess = false) {
+      alertMsg.textContent = msg;
+      alertMsg.className = `login-alert-msg ${isSuccess ? 'success' : 'error'}`;
+      alertMsg.style.display = 'block';
+    }
+
+    function hideAlert() {
+      alertMsg.style.display = 'none';
+    }
+
+    // Alternar entre abas Login vs Cadastro
+    window.switchAuthTab = function (tab) {
+      hideAlert();
+      const tabLoginBtn = document.getElementById('tabLoginBtn');
+      const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+      const secLogin = document.getElementById('secLogin');
+      const secRegister = document.getElementById('secRegister');
+
+      if (tab === 'register') {
+        tabLoginBtn.classList.remove('active');
+        tabRegisterBtn.classList.add('active');
+        secLogin.classList.remove('active');
+        secRegister.classList.add('active');
+      } else {
+        tabRegisterBtn.classList.remove('active');
+        tabLoginBtn.classList.add('active');
+        secRegister.classList.remove('active');
+        secLogin.classList.add('active');
+      }
+    };
+
+    // Submissão do Login
+    document.getElementById('loginForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      hideAlert();
+      const user = document.getElementById('usernameInput').value;
+      const pass = document.getElementById('passwordInput').value;
+      const remember = document.getElementById('rememberMeInput').checked;
+
       const res = window.sentinelLogin(user, pass, remember);
       if (res.success) {
         window.location.href = 'dashboard.html';
       } else {
-        errorMsg.textContent = res.message;
-        errorMsg.style.display = 'block';
+        showAlert(res.message, false);
       }
-    }
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      executeLogin(usernameInput.value, passwordInput.value, rememberMeInput.checked);
     });
 
-    quickBtn.addEventListener('click', function () {
-      usernameInput.value = 'admin@sentinel.ia';
-      passwordInput.value = 'admin123';
-      executeLogin('admin@sentinel.ia', 'admin123', true);
+    // Submissão do Cadastro / Criar Conta
+    document.getElementById('registerForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      hideAlert();
+      const name = document.getElementById('regNameInput').value;
+      const role = document.getElementById('regRoleSelect').value;
+      const email = document.getElementById('regEmailInput').value;
+      const pass = document.getElementById('regPassInput').value;
+      const passConfirm = document.getElementById('regPassConfirmInput').value;
+
+      const res = window.sentinelRegister(name, role, email, pass, passConfirm);
+      if (res.success) {
+        showAlert(res.message, true);
+        setTimeout(() => {
+          window.location.href = 'dashboard.html';
+        }, 1200);
+      } else {
+        showAlert(res.message, false);
+      }
+    });
+
+    // Botão de Acesso Rápido Admin
+    document.getElementById('btnQuickAccess').addEventListener('click', function () {
+      hideAlert();
+      document.getElementById('usernameInput').value = 'admin@sentinel.ia';
+      document.getElementById('passwordInput').value = 'admin123';
+      const res = window.sentinelLogin('admin@sentinel.ia', 'admin123', true);
+      if (res.success) {
+        window.location.href = 'dashboard.html';
+      }
     });
   </script>
 </body>
