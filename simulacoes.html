@@ -16,8 +16,9 @@
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
 
-  <!-- Leaflet JS -->
+  <!-- Leaflet JS & Chart.js -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- Supabase & Sentinel API Engine -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -584,6 +585,25 @@
               </div>
             </div>
 
+          </div>
+        </div>
+
+        <!-- 📊 Seção do Gráfico Animado de Impacto Preditivo -->
+        <div class="sim-card" style="margin-top: 1.5rem; border-color: rgba(0, 229, 255, 0.3);">
+          <div class="sim-card-header">
+            <div class="sim-card-title">
+              <i data-lucide="trending-up" style="width:18px;height:18px;color:var(--cyan);"></i>
+              Projeção Animada de Impacto Urbano & Curva de Mitigação (Tempo Real)
+            </div>
+            <div style="display: flex; gap: 12px; font-size: 0.76rem; font-family: monospace;">
+              <span style="color: #ef4444;">● Impacto Viário (km)</span>
+              <span style="color: #00e5ff;">● Tempo Resposta (min)</span>
+              <span style="color: #10b981;">● Absorção Urbana (%)</span>
+            </div>
+          </div>
+
+          <div style="position: relative; height: 260px; width: 100%;">
+            <canvas id="simImpactChart"></canvas>
           </div>
         </div>
 

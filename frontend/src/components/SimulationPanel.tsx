@@ -354,6 +354,71 @@ export const SimulationPanel: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* 📊 Seção do Gráfico Animado de Impacto Preditivo */}
+      <div className="sim-card sim-chart-card" style={{ marginTop: '1rem', background: 'rgba(6, 10, 20, 0.9)', border: '1px solid rgba(0, 229, 255, 0.25)', borderRadius: '12px', padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 'bold', color: '#fff' }}>
+            <Zap size={16} className="text-cyan-400" />
+            Curva de Mitigação & Retenção Viária em Tempo Real
+          </div>
+          <span style={{ fontSize: '0.7rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+            Simulação Dinâmica
+          </span>
+        </div>
+
+        {/* Gráfico Animado SVG com Pulso de Gradiente */}
+        <div style={{ width: '100%', height: '140px', position: 'relative' }}>
+          <svg viewBox="0 0 400 120" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+            <defs>
+              <linearGradient id="cyanGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#00e5ff" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#00e5ff" stopOpacity="0.0" />
+              </linearGradient>
+              <linearGradient id="redGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.5" />
+                <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* Linhas de Grade de Fundo */}
+            <line x1="0" y1="30" x2="400" y2="30" stroke="rgba(255,255,255,0.05)" strokeDasharray="3,3" />
+            <line x1="0" y1="60" x2="400" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3,3" />
+            <line x1="0" y1="90" x2="400" y2="90" stroke="rgba(255,255,255,0.05)" strokeDasharray="3,3" />
+
+            {/* Curva Vermelha de Pico de Incidente */}
+            <path
+              d="M 0 100 Q 80 10, 160 30 T 320 85 T 400 105"
+              fill="url(#redGrad)"
+              stroke="#ef4444"
+              strokeWidth="2.5"
+              style={{ transition: 'all 0.8s ease-in-out' }}
+            />
+
+            {/* Curva Ciano de Resposta da IA */}
+            <path
+              d="M 0 110 Q 70 40, 150 20 T 300 60 T 400 95"
+              fill="url(#cyanGrad)"
+              stroke="#00e5ff"
+              strokeWidth="3"
+              style={{ transition: 'all 0.8s ease-in-out' }}
+            />
+
+            {/* Pontos Pulsantes no Pico da Animação */}
+            <circle cx="150" cy="20" r="5" fill="#00e5ff" className="animate-ping" />
+            <circle cx="150" cy="20" r="4" fill="#ffffff" />
+
+            <circle cx="160" cy="30" r="5" fill="#ef4444" className="animate-ping" />
+            <circle cx="160" cy="30" r="4" fill="#ffffff" />
+          </svg>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.72rem', color: '#94a3b8' }}>
+          <span>⏱️ T0 (Disparo)</span>
+          <span>⚡ Peak (T+15m)</span>
+          <span>🟢 Mitigado (T+45m)</span>
+        </div>
+      </div>
     </div>
   );
 };

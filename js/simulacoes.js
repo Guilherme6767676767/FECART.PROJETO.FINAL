@@ -1,6 +1,6 @@
 /* ============================================
    SENTINEL IA — Laboratório de Simulação Urbana
-   Engine Geoespacial e Predição Preditiva
+   Engine Geoespacial, Predição Preditiva e Gráficos Animados
    ============================================ */
 
 (function () {
@@ -20,6 +20,7 @@
   let isAutoDemoActive = false;
 
   let activeSimulations = [];
+  let impactChart = null;
 
   // Coordenadas padrão por bairro
   const DISTRICT_COORDS = {
@@ -51,6 +52,7 @@
     initSimMap();
     initWeatherTelemetry();
     initControls();
+    initImpactChart();
   });
 
   // 1. Relógio ao Vivo
@@ -252,6 +254,7 @@
 
     addSimulatedEventToMap(simEvent);
     calculateAndRenderAiDiagnosis(simEvent);
+    updateAnimatedImpactChart(simEvent);
   };
 
   // 5. Disparo de Cenários Prontos em 1 Clique
@@ -291,6 +294,7 @@
     });
 
     calculateAndRenderAiDiagnosis(list[0]);
+    updateAnimatedImpactChart(list[0]);
   };
 
   // Adicionar Evento Simulado no Mapa com Animação Radar
@@ -328,10 +332,8 @@
       </div>
     `);
 
-    // Pan suave até o local
     if (map) map.panTo([simEvent.lat, simEvent.lng]);
 
-    // Sincronizar com Supabase se disponível
     if (window.SentinelAPI && window.SentinelAPI.supabaseEngine) {
       window.SentinelAPI.supabaseEngine.saveAlertToDB({
         name: `${simEvent.district} — ${simEvent.address}`,
@@ -384,7 +386,148 @@
     }
   }
 
-  // 7. Controles de Camadas e Ações
+  // 7. Gráfico Animado de Impacto Preditivo
+  function initImpactChart() {
+    const ctx = document.getElementById('simImpactChart');
+    if (!ctx || !window.Chart) return;
+
+    impactChart = new window.Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['0m', '5m', '10m', '15m', '20m', '25m', '30m', '35m', '40m', '45m', '50m', '60m'],
+        datasets: [
+          {
+            label: 'Impacto Viário (km)',
+            data: [0.5, 1.2, 2.8, 4.5, 5.2, 4.8, 3.5, 2.2, 1.5, 1.0, 0.6, 0.2],
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 4,
+            pointHoverRadius: 7,
+            pointBackgroundColor: '#ef4444'
+          },
+          {
+            label: 'Tempo Resposta (min)',
+            data: [15, 14, 12, 10, 8, 7, 5, 4, 3, 3, 2, 2],
+            borderColor: '#00e5ff',
+            backgroundColor: 'rgba(0, 229, 255, 0.1)',
+            borderWidth: 2,
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.3,
+            pointRadius: 3,
+            pointBackgroundColor: '#00e5ff'
+          },
+          {
+            label: 'Absorção Urbana (%)',
+            data: [35, 40, 48, 62, 75, 82, 88, 92, 95, 97, 98, 100],
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.08)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: '#10b981'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: {
+          duration: 1600,
+          easing: 'easeInOutQuart'
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            backgroundColor: 'rgba(6, 10, 20, 0.95)',
+            borderColor: 'rgba(0, 229, 255, 0.3)',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#8b9dc3', font: { size: 11 } }
+          },
+          y: {
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#8b9dc3', font: { size: 11 } }
+          }
+        }
+      }
+    });
+  }
+
+  function updateAnimatedImpactChart(simEvent) {
+    if (!impactChart) return;
+
+    const isCrit = simEvent.severity === 'CRITICA';
+    const isHigh = simEvent.severity === 'ALTA';
+    
+    let mult = isCrit ? 1.8 : (isHigh ? 1.3 : 0.8);
+    if (simEvent.type.includes('Alagamento') || simEvent.title.includes('Tempestade')) {
+      mult *= 1.4;
+    }
+
+    const impactData = [
+      +(0.8 * mult).toFixed(1),
+      +(2.1 * mult).toFixed(1),
+      +(4.5 * mult).toFixed(1),
+      +(6.8 * mult).toFixed(1),
+      +(7.4 * mult).toFixed(1),
+      +(6.1 * mult).toFixed(1),
+      +(4.3 * mult).toFixed(1),
+      +(2.8 * mult).toFixed(1),
+      +(1.6 * mult).toFixed(1),
+      +(0.9 * mult).toFixed(1),
+      +(0.4 * mult).toFixed(1),
+      +(0.1 * mult).toFixed(1)
+    ];
+
+    const responseTimeData = [
+      Math.round(18 * (mult > 1.2 ? 1.3 : 1)),
+      Math.round(16 * (mult > 1.2 ? 1.3 : 1)),
+      Math.round(13 * (mult > 1.2 ? 1.2 : 1)),
+      Math.round(10),
+      Math.round(8),
+      Math.round(6),
+      Math.round(5),
+      Math.round(4),
+      Math.round(3),
+      Math.round(3),
+      Math.round(2),
+      Math.round(2)
+    ];
+
+    const absorptionData = [
+      Math.min(100, Math.max(15, Math.round(40 / mult))),
+      Math.min(100, Math.max(25, Math.round(50 / mult))),
+      Math.min(100, Math.max(35, Math.round(62 / mult))),
+      Math.round(72),
+      Math.round(81),
+      Math.round(87),
+      Math.round(91),
+      Math.round(94),
+      Math.round(96),
+      Math.round(98),
+      Math.round(99),
+      100
+    ];
+
+    impactChart.data.datasets[0].data = impactData;
+    impactChart.data.datasets[1].data = responseTimeData;
+    impactChart.data.datasets[2].data = absorptionData;
+
+    impactChart.update();
+  }
+
+  // 8. Controles de Camadas e Ações
   function initControls() {
     const btnToggleAOIs = document.getElementById('toggleAOIsBtn');
     const btnToggleBOs = document.getElementById('toggleBOsBtn');
