@@ -1,11 +1,11 @@
 /* ============================================
    SENTINEL IA — Mapa de Monitoramento Urbano
-   VERSÃO 4.0 — Integração com FastAPI Backend
-   - Leaflet.js com CartoDB Dark (OpenStreetMap)
-   - Marcadores interativos com dados reais da API /api/v1/ocorrencias
-   - Heatmap real com posições de BOs carregados do backend
-   - Filtros por gravidade (CRITICA, ALTA, MEDIA, BAIXA)
-   - Auto-refresh de 30s para dados ao vivo
+   VERSÃO 5.0 — Motor Geoespacial Unificado MapLibre GL (2D & 3D)
+   - Dark Mode Cyberpunk Nativo
+   - Extrusão 3D de Prédios e Edificações de São Paulo
+   - Prismas e Volumes Volumétricos de Zonas AOI
+   - Colunas Luminosas de Ocorrências (SSP-SP)
+   - Transição suave entre Modo 2D e Modo 3D
    ============================================ */
 
 (function () {
@@ -13,9 +13,8 @@
 
   // ── Constantes de configuração ──────────────────────────────────────────────
   const API_BASE_URL = window.SENTINEL_API_URL || 'http://localhost:8000/api/v1';
-  const SP_CENTER    = [-23.5505, -46.6333];
-  const SP_ZOOM      = 12;
-  const REFRESH_MS   = 30 * 1000; // Auto-refresh a cada 30 segundos
+  const SP_CENTER    = [-46.6333, -23.5505]; // [lng, lat]
+  const REFRESH_MS   = 30 * 1000;
 
   // ── Inicializar Lucide ────────────────────────────────────────────────────
   if (window.lucide) lucide.createIcons();
@@ -43,33 +42,13 @@
     }
   }
 
-  // ── Inicialização do Mapa Leaflet ─────────────────────────────────────────
-  const map = L.map('mainMap', {
-    center: SP_CENTER,
-    zoom: SP_ZOOM,
-    minZoom: 10,
-    maxZoom: 18,
-    zoomControl: true,
-    attributionControl: true
-  });
-
-  // Tile layer escuro — Dark Matter Oficial (Fundo 100% Escuro Cyberpunk)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(map);
-
   // ── Configuração de Severidade → Cores e Símbolos ─────────────────────────
-  // Mapeia as severidades da API (CRITICA, ALTA, MEDIA, BAIXA) para estilos visuais
   const gravityConfig = {
     CRITICA: {
       color: '#ef4444',
       badgeClass: 'critical',
       label: '🔴 Severidade Crítica',
       emoji: '🚨',
-      iconName: 'alert-triangle',
-      popupClass: 'critical',
       heatIntensity: 1.0
     },
     ALTA: {
@@ -77,8 +56,6 @@
       badgeClass: 'warning',
       label: '🟡 Severidade Alta',
       emoji: '⚠️',
-      iconName: 'alert-circle',
-      popupClass: 'warning',
       heatIntensity: 0.7
     },
     MEDIA: {
@@ -86,8 +63,6 @@
       badgeClass: 'info',
       label: '🔵 Severidade Média',
       emoji: '🔵',
-      iconName: 'info',
-      popupClass: 'info',
       heatIntensity: 0.45
     },
     BAIXA: {
@@ -95,18 +70,14 @@
       badgeClass: 'safe',
       label: '🟢 Severidade Baixa',
       emoji: '🛡️',
-      iconName: 'shield-check',
-      popupClass: 'safe',
       heatIntensity: 0.2
     }
   };
 
-  // Fallback para gravidades não mapeadas
   function getGravityConfig(gravidade) {
     return gravityConfig[String(gravidade).toUpperCase()] || gravityConfig.MEDIA;
   }
 
-  // ── Formatador de Data/Hora ───────────────────────────────────────────────
   function formatarDataHora(isoString) {
     try {
       const d = new Date(isoString);
@@ -120,7 +91,6 @@
     }
   }
 
-  // ── Gerador de HTML do Popup interativo ──────────────────────────────────
   function criarPopupHTML(bo) {
     const cfg = getGravityConfig(bo.gravidade);
     const dataFormatada = formatarDataHora(bo.data_hora);
@@ -128,7 +98,7 @@
     return `
       <div class="popup-card">
         <div class="popup-header">
-          <span class="popup-severity ${cfg.popupClass}"></span>
+          <span class="popup-severity ${cfg.badgeClass}"></span>
           <span class="popup-title">${bo.tipo_crime || 'Ocorrência'}</span>
         </div>
         <div class="popup-row">
@@ -149,106 +119,346 @@
         </div>
         <div class="popup-row">
           <span class="popup-label">Severidade</span>
-          <span class="popup-badge ${cfg.popupClass}">${cfg.label}</span>
+          <span class="popup-badge ${cfg.badgeClass}">${cfg.label}</span>
         </div>
         <div class="popup-row">
           <span class="popup-label">Status</span>
           <span class="popup-value">${bo.status || 'Em Análise'}</span>
         </div>
-        <div class="popup-row">
-          <span class="popup-label">Coord.</span>
-          <span class="popup-value mono">${Number(bo.latitude).toFixed(4)}, ${Number(bo.longitude).toFixed(4)}</span>
-        </div>
       </div>
     `;
   }
 
-  // ── Estado Global dos Layers ─────────────────────────────────────────────
-  const markersLayerGroup = L.layerGroup().addTo(map);  // Grupo de marcadores da API
-  const staticLayerGroup  = L.layerGroup().addTo(map);  // Polígonos de zona (estáticos)
-  let heatLayer = null;
-  let allApiMarkers = [];  // Cache de {marker, bo} para filtros
-  let lastBoData = [];     // Cache dos BOs para atualização do heatmap
+  // ── Polígonos das Zonas Urbanas (AOIs) ───────────────────────────────────
+  const zonePolygons = [
+    { coords: [[-46.6500, -23.5350], [-46.6200, -23.5320], [-46.6150, -23.5600], [-46.6450, -23.5650]], color: '#ef4444', height: 120, name: 'Zona Central — Risco Crítico' },
+    { coords: [[-46.7200, -23.5150], [-46.6400, -23.5050], [-46.6450, -23.5350], [-46.7150, -23.5450]], color: '#f59e0b', height: 80, name: 'Corredor Trânsito & Marginais' },
+    { coords: [[-46.7200, -23.5950], [-46.6400, -23.5850], [-46.6200, -23.6700], [-46.7100, -23.6800]], color: '#3b82f6', height: 60, name: 'Bacia Hidrográfica Sul' },
+    { coords: [[-46.6750, -23.5550], [-46.6500, -23.5500], [-46.6850, -23.6150], [-46.7050, -23.6200]], color: '#a855f7', height: 95, name: 'Eixo Financeiro — IA OCR' },
+    { coords: [[-46.5900, -23.5250], [-46.4300, -23.5150], [-46.4500, -23.5900], [-46.5800, -23.5950]], color: '#10b981', height: 50, name: 'Zona Leste — Monitorada' }
+  ];
 
-  // ── Adicionar Marcador de BO com Ícone Dinâmico ──────────────────────────
-  function adicionarMarcadorBO(bo) {
-    const cfg = getGravityConfig(bo.gravidade);
+  // ── ESTADO GLOBAL DO MAPA UNIFICADO ──────────────────────────────────────
+  let mapGL = null;
+  let is3DMode = false;
+  let markersGL = [];
+  let lastBoData = [];
 
-    const icon = L.divIcon({
-      className: 'custom-map-icon',
-      html: `
-        <div class="sentinel-map-pin ${cfg.badgeClass}" style="--pin-color: ${cfg.color};">
-          <i data-lucide="${cfg.iconName}"></i>
-          <div class="pin-pulse-ring"></div>
-        </div>
-      `,
-      iconSize: [24, 24],
-      iconAnchor: [12, 12]
+  function initMap() {
+    const container = document.getElementById('mainMap');
+    if (!container) return;
+    container.innerHTML = '';
+
+    mapGL = new maplibregl.Map({
+      container: 'mainMap',
+      style: {
+        version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        sources: {
+          'osm-tiles': {
+            type: 'raster',
+            tiles: [
+              'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+            ],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap contributors'
+          },
+          'openmaptiles': {
+            type: 'vector',
+            url: 'https://demotiles.maplibre.org/tiles/tiles.json'
+          }
+        },
+        layers: [
+          {
+            id: 'background-dark',
+            type: 'background',
+            paint: {
+              'background-color': '#060a14'
+            }
+          },
+          {
+            id: 'osm-layer',
+            type: 'raster',
+            source: 'osm-tiles',
+            minzoom: 0,
+            maxzoom: 19,
+            paint: {
+              'raster-opacity': 0.68,
+              'raster-contrast': 0.45,
+              'raster-saturation': -1.0,
+              'raster-brightness-max': 0.8
+            }
+          },
+          // ── Extrusão 3D de Edificações ──
+          {
+            id: '3d-buildings',
+            source: 'openmaptiles',
+            'source-layer': 'building',
+            type: 'fill-extrusion',
+            minzoom: 13,
+            paint: {
+              'fill-extrusion-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'render_height'],
+                0, '#0a192f',
+                30, '#00e5ff',
+                80, '#a855f7'
+              ],
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                13, 0,
+                14.5, ['coalesce', ['get', 'render_height'], ['get', 'height'], 30]
+              ],
+              'fill-extrusion-base': 0,
+              'fill-extrusion-opacity': 0.85
+            }
+          }
+        ]
+      },
+      center: SP_CENTER,
+      zoom: 13.5,
+      pitch: 0,
+      bearing: 0
     });
 
-    const marker = L.marker([bo.latitude, bo.longitude], { icon }).addTo(markersLayerGroup);
+    mapGL.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
 
-    marker.bindPopup(criarPopupHTML(bo), {
-      maxWidth: 300,
-      className: 'dark-popup'
+    mapGL.on('load', () => {
+      adicionarZonasGL();
+      adicionarHeatmapGL();
+      atualizarMarcadoresGL();
     });
-
-    // Renderizar ícones Lucide nos pins recém-criados
-    if (window.lucide) {
-      setTimeout(() => lucide.createIcons(), 15);
-    }
-
-    return { marker, bo };
   }
 
-  // ── Atualizar Heatmap com dados reais dos BOs ────────────────────────────
-  function atualizarHeatmap(bos) {
-    // Converter BOs em pontos de calor: [lat, lng, intensidade]
-    const heatPoints = bos
-      .filter(bo => bo.latitude && bo.longitude)
-      .map(bo => {
-        const cfg = getGravityConfig(bo.gravidade);
-        return [
-          parseFloat(bo.latitude),
-          parseFloat(bo.longitude),
-          cfg.heatIntensity
-        ];
-      });
+  // ── Zonas AOI ────────────────────────────────────────────────────────────
+  function adicionarZonasGL() {
+    if (!mapGL || mapGL.getSource('zones-source')) return;
 
-    // Remover layer antiga antes de criar nova
-    if (heatLayer) {
-      map.removeLayer(heatLayer);
-      heatLayer = null;
-    }
-
-    if (typeof L.heatLayer === 'function' && heatPoints.length > 0) {
-      heatLayer = L.heatLayer(heatPoints, {
-        radius: 38,
-        blur: 28,
-        maxZoom: 15,
-        minOpacity: 0.2,
-        gradient: {
-          0.2: '#10b981',   // Verde — baixa concentração
-          0.4: '#3b82f6',   // Azul — média
-          0.6: '#a855f7',   // Roxo — alta
-          0.8: '#f59e0b',   // Amarelo — muito alta
-          1.0: '#ef4444'    // Vermelho — crítica
+    const features = zonePolygons.map(z => {
+      const coords = [...z.coords, z.coords[0]];
+      return {
+        type: 'Feature',
+        properties: {
+          name: z.name,
+          color: z.color,
+          height: z.height,
+          base: 0
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coords]
         }
-      }).addTo(map);
+      };
+    });
+
+    mapGL.addSource('zones-source', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: features
+      }
+    });
+
+    mapGL.addLayer({
+      id: 'zones-2d-fill',
+      type: 'fill',
+      source: 'zones-source',
+      paint: {
+        'fill-color': ['get', 'color'],
+        'fill-opacity': 0.22
+      }
+    });
+
+    mapGL.addLayer({
+      id: 'zones-2d-outline',
+      type: 'line',
+      source: 'zones-source',
+      paint: {
+        'line-color': ['get', 'color'],
+        'line-width': 2,
+        'line-dasharray': [4, 4]
+      }
+    });
+
+    mapGL.addLayer({
+      id: 'zones-3d-extrusion',
+      type: 'fill-extrusion',
+      source: 'zones-source',
+      layout: {
+        visibility: 'none'
+      },
+      paint: {
+        'fill-extrusion-color': ['get', 'color'],
+        'fill-extrusion-height': ['get', 'height'],
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-opacity': 0.45
+      }
+    });
+  }
+
+  // ── Heatmap GL ───────────────────────────────────────────────────────────
+  function adicionarHeatmapGL() {
+    if (!mapGL || mapGL.getSource('bos-heat-source')) return;
+
+    const bos = lastBoData.length > 0 ? lastBoData : [];
+    const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
+      type: 'Feature',
+      properties: {
+        intensity: getGravityConfig(b.gravidade).heatIntensity
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
+      }
+    }));
+
+    mapGL.addSource('bos-heat-source', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: features
+      }
+    });
+
+    mapGL.addLayer({
+      id: 'bos-heat-layer',
+      type: 'heatmap',
+      source: 'bos-heat-source',
+      maxzoom: 17,
+      paint: {
+        'heatmap-weight': ['get', 'intensity'],
+        'heatmap-intensity': 2.0,
+        'heatmap-color': [
+          'interpolate',
+          ['linear'],
+          ['heatmap-density'],
+          0, 'rgba(0, 229, 255, 0)',
+          0.2, '#10b981',
+          0.4, '#3b82f6',
+          0.6, '#a855f7',
+          0.8, '#f59e0b',
+          1, '#ef4444'
+        ],
+        'heatmap-radius': 36,
+        'heatmap-opacity': 0.82
+      }
+    });
+  }
+
+  // ── Atualizar Marcadores e Colunas 3D ─────────────────────────────────────
+  function atualizarMarcadoresGL() {
+    if (!mapGL) return;
+
+    if (mapGL.getSource('bos-heat-source')) {
+      const bos = lastBoData.length > 0 ? lastBoData : [];
+      const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
+        type: 'Feature',
+        properties: {
+          intensity: getGravityConfig(b.gravidade).heatIntensity
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
+        }
+      }));
+      mapGL.getSource('bos-heat-source').setData({
+        type: 'FeatureCollection',
+        features: features
+      });
     }
 
-    // Toggle de visibilidade controlado pelo checkbox
+    markersGL.forEach(m => m.remove());
+    markersGL = [];
+
+    const bos = lastBoData.length > 0 ? lastBoData : [];
+
+    const criticaVisivel = document.getElementById('layerCritical')?.checked ?? true;
+    const altaVisivel    = document.getElementById('layerWarning')?.checked ?? true;
+    const mediaVisivel   = document.getElementById('layerClimate')?.checked ?? true;
+    const baixaVisivel   = document.getElementById('layerSafe')?.checked ?? true;
+
+    bos.forEach(bo => {
+      if (!bo.latitude || !bo.longitude) return;
+      const g = String(bo.gravidade).toUpperCase();
+
+      const visivel =
+        (g === 'CRITICA' && criticaVisivel) ||
+        (g === 'ALTA'    && altaVisivel)    ||
+        (g === 'MEDIA'   && mediaVisivel)   ||
+        (g === 'BAIXA'   && baixaVisivel);
+
+      if (!visivel) return;
+
+      const cfg = getGravityConfig(bo.gravidade);
+
+      const el = document.createElement('div');
+      el.className = 'sentinel-gl-marker';
+      el.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+      `;
+
+      const height = is3DMode
+        ? (bo.gravidade === 'CRITICA' ? 85 : bo.gravidade === 'ALTA' ? 60 : 40)
+        : 0;
+
+      el.innerHTML = `
+        <div style="
+          width: 22px;
+          height: 22px;
+          border-radius: 50%;
+          background: rgba(6, 10, 20, 0.95);
+          border: 2px solid ${cfg.color};
+          box-shadow: 0 0 14px ${cfg.color}, 0 0 28px ${cfg.color};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+        ">${cfg.emoji}</div>
+        ${is3DMode ? `
+          <div style="
+            width: 5px;
+            height: ${height}px;
+            background: linear-gradient(180deg, ${cfg.color}, rgba(0,0,0,0.1));
+            box-shadow: 0 0 12px ${cfg.color};
+            border-radius: 2px;
+          "></div>
+        ` : ''}
+      `;
+
+      const popup = new maplibregl.Popup({ offset: 25, className: 'dark-popup' })
+        .setHTML(criarPopupHTML(bo));
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([parseFloat(bo.longitude), parseFloat(bo.latitude)])
+        .setPopup(popup)
+        .addTo(mapGL);
+
+      markersGL.push(marker);
+    });
+
+    const cbZones = document.getElementById('layerZones');
+    if (cbZones && mapGL.getLayer('zones-3d-extrusion')) {
+      mapGL.setLayoutProperty('zones-3d-extrusion', 'visibility', is3DMode && cbZones.checked ? 'visible' : 'none');
+      mapGL.setLayoutProperty('zones-2d-fill', 'visibility', !is3DMode && cbZones.checked ? 'visible' : 'none');
+      mapGL.setLayoutProperty('zones-2d-outline', 'visibility', !is3DMode && cbZones.checked ? 'visible' : 'none');
+    }
     const cbHeatmap = document.getElementById('layerHeatmap');
-    if (cbHeatmap && heatLayer && !cbHeatmap.checked) {
-      map.removeLayer(heatLayer);
+    if (cbHeatmap && mapGL.getLayer('bos-heat-layer')) {
+      mapGL.setLayoutProperty('bos-heat-layer', 'visibility', cbHeatmap.checked ? 'visible' : 'none');
     }
   }
 
-  // ── Atualizar contadores do painel de estatísticas ──────────────────────
+  // ── Atualizar Estatísticas ───────────────────────────────────────────────
   function atualizarEstatisticas(bos, total) {
-    const criticas  = bos.filter(b => String(b.gravidade).toUpperCase() === 'CRITICA').length;
-    const altas     = bos.filter(b => String(b.gravidade).toUpperCase() === 'ALTA').length;
-    const outras    = bos.filter(b => !['CRITICA', 'ALTA'].includes(String(b.gravidade).toUpperCase())).length;
+    const criticas = bos.filter(b => String(b.gravidade).toUpperCase() === 'CRITICA').length;
+    const altas    = bos.filter(b => String(b.gravidade).toUpperCase() === 'ALTA').length;
+    const outras   = bos.filter(b => !['CRITICA', 'ALTA'].includes(String(b.gravidade).toUpperCase())).length;
 
     const elTotal    = document.getElementById('statOcorrencias');
     const elCritical = document.getElementById('statZonas');
@@ -261,201 +471,118 @@
     if (elSafe)     elSafe.textContent     = outras;
   }
 
-  // ── Aplicar Filtros de Gravidade (Checkboxes) ────────────────────────────
-  const filtroMap = {
-    layerCritical: 'CRITICA',
-    layerWarning:  'ALTA',
-    layerClimate:  'MEDIA',
-    layerInfra:    'MEDIA',   // mantido por compatibilidade HTML
-    layerSafe:     'BAIXA'
-  };
+  // ── Alternador 2D / 3D ────────────────────────────────────────────────────
+  const btnToggle3D = document.getElementById('btnToggle3D');
+  const btnToggle3DText = document.getElementById('btnToggle3DText');
 
-  function aplicarFiltros() {
-    const critica   = document.getElementById('layerCritical')?.checked ?? true;
-    const alta      = document.getElementById('layerWarning')?.checked ?? true;
-    const media     = document.getElementById('layerClimate')?.checked ?? true;
-    const baixa     = document.getElementById('layerSafe')?.checked ?? true;
+  if (btnToggle3D) {
+    btnToggle3D.addEventListener('click', () => {
+      is3DMode = !is3DMode;
 
-    allApiMarkers.forEach(({ marker, bo }) => {
-      const g = String(bo.gravidade).toUpperCase();
-      const visivel =
-        (g === 'CRITICA' && critica) ||
-        (g === 'ALTA'    && alta)    ||
-        (g === 'MEDIA'   && media)   ||
-        (g === 'BAIXA'   && baixa);
-
-      if (visivel) {
-        if (!markersLayerGroup.hasLayer(marker)) markersLayerGroup.addLayer(marker);
+      if (is3DMode) {
+        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 2D';
+        if (mapGL) {
+          mapGL.flyTo({
+            pitch: 60,
+            bearing: -20,
+            zoom: 14.5,
+            duration: 1800
+          });
+        }
+        mostrarToast('🌐 Modo 3D Ativado', 'Câmera inclinada com volumetria e relevo de dados.', 'info');
       } else {
-        if (markersLayerGroup.hasLayer(marker)) markersLayerGroup.removeLayer(marker);
+        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 3D';
+        if (mapGL) {
+          mapGL.flyTo({
+            pitch: 0,
+            bearing: 0,
+            zoom: 13.5,
+            duration: 1600
+          });
+        }
+        mostrarToast('🗺️ Modo 2D Ativado', 'Visão cartográfica plana superior.', 'info');
+      }
+
+      setTimeout(atualizarMarcadoresGL, 300);
+    });
+  }
+
+  // ── Botão "Focar em SP" ───────────────────────────────────────────────────
+  const btnFocus = document.getElementById('btnFocusMap');
+  if (btnFocus) {
+    btnFocus.addEventListener('click', () => {
+      if (mapGL) {
+        mapGL.flyTo({
+          center: SP_CENTER,
+          zoom: is3DMode ? 14.5 : 13.5,
+          pitch: is3DMode ? 60 : 0,
+          bearing: is3DMode ? -20 : 0,
+          duration: 1500
+        });
       }
     });
   }
 
-  // Vincular checkboxes existentes no HTML
+  // ── Checkboxes de Filtros ─────────────────────────────────────────────────
   ['layerCritical', 'layerWarning', 'layerClimate', 'layerInfra', 'layerSafe'].forEach(id => {
     const cb = document.getElementById(id);
-    if (cb) cb.addEventListener('change', () => {
-      aplicarFiltros();
-      if (is3DMode && map3D) atualizarCamadas3D();
-    });
+    if (cb) cb.addEventListener('change', atualizarMarcadoresGL);
   });
 
   const cbZones = document.getElementById('layerZones');
-  if (cbZones) {
-    cbZones.addEventListener('change', function () {
-      if (this.checked) map.addLayer(staticLayerGroup);
-      else map.removeLayer(staticLayerGroup);
-      if (is3DMode && map3D && map3D.getLayer('zones-3d-extrusion')) {
-        map3D.setLayoutProperty('zones-3d-extrusion', 'visibility', this.checked ? 'visible' : 'none');
-      }
-    });
-  }
+  if (cbZones) cbZones.addEventListener('change', atualizarMarcadoresGL);
 
   const cbHeatmap = document.getElementById('layerHeatmap');
-  if (cbHeatmap) {
-    cbHeatmap.addEventListener('change', function () {
-      if (heatLayer) {
-        if (this.checked) map.addLayer(heatLayer);
-        else map.removeLayer(heatLayer);
-      }
-      if (is3DMode && map3D && map3D.getLayer('bos-heat-layer-3d')) {
-        map3D.setLayoutProperty('bos-heat-layer-3d', 'visibility', this.checked ? 'visible' : 'none');
-      }
-    });
-  }
+  if (cbHeatmap) cbHeatmap.addEventListener('change', atualizarMarcadoresGL);
 
-  // ── BUSCA DE DADOS DA API FASTAPI ─────────────────────────────────────────
-  // Usa fetch nativo (não requer Axios no HTML puro) apontando para /api/v1/ocorrencias
+  // ── API Fetch e Fallback ──────────────────────────────────────────────────
   async function fetchOcorrenciasAPI(page = 1, pageSize = 100) {
     const url = `${API_BASE_URL}/ocorrencias?page=${page}&page_size=${pageSize}`;
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
-    });
-
-    if (!response.ok) {
-      throw new Error(`API retornou HTTP ${response.status}`);
-    }
-
-    return response.json(); // → { total, pagina, tamanho_pagina, total_paginas, ocorrencias: [...] }
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
   }
 
-  // ── CARREGAR E RENDERIZAR TODAS AS OCORRÊNCIAS ────────────────────────────
-  async function carregarOcorrenciasNoMapa(paginaAtual = 1, acumulados = []) {
+  async function carregarOcorrenciasNoMapa() {
     try {
-      mostrarLoading(true);
-      const dados = await fetchOcorrenciasAPI(paginaAtual, 100);
+      const dados = await fetchOcorrenciasAPI(1, 100);
       const bos   = dados.ocorrencias || [];
-
-      // Acumular todos os BOs (caso haja múltiplas páginas)
-      const todos = [...acumulados, ...bos];
-
-      // Se houver mais páginas, carregar recursivamente
-      if (paginaAtual < dados.total_paginas) {
-        return await carregarOcorrenciasNoMapa(paginaAtual + 1, todos);
-      }
-
-      // — Renderização completa —
-      renderizarMarcadores(todos, dados.total);
-      atualizarHeatmap(todos);
-      atualizarEstatisticas(todos, dados.total);
-      lastBoData = todos;
-
-      // Enquadrar câmera nos marcadores reais (se houver)
-      if (todos.length > 0) {
-        const group = L.featureGroup(allApiMarkers.map(m => m.marker));
-        if (group.getBounds().isValid()) {
-          map.fitBounds(group.getBounds().pad(0.06));
-        }
-      }
-
-      mostrarLoading(false);
-      mostrarToast('✅ Mapa Atualizado', `${todos.length} BOs carregados da API FastAPI`, 'safe');
-
+      lastBoData = bos;
+      atualizarEstatisticas(bos, dados.total);
+      atualizarMarcadoresGL();
+      mostrarToast('✅ Mapa Atualizado', `${bos.length} BOs sincronizados com FastAPI`, 'safe');
     } catch (err) {
-      mostrarLoading(false);
-      console.warn('[Sentinel Mapa] Falha na API — usando dados estáticos de fallback:', err.message);
-      mostrarToast('⚠️ Backend Offline', 'Exibindo dados locais. Inicie o FastAPI em http://localhost:8000', 'warning');
-
-      // Fallback: mostrar pontos estáticos se a API falhar
+      console.warn('[Sentinel Mapa] Backend indisponível, usando fallback offline:', err.message);
       carregarFallbackEstatico();
     }
   }
 
-  // ── Renderizar marcadores de BO na tela ───────────────────────────────────
-  function renderizarMarcadores(bos, total) {
-    // Limpar marcadores anteriores
-    markersLayerGroup.clearLayers();
-    allApiMarkers = [];
-
-    bos.forEach(bo => {
-      // Ignorar BOs sem coordenadas válidas
-      if (!bo.latitude || !bo.longitude) return;
-      const lat = parseFloat(bo.latitude);
-      const lng = parseFloat(bo.longitude);
-      if (isNaN(lat) || isNaN(lng)) return;
-
-      const obj = adicionarMarcadorBO(bo);
-      allApiMarkers.push(obj);
-    });
-
-    aplicarFiltros();
-
-    if (window.lucide) lucide.createIcons();
-    invalidarMapa();
+  function carregarFallbackEstatico() {
+    const fallbackBOs = [
+      { id:'F-01', numero_bo:'98124/2026', data_hora: new Date().toISOString(), tipo_crime:'Furto de Celular', bairro:'Sé', logradouro:'Praça da Sé', latitude:-23.5505, longitude:-46.6333, gravidade:'CRITICA', status:'Em Atendimento' },
+      { id:'F-02', numero_bo:'98125/2026', data_hora: new Date().toISOString(), tipo_crime:'Roubo de Veículo', bairro:'Pinheiros', logradouro:'Av. Faria Lima', latitude:-23.5675, longitude:-46.6920, gravidade:'ALTA', status:'Registrado' },
+      { id:'F-03', numero_bo:'98126/2026', data_hora: new Date().toISOString(), tipo_crime:'Monitoramento Climático', bairro:'Moema', logradouro:'Parque Ibirapuera', latitude:-23.5876, longitude:-46.6580, gravidade:'MEDIA', status:'Monitorando' },
+      { id:'F-04', numero_bo:'98127/2026', data_hora: new Date().toISOString(), tipo_crime:'Ronda Preventiva', bairro:'Tatuapé', logradouro:'Praça Silvio Romero', latitude:-23.5410, longitude:-46.5750, gravidade:'BAIXA', status:'Seguro' },
+      { id:'F-05', numero_bo:'98128/2026', data_hora: new Date().toISOString(), tipo_crime:'Furto de Veículo', bairro:'Lapa', logradouro:'Rua 12 de Outubro', latitude:-23.5350, longitude:-46.7020, gravidade:'CRITICA', status:'Em Atendimento' },
+      { id:'F-06', numero_bo:'98129/2026', data_hora: new Date().toISOString(), tipo_crime:'Alagamento', bairro:'Brás', logradouro:'Av. Rangel Pestana', latitude:-23.5480, longitude:-46.6050, gravidade:'ALTA', status:'Alerta Ativo' },
+      { id:'F-07', numero_bo:'98130/2026', data_hora: new Date().toISOString(), tipo_crime:'Câmera OCR Ativa', bairro:'Consolação', logradouro:'Av. Paulista, 1578', latitude:-23.5614, longitude:-46.6560, gravidade:'MEDIA', status:'Operacional' },
+      { id:'F-08', numero_bo:'98131/2026', data_hora: new Date().toISOString(), tipo_crime:'Roubo em Andamento', bairro:'Brasilândia', logradouro:'Est. do Sabão', latitude:-23.4610, longitude:-46.6950, gravidade:'CRITICA', status:'Urgente' }
+    ];
+    lastBoData = fallbackBOs;
+    atualizarEstatisticas(fallbackBOs, fallbackBOs.length);
+    atualizarMarcadoresGL();
   }
 
-  // ── Loading indicator (injetado dinamicamente no mapa) ───────────────────
-  function mostrarLoading(ativo) {
-    let el = document.getElementById('mapLoadingOverlay');
-    if (ativo) {
-      if (!el) {
-        el = document.createElement('div');
-        el.id = 'mapLoadingOverlay';
-        el.style.cssText = `
-          position: absolute; top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          background: rgba(6,10,20,0.92);
-          border: 1px solid rgba(0,229,255,0.25);
-          border-radius: 12px;
-          padding: 1rem 1.5rem;
-          z-index: 9999;
-          color: #00e5ff;
-          font-family: inherit;
-          font-size: 0.85rem;
-          font-weight: 600;
-          display: flex;
-          align-items: center;
-          gap: 0.6rem;
-          backdrop-filter: blur(12px);
-        `;
-        el.innerHTML = `
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation: spin 1s linear infinite;">
-            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
-          </svg>
-          Sincronizando BOs com a API FastAPI...
-        `;
-        const wrapper = document.querySelector('.map-page-wrapper');
-        if (wrapper) wrapper.appendChild(el);
-      }
-    } else if (el) {
-      el.remove();
-    }
-  }
-
-  // ── Toast Notifications ──────────────────────────────────────────────────
   function mostrarToast(title, desc, severity) {
     const container = document.getElementById('toastContainer');
     if (!container) return;
 
     const cfg = {
-      safe: { emoji: '✅', color: '#10b981' },
-      warning: { emoji: '⚠️', color: '#f59e0b' },
-      critical: { emoji: '🚨', color: '#ef4444' },
-      info: { emoji: '🔵', color: '#3b82f6' }
-    }[severity] || { emoji: '📡', color: '#00e5ff' };
+      safe: { emoji: '✅' },
+      warning: { emoji: '⚠️' },
+      critical: { emoji: '🚨' },
+      info: { emoji: '🔵' }
+    }[severity] || { emoji: '📡' };
 
     const toast = document.createElement('div');
     toast.className = `sentinel-toast ${severity}`;
@@ -475,546 +602,29 @@
     }, 5000);
   }
 
-  // ── Invalidar tamanho do mapa (resolve bugs de tile) ─────────────────────
-  function invalidarMapa() {
-    setTimeout(() => map.invalidateSize(), 250);
-  }
-
-  // ── Polígonos de Zona AOI (camada estática) ───────────────────────────────
-  const zonePolygons = [
-    { coords: [[-23.5350,-46.6500],[-23.5320,-46.6200],[-23.5600,-46.6150],[-23.5650,-46.6450]], color:'#ef4444', fillOpacity:0.12, name:'Zona Central — Risco Crítico' },
-    { coords: [[-23.5150,-46.7200],[-23.5050,-46.6400],[-23.5350,-46.6450],[-23.5450,-46.7150]], color:'#f59e0b', fillOpacity:0.12, name:'Corredor Trânsito & Marginais' },
-    { coords: [[-23.5950,-46.7200],[-23.5850,-46.6400],[-23.6700,-46.6200],[-23.6800,-46.7100]], color:'#3b82f6', fillOpacity:0.12, name:'Bacia Hidrográfica Sul' },
-    { coords: [[-23.5550,-46.6750],[-23.5500,-46.6500],[-23.6150,-46.6850],[-23.6200,-46.7050]], color:'#a855f7', fillOpacity:0.14, name:'Eixo Financeiro — IA OCR' },
-    { coords: [[-23.5250,-46.5900],[-23.5150,-46.4300],[-23.5900,-46.4500],[-23.5950,-46.5800]], color:'#10b981', fillOpacity:0.12, name:'Zona Leste — Monitorada' }
-  ];
-
-  zonePolygons.forEach(z => {
-    const poly = L.polygon(z.coords, {
-      color: z.color,
-      weight: 1.5,
-      dashArray: '5, 5',
-      fillColor: z.color,
-      fillOpacity: z.fillOpacity
-    }).addTo(staticLayerGroup);
-
-    poly.bindTooltip(`<b>${z.name}</b>`, { sticky: true, className: 'dark-popup' });
-  });
-
-  // ── Busca de Bairro / Região no Mapa ─────────────────────────────────────
-  function performSearch() {
-    const input = document.getElementById('mapSearchInput');
-    if (!input) return;
-    const query = input.value.trim().toLowerCase();
-    if (!query) return;
-
-    const found = allApiMarkers.find(({ bo }) =>
-      (bo.bairro && bo.bairro.toLowerCase().includes(query)) ||
-      (bo.logradouro && bo.logradouro.toLowerCase().includes(query)) ||
-      (bo.tipo_crime && bo.tipo_crime.toLowerCase().includes(query))
-    );
-
-    if (found) {
-      map.flyTo([found.bo.latitude, found.bo.longitude], 15, { animate: true, duration: 1.5 });
-      found.marker.openPopup();
-      mostrarToast(
-        `📍 ${found.bo.bairro}`,
-        `Ocorrência: ${found.bo.tipo_crime} — ${formatarDataHora(found.bo.data_hora)}`,
-        'info'
-      );
-    } else {
-      mostrarToast(
-        'Busca Geoespacial',
-        `Nenhum resultado para "${query}". Tente: Sé, Pinheiros, Paulista, Moema, Tatuapé.`,
-        'warning'
-      );
-    }
-  }
-
-  const btnSearch = document.getElementById('mapSearchBtn');
-  const inputSearch = document.getElementById('mapSearchInput');
-  if (btnSearch) btnSearch.addEventListener('click', performSearch);
-  if (inputSearch) {
-    inputSearch.addEventListener('keypress', e => { if (e.key === 'Enter') performSearch(); });
-  }
-
-  // ── Botão "Focar em SP" ───────────────────────────────────────────────────
-  const btnFocus = document.getElementById('btnFocusMap');
-  if (btnFocus) {
-    btnFocus.addEventListener('click', () => {
-      map.flyTo(SP_CENTER, SP_ZOOM, { animate: true, duration: 1.2 });
-    });
-  }
-
-  // ── Navegação Direta via URL Params (?lat=...&lng=...&search=...) ─────────
-  function checkURLAlertParams() {
-    const params = new URLSearchParams(window.location.search);
-    const lat = parseFloat(params.get('lat'));
-    const lng = parseFloat(params.get('lng'));
-    const search = params.get('search');
-
-    if (search) {
-      const input = document.getElementById('mapSearchInput');
-      if (input) input.value = decodeURIComponent(search);
-    }
-
-    if (!isNaN(lat) && !isNaN(lng)) {
-      setTimeout(() => {
-        map.flyTo([lat, lng], 15, { animate: true, duration: 1.8 });
-        const nearest = allApiMarkers.find(({ bo }) =>
-          Math.abs(parseFloat(bo.latitude) - lat) < 0.03 &&
-          Math.abs(parseFloat(bo.longitude) - lng) < 0.03
-        );
-        if (nearest) nearest.marker.openPopup();
-      }, 600);
-    } else if (search) {
-      setTimeout(() => performSearch(), 600);
-    }
-  }
-
-  // ── Relatório ao Vivo ─────────────────────────────────────────────────────
-  const btnReport = document.getElementById('btnGenerateReport');
-  if (btnReport) {
-    btnReport.addEventListener('click', () => {
-      const criticas = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'CRITICA').length;
-      const altas    = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'ALTA').length;
-      const medias   = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'MEDIA').length;
-      const baixas   = allApiMarkers.filter(({ bo }) => String(bo.gravidade).toUpperCase() === 'BAIXA').length;
-
-      const backdrop = document.createElement('div');
-      backdrop.className = 'sentinel-modal-backdrop';
-      backdrop.innerHTML = `
-        <div class="sentinel-modal">
-          <div class="sentinel-modal-header">
-            <div class="sentinel-modal-title">
-              <i data-lucide="shield" style="color:var(--cyan);"></i>
-              Relatório de BOs — Sentinel IA (API Ativa)
-            </div>
-            <button class="btn-icon" id="btnCloseModal"><i data-lucide="x"></i></button>
-          </div>
-          <div class="sentinel-modal-body">
-            <p><strong>Fonte:</strong> FastAPI Backend — <code>${API_BASE_URL}/ocorrencias</code></p>
-            <p style="margin-bottom:1.25rem;"><strong>Emissão:</strong> ${new Date().toLocaleString('pt-BR')}</p>
-            <h4 style="color:#fff; margin-bottom:0.75rem;">Resumo por Severidade:</h4>
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px,1fr)); gap:10px; margin-bottom:1.5rem;">
-              <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#ef4444;">${criticas}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🔴 Críticas</div>
-              </div>
-              <div style="background:rgba(245,158,11,0.1); border:1px solid #f59e0b; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#f59e0b;">${altas}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🟡 Altas</div>
-              </div>
-              <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#3b82f6;">${medias}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🔵 Médias</div>
-              </div>
-              <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:8px; padding:10px; text-align:center;">
-                <div style="font-size:1.4rem; font-weight:800; color:#10b981;">${baixas}</div>
-                <div style="font-size:0.75rem; color:#aaa;">🟢 Baixas</div>
-              </div>
-            </div>
-            <h4 style="color:#fff; margin-bottom:0.75rem;">Últimas 6 Ocorrências (API):</h4>
-            <ul style="padding-left:1.2rem; display:flex; flex-direction:column; gap:6px;">
-              ${allApiMarkers.slice(-6).reverse().map(({ bo }) => `
-                <li><strong>[${bo.bairro || '—'}]</strong> ${bo.tipo_crime} — BO ${bo.numero_bo} (${formatarDataHora(bo.data_hora)})</li>
-              `).join('')}
-            </ul>
-          </div>
-          <div class="sentinel-modal-footer">
-            <button class="btn btn-secondary btn-sm" onclick="window.print()">Imprimir / PDF</button>
-            <button class="btn btn-primary btn-sm" id="btnCloseModal2">Fechar</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(backdrop);
-      if (window.lucide) lucide.createIcons();
-
-      const close = () => backdrop.remove();
-      document.getElementById('btnCloseModal')?.addEventListener('click', close);
-      document.getElementById('btnCloseModal2')?.addEventListener('click', close);
-      backdrop.addEventListener('click', e => { if (e.target === backdrop) close(); });
-    });
-  }
-
-  // ── Dados Estáticos de Fallback (caso API offline) ───────────────────────
-  function carregarFallbackEstatico() {
-    const fallbackBOs = [
-      { id:'F-01', numero_bo:'BO-0001', data_hora: new Date().toISOString(), tipo_crime:'Furto a Pedestre', bairro:'Sé', logradouro:'Praça da Sé', latitude:-23.5505, longitude:-46.6333, gravidade:'CRITICA', status:'Em Atendimento' },
-      { id:'F-02', numero_bo:'BO-0002', data_hora: new Date().toISOString(), tipo_crime:'Acidente de Trânsito', bairro:'Pinheiros', logradouro:'Av. Faria Lima', latitude:-23.5675, longitude:-46.6920, gravidade:'ALTA', status:'Registrado' },
-      { id:'F-03', numero_bo:'BO-0003', data_hora: new Date().toISOString(), tipo_crime:'Monitoramento Climático', bairro:'Moema', logradouro:'Parque Ibirapuera', latitude:-23.5876, longitude:-46.6580, gravidade:'MEDIA', status:'Monitorando' },
-      { id:'F-04', numero_bo:'BO-0004', data_hora: new Date().toISOString(), tipo_crime:'Ronda Preventiva', bairro:'Tatuapé', logradouro:'Praça Silvio Romero', latitude:-23.5410, longitude:-46.5750, gravidade:'BAIXA', status:'Seguro' },
-      { id:'F-05', numero_bo:'BO-0005', data_hora: new Date().toISOString(), tipo_crime:'Furto de Veículo', bairro:'Lapa', logradouro:'Rua 12 de Outubro', latitude:-23.5350, longitude:-46.7020, gravidade:'CRITICA', status:'Em Atendimento' },
-      { id:'F-06', numero_bo:'BO-0006', data_hora: new Date().toISOString(), tipo_crime:'Alagamento', bairro:'Brás', logradouro:'Av. Rangel Pestana', latitude:-23.5480, longitude:-46.6050, gravidade:'ALTA', status:'Alerta Ativo' },
-      { id:'F-07', numero_bo:'BO-0007', data_hora: new Date().toISOString(), tipo_crime:'Câmera OCR Ativa', bairro:'Consolação', logradouro:'Av. Paulista, 1578', latitude:-23.5614, longitude:-46.6560, gravidade:'MEDIA', status:'Operacional' },
-      { id:'F-08', numero_bo:'BO-0008', data_hora: new Date().toISOString(), tipo_crime:'Roubo em Andamento', bairro:'Brasilândia', logradouro:'Est. do Sabão', latitude:-23.4610, longitude:-46.6950, gravidade:'CRITICA', status:'Urgente' }
-    ];
-    renderizarMarcadores(fallbackBOs, fallbackBOs.length);
-    atualizarHeatmap(fallbackBOs);
-    atualizarEstatisticas(fallbackBOs, fallbackBOs.length);
-    map.flyTo(SP_CENTER, SP_ZOOM);
-  }
-
-  // ── MODO 3D: MapLibre GL JS Engine com 3D Buildings & Relevo Volumétrico ────
-  let map3D = null;
-  let is3DMode = false;
-  let markers3D = [];
-
-  function initMap3D() {
-    if (map3D) return;
-    if (typeof maplibregl === 'undefined') {
-      console.warn('MapLibre GL não carregado');
-      return;
-    }
-
-    const container = document.getElementById('map3DContainer');
-    if (!container) return;
-
-    // Estilo dark vetorial gratuito de alta fidelidade com camadas de edifícios e relevo
-    map3D = new maplibregl.Map({
-      container: 'map3DContainer',
-      style: {
-        version: 8,
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
-        sources: {
-          'osm-dark-tiles': {
-            type: 'raster',
-            tiles: [
-              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-              'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-            ],
-            tileSize: 256,
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-          },
-          'openmaptiles': {
-            type: 'vector',
-            url: 'https://demotiles.maplibre.org/tiles/tiles.json'
-          }
-        },
-        layers: [
-          {
-            id: 'dark-background',
-            type: 'background',
-            paint: {
-              'background-color': '#050914'
-            }
-          },
-          {
-            id: 'osm-base-layer',
-            type: 'raster',
-            source: 'osm-dark-tiles',
-            minzoom: 0,
-            maxzoom: 22,
-            paint: {
-              'raster-opacity': 0.85,
-              'raster-contrast': 0.15,
-              'raster-brightness-min': 0.05,
-              'raster-brightness-max': 0.95
-            }
-          },
-          // ── Extrusão 3D de Edificações / Estruturas Urbanas ──
-          {
-            id: '3d-buildings',
-            source: 'openmaptiles',
-            'source-layer': 'building',
-            type: 'fill-extrusion',
-            minzoom: 12,
-            paint: {
-              'fill-extrusion-color': [
-                'interpolate',
-                ['linear'],
-                ['get', 'render_height'],
-                0, 'rgba(10, 25, 47, 0.75)',
-                50, 'rgba(0, 229, 255, 0.65)',
-                100, 'rgba(168, 85, 247, 0.75)'
-              ],
-              'fill-extrusion-height': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                12, 0,
-                14.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 28]
-              ],
-              'fill-extrusion-base': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                12, 0,
-                14.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]
-              ],
-              'fill-extrusion-opacity': 0.82
-            }
-          }
-        ]
-      },
-      center: [-46.6333, -23.5505], // MapLibre usa [longitude, latitude]
-      zoom: 14.2,
-      pitch: 60, // Inclinação 3D
-      bearing: -17.6 // Rotação 3D
-    });
-
-    map3D.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
-
-    map3D.on('load', () => {
-      adicionarZonas3D();
-      adicionarHeatmap3D();
-      atualizarCamadas3D();
-    });
-  }
-
-  // ── Prismas e Colunas Volumétricas 3D para as Zonas Urbanas ──────────────
-  function adicionarZonas3D() {
-    if (!map3D || map3D.getSource('zones-3d-source')) return;
-
-    // Converter zonePolygons para GeoJSON com extrusão
-    const features = zonePolygons.map((z, idx) => {
-      // Leaflet usa [lat, lng], MapLibre GeoJSON usa [lng, lat]
-      const coords = z.coords.map(pt => [pt[1], pt[0]]);
-      coords.push(coords[0]); // Fechar polígono
-
-      const height = (idx + 1) * 35 + 40; // Altura do prisma volumétrico
-
-      return {
-        type: 'Feature',
-        properties: {
-          name: z.name,
-          color: z.color,
-          height: height,
-          base: 0
-        },
-        geometry: {
-          type: 'Polygon',
-          coordinates: [coords]
-        }
-      };
-    });
-
-    map3D.addSource('zones-3d-source', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: features
-      }
-    });
-
-    map3D.addLayer({
-      id: 'zones-3d-extrusion',
-      type: 'fill-extrusion',
-      source: 'zones-3d-source',
-      paint: {
-        'fill-extrusion-color': ['get', 'color'],
-        'fill-extrusion-height': ['get', 'height'],
-        'fill-extrusion-base': ['get', 'base'],
-        'fill-extrusion-opacity': 0.35
-      }
-    });
-  }
-
-  // ── Camada de Calor Volumétrica (Heatmap) em 3D ───────────────────────────
-  function adicionarHeatmap3D() {
-    if (!map3D || map3D.getSource('bos-heat-source')) return;
-
-    const bos = lastBoData.length > 0 ? lastBoData : [];
-    const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
-      type: 'Feature',
-      properties: {
-        intensity: getGravityConfig(b.gravidade).heatIntensity
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
-      }
-    }));
-
-    map3D.addSource('bos-heat-source', {
-      type: 'geojson',
-      data: {
-        type: 'FeatureCollection',
-        features: features
-      }
-    });
-
-    map3D.addLayer({
-      id: 'bos-heat-layer-3d',
-      type: 'heatmap',
-      source: 'bos-heat-source',
-      maxzoom: 17,
-      paint: {
-        'heatmap-weight': ['get', 'intensity'],
-        'heatmap-intensity': 1.6,
-        'heatmap-color': [
-          'interpolate',
-          ['linear'],
-          ['heatmap-density'],
-          0, 'rgba(0, 229, 255, 0)',
-          0.2, '#10b981',
-          0.4, '#3b82f6',
-          0.6, '#a855f7',
-          0.8, '#f59e0b',
-          1, '#ef4444'
-        ],
-        'heatmap-radius': 32,
-        'heatmap-opacity': 0.75
-      }
-    });
-  }
-
-  function atualizarCamadas3D() {
-    if (!map3D) return;
-
-    // Atualizar dados de calor
-    if (map3D.getSource('bos-heat-source')) {
-      const bos = lastBoData.length > 0 ? lastBoData : [];
-      const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
-        type: 'Feature',
-        properties: {
-          intensity: getGravityConfig(b.gravidade).heatIntensity
-        },
-        geometry: {
-          type: 'Point',
-          coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
-        }
-      }));
-      map3D.getSource('bos-heat-source').setData({
-        type: 'FeatureCollection',
-        features: features
-      });
-    }
-
-    // Limpar marcadores 3D anteriores
-    markers3D.forEach(m => m.remove());
-    markers3D = [];
-
-    const bos = lastBoData.length > 0 ? lastBoData : [];
-    
-    // Inserir Marcadores 3D com Colunas Volumétricas e Efeitos Neon
-    bos.forEach(bo => {
-      if (!bo.latitude || !bo.longitude) return;
-      const cfg = getGravityConfig(bo.gravidade);
-
-      // Elemento HTML com pilar/coluna 3D volumétrica
-      const el = document.createElement('div');
-      el.className = 'marker-3d-wrapper';
-      el.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        transform: translateZ(0);
-        cursor: pointer;
-      `;
-
-      // Altura da coluna volumétrica proporcional à gravidade
-      const height = bo.gravidade === 'CRITICA' ? 75 : (bo.gravidade === 'ALTA' ? 52 : 36);
-      
-      el.innerHTML = `
-        <div style="
-          width: 16px;
-          height: 16px;
-          border-radius: 50%;
-          background: ${cfg.color};
-          box-shadow: 0 0 18px ${cfg.color}, 0 0 35px ${cfg.color};
-          border: 2px solid #ffffff;
-          animation: pulse-dot 1.5s infinite;
-        "></div>
-        <div style="
-          width: 5px;
-          height: ${height}px;
-          background: linear-gradient(180deg, ${cfg.color}, rgba(0,0,0,0.2));
-          box-shadow: 0 0 12px ${cfg.color};
-          border-radius: 2px;
-        "></div>
-      `;
-
-      // Criar Popup 3D
-      const popup = new maplibregl.Popup({ offset: 25, className: 'dark-popup' })
-        .setHTML(criarPopupHTML(bo));
-
-      const marker = new maplibregl.Marker({ element: el })
-        .setLngLat([parseFloat(bo.longitude), parseFloat(bo.latitude)])
-        .setPopup(popup)
-        .addTo(map3D);
-
-      markers3D.push(marker);
-    });
-
-    // Controlar visibilidade de camadas com base nos checkboxes da UI
-    const cbZones = document.getElementById('layerZones');
-    if (cbZones && map3D.getLayer('zones-3d-extrusion')) {
-      map3D.setLayoutProperty('zones-3d-extrusion', 'visibility', cbZones.checked ? 'visible' : 'none');
-    }
-    const cbHeatmap = document.getElementById('layerHeatmap');
-    if (cbHeatmap && map3D.getLayer('bos-heat-layer-3d')) {
-      map3D.setLayoutProperty('bos-heat-layer-3d', 'visibility', cbHeatmap.checked ? 'visible' : 'none');
-    }
-  }
-
-  // ── Alternância entre Mapa 2D e Mapa 3D ───────────────────────────────────
-  const btnToggle3D = document.getElementById('btnToggle3D');
-  const btnToggle3DText = document.getElementById('btnToggle3DText');
-  const map2DEl = document.getElementById('mainMap');
-  const map3DEl = document.getElementById('map3DContainer');
-
-  if (btnToggle3D) {
-    btnToggle3D.addEventListener('click', () => {
-      is3DMode = !is3DMode;
-
-      if (is3DMode) {
-        if (map2DEl) map2DEl.style.display = 'none';
-        if (map3DEl) {
-          map3DEl.style.display = 'block';
-          map3DEl.style.zIndex = '1';
-        }
-        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 2D';
-        if (!map3D) {
-          initMap3D();
-        } else {
-          map3D.resize();
-          atualizarCamadas3D();
-        }
-        mostrarToast('🌐 Modo 3D Ativado', 'Visualização volumétrica com inclinação de relevo e colunas de risco.', 'info');
-      } else {
-        if (map3DEl) {
-          map3DEl.style.display = 'none';
-          map3DEl.style.zIndex = '0';
-        }
-        if (map2DEl) {
-          map2DEl.style.display = 'block';
-          invalidarMapa();
-        }
-        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 3D';
-        mostrarToast('🗺️ Modo 2D Ativado', 'Visualização cartográfica padrão 2D.', 'info');
-      }
-    });
-  }
-
-  // ── Início: Carregar API e configurar auto-refresh ────────────────────────
+  // ── Inicialização ─────────────────────────────────────────────────────────
   async function inicializar() {
+    initMap();
     await carregarOcorrenciasNoMapa();
-    checkURLAlertParams();
 
-    // Auto-refresh a cada 30s (dados ao vivo)
     setInterval(async () => {
       try {
         const dados = await fetchOcorrenciasAPI(1, 100);
-        renderizarMarcadores(dados.ocorrencias || [], dados.total);
-        atualizarHeatmap(dados.ocorrencias || []);
-        atualizarEstatisticas(dados.ocorrencias || [], dados.total);
-        if (is3DMode) atualizarCamadas3D();
+        lastBoData = dados.ocorrencias || [];
+        atualizarEstatisticas(lastBoData, dados.total);
+        atualizarMarcadoresGL();
       } catch (e) {
-        console.warn('[Auto-refresh] Falha na sincronização:', e.message);
+        console.warn('[Auto-refresh] Offline:', e.message);
       }
     }, REFRESH_MS);
   }
 
   inicializar();
 
-  // Corrigir tiles do mapa ao redimensionar janela
   window.addEventListener('resize', () => {
-    invalidarMapa();
-    if (map3D && is3DMode) map3D.resize();
+    if (mapGL) mapGL.resize();
   });
 
 })();
+
 
