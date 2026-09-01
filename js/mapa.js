@@ -645,6 +645,160 @@
     map.flyTo(SP_CENTER, SP_ZOOM);
   }
 
+  // ── MODO 3D: MapLibre GL JS Engine ──────────────────────────────────────
+  let map3D = null;
+  let is3DMode = false;
+  let markers3D = [];
+
+  function initMap3D() {
+    if (map3D) return;
+    if (typeof maplibregl === 'undefined') {
+      console.warn('MapLibre GL não carregado');
+      return;
+    }
+
+    const container = document.getElementById('map3DContainer');
+    if (!container) return;
+
+    // Estilo dark open vector com relevo e prédios 3D
+    map3D = new maplibregl.Map({
+      container: 'map3DContainer',
+      style: {
+        version: 8,
+        sources: {
+          'osm-tiles': {
+            type: 'raster',
+            tiles: [
+              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+            ],
+            tileSize: 256,
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+          }
+        },
+        layers: [
+          {
+            id: 'osm-layer',
+            type: 'raster',
+            source: 'osm-tiles',
+            minzoom: 0,
+            maxzoom: 22
+          }
+        ]
+      },
+      center: [-46.6333, -23.5505], // MapLibre usa [lng, lat]
+      zoom: 13.5,
+      pitch: 60, // Inclinação 3D
+      bearing: -17.6 // Rotação 3D
+    });
+
+    map3D.addControl(new maplibregl.NavigationControl(), 'top-left');
+
+    map3D.on('load', () => {
+      // Camada de Calor Volumétrica (Heatmap 3D / Heat Layer)
+      atualizarCamadas3D();
+    });
+  }
+
+  function atualizarCamadas3D() {
+    if (!map3D) return;
+
+    // Limpar marcadores 3D anteriores
+    markers3D.forEach(m => m.remove());
+    markers3D = [];
+
+    const bos = lastBoData.length > 0 ? lastBoData : [];
+    
+    // Inserir Marcadores 3D com Colunas Volumétricas e Efeitos Neon
+    bos.forEach(bo => {
+      if (!bo.latitude || !bo.longitude) return;
+      const cfg = getGravityConfig(bo.gravidade);
+
+      // Elemento HTML com pilar/coluna 3D volumétrica
+      const el = document.createElement('div');
+      el.className = 'marker-3d-wrapper';
+      el.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: translateZ(0);
+        cursor: pointer;
+      `;
+
+      // Altura da coluna proporcional à gravidade
+      const height = bo.gravidade === 'CRITICA' ? 70 : (bo.gravidade === 'ALTA' ? 50 : 35);
+      
+      el.innerHTML = `
+        <div style="
+          width: 14px;
+          height: 14px;
+          border-radius: 50%;
+          background: ${cfg.color};
+          box-shadow: 0 0 16px ${cfg.color}, 0 0 30px ${cfg.color};
+          border: 2px solid #ffffff;
+          animation: pulse-dot 1.8s infinite;
+        "></div>
+        <div style="
+          width: 4px;
+          height: ${height}px;
+          background: linear-gradient(180deg, ${cfg.color}, transparent);
+          box-shadow: 0 0 10px ${cfg.color};
+        "></div>
+      `;
+
+      // Criar Popup 3D
+      const popup = new maplibregl.Popup({ offset: 25, className: 'dark-popup' })
+        .setHTML(criarPopupHTML(bo));
+
+      const marker = new maplibregl.Marker({ element: el })
+        .setLngLat([parseFloat(bo.longitude), parseFloat(bo.latitude)])
+        .setPopup(popup)
+        .addTo(map3D);
+
+      markers3D.push(marker);
+    });
+  }
+
+  // ── Alternância entre Mapa 2D e Mapa 3D ───────────────────────────────────
+  const btnToggle3D = document.getElementById('btnToggle3D');
+  const btnToggle3DText = document.getElementById('btnToggle3DText');
+  const map2DEl = document.getElementById('mainMap');
+  const map3DEl = document.getElementById('map3DContainer');
+
+  if (btnToggle3D) {
+    btnToggle3D.addEventListener('click', () => {
+      is3DMode = !is3DMode;
+
+      if (is3DMode) {
+        if (map2DEl) map2DEl.style.display = 'none';
+        if (map3DEl) {
+          map3DEl.style.display = 'block';
+          map3DEl.style.zIndex = '1';
+        }
+        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 2D';
+        if (!map3D) {
+          initMap3D();
+        } else {
+          map3D.resize();
+          atualizarCamadas3D();
+        }
+        mostrarToast('🌐 Modo 3D Ativado', 'Visualização volumétrica com inclinação de relevo e colunas de risco.', 'info');
+      } else {
+        if (map3DEl) {
+          map3DEl.style.display = 'none';
+          map3DEl.style.zIndex = '0';
+        }
+        if (map2DEl) {
+          map2DEl.style.display = 'block';
+          invalidarMapa();
+        }
+        if (btnToggle3DText) btnToggle3DText.textContent = 'Modo 3D';
+        mostrarToast('🗺️ Modo 2D Ativado', 'Visualização cartográfica padrão 2D.', 'info');
+      }
+    });
+  }
+
   // ── Início: Carregar API e configurar auto-refresh ────────────────────────
   async function inicializar() {
     await carregarOcorrenciasNoMapa();
@@ -657,6 +811,7 @@
         renderizarMarcadores(dados.ocorrencias || [], dados.total);
         atualizarHeatmap(dados.ocorrencias || []);
         atualizarEstatisticas(dados.ocorrencias || [], dados.total);
+        if (is3DMode) atualizarCamadas3D();
       } catch (e) {
         console.warn('[Auto-refresh] Falha na sincronização:', e.message);
       }
@@ -666,6 +821,10 @@
   inicializar();
 
   // Corrigir tiles do mapa ao redimensionar janela
-  window.addEventListener('resize', invalidarMapa);
+  window.addEventListener('resize', () => {
+    invalidarMapa();
+    if (map3D && is3DMode) map3D.resize();
+  });
 
 })();
+

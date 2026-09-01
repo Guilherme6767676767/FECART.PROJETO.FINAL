@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -328,6 +328,12 @@
             <button class="map-search-btn" id="mapSearchBtn">Buscar</button>
           </div>
 
+          <!-- Botão Alternador 2D / 3D -->
+          <button class="btn btn-outline-cyber btn-sm" id="btnToggle3D" style="gap:0.4rem; font-weight:700; border:1px solid var(--cyan); color:var(--cyan); background:rgba(0,229,255,0.1);">
+            <i data-lucide="box" style="width:16px;height:16px"></i>
+            <span id="btnToggle3DText">Modo 3D</span>
+          </button>
+
           <!-- Botão Gerar Relatório -->
           <button class="btn btn-primary btn-sm" id="btnGenerateReport" style="gap:0.4rem; font-weight:600;">
             <i data-lucide="file-text" style="width:16px;height:16px"></i>
@@ -344,7 +350,11 @@
 
       <!-- Map Container (full height) -->
       <div class="map-page-wrapper">
-        <div id="mainMap" style="width: 100%; height: 100%; z-index: 1;"></div>
+        <!-- Canvas 2D (Leaflet) -->
+        <div id="mainMap" style="width: 100%; height: 100%; position: absolute; inset: 0; z-index: 1;"></div>
+        
+        <!-- Canvas 3D (MapLibre / WebGL) -->
+        <div id="map3DContainer" style="width: 100%; height: 100%; position: absolute; inset: 0; z-index: 0; display: none;"></div>
 
         <!-- Legenda Explicativa de 5 Cores (top-left do mapa) -->
         <div class="map-legend-panel">
@@ -443,6 +453,8 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+  <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+  <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="js/api-service.js"></script>
   <script src="js/mapa.js"></script>

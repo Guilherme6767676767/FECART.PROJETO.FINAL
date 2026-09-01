@@ -37,13 +37,15 @@ app = FastAPI(
 # ----------------------------------------------------
 cors_origins_env = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    "https://guilherme6767676767.github.io,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080"
 )
 origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
 
+# Permite acesso seguro e flexível para GitHub Pages e instâncias locais
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins if origins else ["*"],
+    allow_origin_regex=r"https://.*\.github\.io",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
