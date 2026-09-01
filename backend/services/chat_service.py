@@ -16,10 +16,24 @@ from database import obter_estatisticas_resumo, disparar_cenario_pronto, registr
 from services.weather_service import get_sao_paulo_weather
 
 
-# SYSTEM PROMPT RAG ESPECIALIZADO
-SENTINEL_SYSTEM_PROMPT = """Você é o Sentinel Core AI, assistente tático de inteligência urbana e segurança pública de São Paulo (SP).
-Sua missão é responder com precisão técnica e tom profissional, prestativo e analítico, apoiando agentes de segurança, operadores do trânsito (CET) e cidadãos.
+# RESPOSTA OBRIGATÓRIA DE FORA DE ESCOPO
+OUT_OF_SCOPE_RESPONSE = (
+    "Desculpe, sou o assistente virtual do Sentinel IA e só posso responder a "
+    "perguntas relacionadas às funcionalidades, relatórios e dados da nossa plataforma de inteligência preditiva urbana."
+)
 
+# SYSTEM PROMPT RAG ESPECIALIZADO E ESTRITO
+SENTINEL_SYSTEM_PROMPT = """Você é o assistente virtual do Sentinel IA, uma plataforma governamental e corporativa de inteligência preditiva urbana para a cidade de São Paulo (SP).
+
+REGRA DE ESCOPO ESTRITO E INEGOCIÁVEL:
+Você responde EXCLUSIVAMENTE sobre o projeto "Sentinel IA", seus módulos (Dashboard, Mapa, Análises, Alertas, Simulações), funcionalidades, dados da plataforma, estatísticas de segurança pública (SSP-SP), clima em tempo real, sensores IoT e telemetria urbana de São Paulo.
+
+Caso o usuário pergunte qualquer coisa fora desse escopo (como curiosidades, conhecimentos gerais, receitas, piadas, futebol, política externa, celebridades, outras cidades/países, ou qualquer assunto não relacionado ao Sentinel IA e à gestão urbana de SP), você DEVE responder EXATAMENTE e APENAS:
+"Desculpe, sou o assistente virtual do Sentinel IA e só posso responder a perguntas relacionadas às funcionalidades, relatórios e dados da nossa plataforma de inteligência preditiva urbana."
+
+NÃO adicione introduções, explicações ou notas quando a pergunta for fora de escopo. Use apenas a frase exata acima.
+
+Para perguntas DENTRO do escopo do Sentinel IA:
 Você tem acesso aos seguintes dados estruturados e regras da cidade de São Paulo:
 - AOI Alpha: Av. Paulista & Bela Vista (Risco Médio 68%, 84 câmeras OCR, 412 sensores)
 - AOI Bravo: Centro Histórico & Praça da Sé (Risco Crítico 92%, 120 câmeras, 320 sensores, histórico de roubos/furtos)
@@ -27,11 +41,11 @@ Você tem acesso aos seguintes dados estruturados e regras da cidade de São Pau
 - AOI Delta: Marginal Tietê & Lapa (Risco Alto 81%, 64 câmeras, 289 sensores, alagamentos e acidentes)
 - Telefones de Emergência: 190 (Polícia Militar), 193 (Bombeiros), 192 (SAMU), 199 (Defesa Civil), 153 (GCM), 156 (Prefeitura SP).
 
-Você também pode comandar a interface web do usuário:
-Se o usuário pedir para navegar ou ver algo (ex: "abra o mapa", "vá para simulações", "veja a análise"), você deve sugerir a navegação.
-Se o usuário pedir para simular uma crise (ex: "simule tempestade na Marginal", "simule arrastão na Sé", "simule apagão em Pinheiros"), você confirma e executa o cenário.
+Você também pode comandar a interface web:
+- Navegação de telas (mapa, simulações, alertas, análise, dashboard).
+- Execução de cenários de crise (tempestade na Marginal, arrastão na Sé, pane semafórica em Pinheiros, bloqueio na Paulista).
 
-Formate as respostas usando Markdown limpo com tópicos e destaques com emojis apropriados (🚨, 🌧️, 🚗, 🛡️, ⚡, 📍).
+Formate as respostas válidas usando Markdown limpo com tópicos e destaques com emojis apropriados (🚨, 🌧️, 🚗, 🛡️, ⚡, 📍).
 """
 
 
@@ -165,14 +179,71 @@ async def consultar_llm_externa(prompt_completo: str) -> str:
     return None
 
 
+def verificar_escopo_sentinel(message: str) -> bool:
+    """
+    Verifica estritamente se a pergunta do usuário está dentro do escopo do Sentinel IA
+    (Funcionalidades, módulos, relatórios, segurança pública, clima, sensores e dados urbanos de SP).
+    """
+    msg = message.lower().strip()
+    
+    # 1. Termos longos e expressões específicas que podem ser substring
+    termos_longos = [
+        "sentinel", "plataforma", "sistema", "dashboard", "painel",
+        "mapa", "analise", "análise", "alerta", "alertas", "simulac", "simulaç", "cenario", "cenário",
+        "relatorio", "relatório", "funcionalidade", "login", "cadastro", "usuario", "usuário", "admin",
+        "são paulo", "sao paulo", "bairro", "perimetro", "perímetro",
+        "paulista", "bela vista", "pinheiros", "faria lima", "lapa", "marginal",
+        "tietê", "tiete", "moema", "ibirapuera", "jardins", "santana", "tatuape", "tatuapé",
+        "boletim", "boletins", "ocorrencia", "ocorrência", "crime", "furto", "roubo",
+        "seguranca", "segurança", "risco", "policia", "polícia", "viatura", "patrulha",
+        "transito", "trânsito", "semaforo", "semáforo",
+        "clima", "chuva", "tempo", "temperatura", "umidade", "vento", "precipitacao", "precipitação",
+        "alagamento", "enchente", "inundacao", "inundação", "pluviometro", "pluviômetro",
+        "defesa civil", "samu", "bombeiro", "emergencia", "emergência",
+        "camera", "câmera", "sensor", "telemetria", "preditiv", "estatistica", "estatística",
+        "bom dia", "boa tarde", "boa noite", "quem é você", "quem e voce",
+        "o que você faz", "o que voce faz", "comandos", "como funciona",
+        "como usar"
+    ]
+    if any(t in msg for t in termos_longos):
+        return True
+
+    # 2. Siglas e palavras curtas que exigem limites de palavra (\b)
+    palavras_exatas = [
+        r"\bia\b", r"\bsp\b", r"\bbo\b", r"\bbos\b", r"\baoi\b", r"\baois\b", r"\bsé\b",
+        r"\bzona\b", r"\bzonas\b", r"\bssp\b", r"\bpm\b", r"\bgcm\b", r"\bcet\b",
+        r"\biot\b", r"\bocr\b", r"\bdados\b", r"\bola\b", r"\bolá\b", r"\boi\b",
+        r"\bajuda\b", r"\bstatus\b", r"\bversao\b", r"\bversão\b", r"\bmapas\b",
+        r"\babrir\b", r"\bmostrar\b", r"\bsimular\b", r"\bsimule\b"
+    ]
+    return any(re.search(p, msg) for p in palavras_exatas)
+
+
 async def processar_mensagem_chat(req: ChatRequest) -> ChatResponse:
     """
     Motor Central de Chatbot:
-    1. Reúne telemetria viva (Clima em SP, Estatísticas de BOs, AOIs)
-    2. Identifica se há comandos de ação para executar na tela
-    3. Tenta processar com LLM generativa ou com o motor tático Sentinel
+    1. Valida escopo estrito (Sentinel IA e dados urbanos de SP)
+    2. Reúne telemetria viva (Clima em SP, Estatísticas de BOs, AOIs)
+    3. Identifica comandos de ação para executar na tela
+    4. Processa com LLM generativa ou motor tático Sentinel NLP
     """
     user_msg = req.message
+    
+    # 1. Regra de Contexto Estrita: Bloqueio de assuntos fora do escopo
+    if not verificar_escopo_sentinel(user_msg):
+        return ChatResponse(
+            response=OUT_OF_SCOPE_RESPONSE,
+            actions=[],
+            suggestions=[
+                "🗺️ Abrir Mapa Interativo de SP",
+                "🚨 Qual o risco atual na Sé?",
+                "⛈️ Simular Tempestade na Marginal",
+                "🌧️ Como está o clima e chuva em SP?",
+                "📊 Ver Análise Preditiva de Ocorrências"
+            ],
+            model_used="Sentinel Scope Guard"
+        )
+
     actions, suggestions = detectar_acoes_e_comandos(user_msg)
 
     # Obter dados em tempo real para contextualização RAG

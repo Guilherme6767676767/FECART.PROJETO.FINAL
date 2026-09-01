@@ -109,6 +109,19 @@ def test_chat_endpoint():
     print(f"   -> Resposta do Chat ({data['model_used']}): {data['response'][:80]}...")
     print(f"   -> Ações Táticas Detectadas: {len(data['actions'])} comandos (Ex: {[a['type'] for a in data['actions']]})")
 
+    # Teste de pergunta fora de escopo (deve retornar mensagem exata)
+    print("\n🚫 Testando Pergunta Fora de Escopo...")
+    payload_off = {
+        "message": "Qual é a receita de um bolo de cenoura?",
+        "current_page": "dashboard.html"
+    }
+    resp_off = client.post("/api/v1/chat", json=payload_off)
+    assert resp_off.status_code == 200
+    data_off = resp_off.json()
+    expected_msg = "Desculpe, sou o assistente virtual do Sentinel IA e só posso responder a perguntas relacionadas às funcionalidades, relatórios e dados da nossa plataforma de inteligência preditiva urbana."
+    assert data_off["response"] == expected_msg
+    print("   -> Mensagem fora de escopo bloqueada com sucesso e resposta padronizada validada!")
+
 
 if __name__ == "__main__":
     test_health()
@@ -117,5 +130,5 @@ if __name__ == "__main__":
     test_resumo_endpoint()
     test_simulacao_endpoints()
     test_chat_endpoint()
-    print("\n🎯 TODOS OS TESTES (INCLUINDO CHATBOT COM AÇÕES E TELEMETRIA) PASSARAM COM 100% DE SUCESSO!")
+    print("\n🎯 TODOS OS TESTES (INCLUINDO ESCOPO ESTRITO DO CHATBOT) PASSARAM COM 100% DE SUCESSO!")
 

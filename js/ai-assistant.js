@@ -124,11 +124,53 @@
     }, 2800);
   }
 
+  const OUT_OF_SCOPE_MSG = "Desculpe, sou o assistente virtual do Sentinel IA e só posso responder a perguntas relacionadas às funcionalidades, relatórios e dados da nossa plataforma de inteligência preditiva urbana.";
+
+  function isSentinelScope(text) {
+    const q = text.toLowerCase().trim();
+    const longKeywords = [
+      "sentinel", "plataforma", "sistema", "dashboard", "painel",
+      "mapa", "analise", "análise", "alerta", "alertas", "simulac", "simulaç", "cenario", "cenário",
+      "relatorio", "relatório", "funcionalidade", "login", "cadastro", "usuario", "usuário", "admin",
+      "são paulo", "sao paulo", "bairro", "perimetro", "perímetro",
+      "paulista", "bela vista", "pinheiros", "faria lima", "lapa", "marginal",
+      "tietê", "tiete", "moema", "ibirapuera", "jardins", "santana", "tatuape", "tatuapé",
+      "boletim", "boletins", "ocorrencia", "ocorrência", "crime", "furto", "roubo",
+      "seguranca", "segurança", "risco", "policia", "polícia", "viatura", "patrulha",
+      "transito", "trânsito", "semaforo", "semáforo",
+      "clima", "chuva", "tempo", "temperatura", "umidade", "vento", "precipitacao", "precipitação",
+      "alagamento", "enchente", "inundacao", "inundação", "pluviometro", "pluviômetro",
+      "defesa civil", "samu", "bombeiro", "emergencia", "emergência",
+      "camera", "câmera", "sensor", "telemetria", "preditiv", "estatistica", "estatística",
+      "bom dia", "boa tarde", "boa noite", "quem é você", "quem e voce",
+      "o que você faz", "o que voce faz", "comandos", "como funciona",
+      "como usar"
+    ];
+    if (longKeywords.some(k => q.includes(k))) return true;
+
+    const shortRegexes = [
+      /\bia\b/i, /\bsp\b/i, /\bbo\b/i, /\bbos\b/i, /\baoi\b/i, /\baois\b/i, /\bsé\b/i,
+      /\bzona\b/i, /\bzonas\b/i, /\bssp\b/i, /\bpm\b/i, /\bgcm\b/i, /\bcet\b/i,
+      /\biot\b/i, /\bocr\b/i, /\bdados\b/i, /\bola\b/i, /\bolá\b/i, /\boi\b/i,
+      /\bajuda\b/i, /\bstatus\b/i, /\bversao\b/i, /\bversão\b/i, /\bmapas\b/i,
+      /\babrir\b/i, /\bmostrar\b/i, /\bsimular\b/i, /\bsimule\b/i
+    ];
+    return shortRegexes.some(rx => rx.test(q));
+  }
+
   // ══════════════════════════════════════════════
   //  MOTOR CENTRAL: BACKEND FASTAPI OU NLP LOCAL
   // ══════════════════════════════════════════════
   async function queryChatEngine(userMessage) {
     const currentPage = window.location.pathname.split('/').pop() || 'dashboard.html';
+
+    // Verificação de escopo estrito prévia
+    if (!isSentinelScope(userMessage)) {
+      return {
+        text: OUT_OF_SCOPE_MSG,
+        model: 'Sentinel Scope Guard'
+      };
+    }
 
     // 1. Tenta chamar o Endpoint do Backend FastAPI (/api/v1/chat)
     try {
@@ -171,6 +213,14 @@
   // Fallback Local Inteligente
   function generateLocalResponseWithActions(query) {
     const q = query.toLowerCase().trim();
+
+    if (!isSentinelScope(query)) {
+      return {
+        text: OUT_OF_SCOPE_MSG,
+        model: 'Sentinel Scope Guard'
+      };
+    }
+
     const actions = [];
 
     // Comandos de ação locais
@@ -180,6 +230,12 @@
       if (q.includes('tempestade')) actions.push({ type: 'simulate_scenario', target: 'tempestade_marginal', payload: { nome: 'Tempestade na Marginal' } });
       else if (q.includes('arrastao') || q.includes('arrastão')) actions.push({ type: 'simulate_scenario', target: 'arrastao_centro', payload: { nome: 'Arrastão no Centro' } });
       else actions.push({ type: 'navigate', target: 'simulacoes.html' });
+    } else if (q.includes('abrir alerta') || q.includes('ver alerta')) {
+      actions.push({ type: 'navigate', target: 'alertas.html' });
+    } else if (q.includes('abrir analise') || q.includes('abrir análise')) {
+      actions.push({ type: 'navigate', target: 'analise.html' });
+    } else if (q.includes('abrir dashboard')) {
+      actions.push({ type: 'navigate', target: 'dashboard.html' });
     }
 
     if (actions.length > 0) {
@@ -194,25 +250,30 @@
         • <strong>AOI Charlie (Faria Lima):</strong> Risco 24% • 96 Câmeras • 530 Sensores<br>
         • <strong>AOI Delta (Marginal Tietê):</strong> Risco 81% • 64 Câmeras • 289 Sensores<br><br>
         💡 <em>Diga "abra o mapa" para visualizar as camadas em tempo real!</em>`;
-    } else if (q.includes('risco') || q.includes('segur') || q.includes('crime')) {
+    } else if (q.includes('risco') || q.includes('segur') || q.includes('crime') || q.includes('bo')) {
       resp = `🚨 <strong>Relatório Tático de Segurança Urbana:</strong><br><br>
         • <strong>Foco Crítico:</strong> Praça da Sé e Centro Histórico (Risco 92/100)<br>
         • <strong>Foco Alto:</strong> Marginal Tietê e Lapa (Risco 81/100)<br>
         • <strong>Zonas Estáveis:</strong> Moema (18/100), Jardins (15/100), Pinheiros (24/100)<br>
         • <strong>Status Operacional:</strong> 1.847 câmeras com inteligência OCR monitorando em tempo real.`;
-    } else if (q.includes('tempestade') || q.includes('chuva') || q.includes('clima')) {
+    } else if (q.includes('tempestade') || q.includes('chuva') || q.includes('clima') || q.includes('temperatura')) {
       resp = `🌧️ <strong>Monitoramento Meteorológico de São Paulo:</strong><br><br>
         • Temperatura: 24.4°C • Umidade: 62% • Vento: 14 km/h<br>
         • <strong>Risco Pluviométrico:</strong> MODERADO nas Marginais Tietê e Pinheiros<br>
         • Sensores IoT operando para alerta preventivo de alagamento.`;
+    } else if (q.includes('ola') || q.includes('olá') || q.includes('oi') || q.includes('bom dia') || q.includes('boa tarde') || q.includes('boa noite') || q.includes('ajuda')) {
+      resp = `👋 <strong>Olá! Sou o assistente de IA do Sentinel IA.</strong><br><br>
+        Posso auxiliá-lo com consultas preditivas, relatórios táticos de segurança e controle da plataforma.<br><br>
+        • 🗺️ <em>"Abrir o mapa de SP"</em><br>
+        • 🚨 <em>"Qual é o risco de segurança na Sé?"</em><br>
+        • ⛈️ <em>"Simular tempestade na Marginal"</em><br>
+        • 📊 <em>"Abrir tela de análise"</em>`;
     } else {
-      resp = `👋 <strong>Sentinel IA Tático:</strong><br><br>
-        Recebi sua mensagem sobre <em>"${query}"</em>.<br><br>
-        Estou integrado à malha urbana de São Paulo. Você pode me pedir para:<br>
-        • 🗺️ <em>"Abrir o mapa"</em><br>
-        • ⚡ <em>"Simular tempestade na Marginal"</em><br>
-        • 🚨 <em>"Qual o risco de segurança na Sé?"</em><br>
-        • 🚗 <em>"Como está o trânsito na Paulista?"</em>`;
+      resp = `📡 <strong>Sentinel IA Intelligence Core:</strong><br><br>
+        Consulta processada sobre a malha de São Paulo: <em>"${escapeHTML(query)}"</em>.<br><br>
+        • 🛡️ <strong>Monitoramento Ativo:</strong> 1.847 Câmeras IA & 3.421 Sensores IoT<br>
+        • 📍 <strong>Zonas de Cobertura:</strong> Sé, Paulista, Pinheiros e Lapa<br>
+        • 💡 <em>Solicite comandos de navegação ou simulações táticas.</em>`;
     }
 
     return {
@@ -226,7 +287,11 @@
     let html = md
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code style="background:rgba(0,229,255,0.15);color:var(--cyan);padding:2px 6px;border-radius:4px;">$1</code>')
+      .replace(/`([^`]+)`/g, '<code style="background:rgba(0,229,255,0.12);color:var(--cyan,#00e5ff);padding:2px 6px;border-radius:4px;font-family:var(--font-mono, monospace);font-size:0.85em;">$1</code>')
+      .replace(/^### (.*$)/gim, '<h5 style="color:var(--cyan,#00e5ff);margin:0.5rem 0 0.2rem;font-size:0.95rem;">$1</h5>')
+      .replace(/^## (.*$)/gim, '<h4 style="color:#fff;margin:0.6rem 0 0.3rem;font-size:1rem;">$1</h4>')
+      .replace(/^# (.*$)/gim, '<h3 style="color:#fff;margin:0.8rem 0 0.4rem;font-size:1.1rem;">$1</h3>')
+      .replace(/^\s*[-•]\s+(.*)$/gim, '<div style="display:flex;gap:6px;margin:3px 0;"><span>•</span><span>$1</span></div>')
       .replace(/\n\n/g, '<br><br>')
       .replace(/\n/g, '<br>');
     return html;
@@ -287,10 +352,10 @@
           </div>
           <div>
             <h4>Sentinel IA Assistant</h4>
-            <span><span class="live-dot" style="width:6px;height:6px;background:#10b981;border-radius:50%;display:inline-block;animation:live-pulse 1.5s ease-in-out infinite;"></span> FastAPI & LLM Live • Ações Ativas</span>
+            <span><span class="live-dot" style="width:6px;height:6px;background:#10b981;border-radius:50%;display:inline-block;animation:live-pulse 1.5s ease-in-out infinite;"></span> Núcleo de Inteligência Urbana</span>
           </div>
         </div>
-        <button class="btn-icon" id="aiChatClose" style="width:28px;height:28px;background:transparent;border:none;color:#aaa;cursor:pointer;">
+        <button class="btn-icon" id="aiChatClose" style="width:28px;height:28px;background:transparent;border:none;color:#8b9dc3;cursor:pointer;">
           <i data-lucide="x" style="width:18px;height:18px;"></i>
         </button>
       </div>
@@ -298,27 +363,24 @@
       <div class="ai-chat-body" id="aiChatBody">
         <div class="ai-msg-row bot">
           <div class="ai-msg-bubble">
-            👋 ${getGreetingByTime()}! Sou o assistente de inteligência artificial do <strong>Sentinel IA</strong>.<br><br>
-            Agora com <strong>Ações Executáveis</strong> e <strong>Backend FastAPI com LLM</strong>!<br><br>
-            Você pode fazer perguntas ou pedir comandos como:<br>
-            • <em>"Abra o mapa de São Paulo"</em><br>
-            • <em>"Simule uma tempestade na Marginal Tietê"</em><br>
-            • <em>"Qual é o risco de segurança na Sé agora?"</em>
+            👋 ${getGreetingByTime()}! Sou o assistente oficial do <strong>Sentinel IA</strong>.<br><br>
+            Estou conectado em tempo real aos sistemas de <strong>Segurança Urbana, Clima, Câmeras IA e Simulação Preditiva</strong> de São Paulo.<br><br>
+            Como posso apoiar sua operação hoje?
           </div>
         </div>
       </div>
 
       <div class="ai-prompt-chips" id="aiPromptChips">
         <button class="ai-chip-btn" data-prompt="Abra o mapa de São Paulo">🗺️ Abrir Mapa</button>
-        <button class="ai-chip-btn" data-prompt="Simule uma tempestade na Marginal Tietê">⛈️ Simular Tempestade</button>
         <button class="ai-chip-btn" data-prompt="Qual é o risco de segurança na Sé agora?">🚨 Risco na Sé</button>
+        <button class="ai-chip-btn" data-prompt="Simule uma tempestade na Marginal Tietê">⛈️ Simular Tempestade</button>
         <button class="ai-chip-btn" data-prompt="Como está a temperatura e chuva em SP?">🌧️ Clima em SP</button>
-        <button class="ai-chip-btn" data-prompt="Simule um arrastão no Centro Histórico">⚡ Simular Arrastão</button>
         <button class="ai-chip-btn" data-prompt="Quais são as Áreas de Interesse (AOIs)?">📍 Zonas AOI</button>
+        <button class="ai-chip-btn" data-prompt="Abrir a central de alertas">⚡ Ver Alertas</button>
       </div>
 
       <div class="ai-chat-footer">
-        <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Comande a IA ou faça uma pergunta..." autocomplete="off" />
+        <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Comande a IA ou faça uma pergunta sobre a plataforma..." autocomplete="off" />
         <button id="aiChatSend" class="ai-chat-send-btn" aria-label="Enviar Pergunta">
           <i data-lucide="send" style="width:16px;height:16px;"></i>
         </button>

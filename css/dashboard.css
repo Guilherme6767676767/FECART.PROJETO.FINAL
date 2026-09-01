@@ -162,7 +162,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1.5rem;
-  background: rgba(6, 10, 20, 0.9);
+  background: rgba(3, 3, 5, 0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border);
@@ -411,8 +411,8 @@
 }
 
 .map-layer-toggle {
-  background: rgba(6, 10, 20, 0.9);
-  backdrop-filter: blur(12px);
+  background: rgba(4, 4, 8, 0.95);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-md);
@@ -453,8 +453,8 @@
   bottom: var(--space-md);
   left: var(--space-md);
   z-index: 500;
-  background: rgba(6, 10, 20, 0.9);
-  backdrop-filter: blur(12px);
+  background: rgba(4, 4, 8, 0.95);
+  backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-md) var(--space-lg);
@@ -1009,7 +1009,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(6, 10, 20, 0.92);
+  background: rgba(4, 4, 8, 0.95);
   backdrop-filter: blur(14px);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -1046,7 +1046,7 @@
 
 .map-search-btn:hover {
   background: var(--cyan);
-  color: #060a14;
+  color: #000000;
 }
 
 /* Toast Notifications Container */
@@ -1065,7 +1065,7 @@
 
 .sentinel-toast {
   pointer-events: auto;
-  background: rgba(10, 16, 30, 0.96);
+  background: rgba(4, 4, 8, 0.97);
   backdrop-filter: blur(16px);
   border-left: 4px solid var(--cyan);
   border-top: 1px solid rgba(255, 255, 255, 0.1);

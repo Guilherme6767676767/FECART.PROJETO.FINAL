@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -19,7 +19,7 @@
 
   <style>
     body {
-      background: var(--bg-primary, #060a14);
+      background: var(--bg-primary, #000000);
       min-height: 100vh;
       display: flex;
       align-items: center;
@@ -36,8 +36,9 @@
       position: absolute;
       inset: 0;
       background: 
-        radial-gradient(circle at 50% 30%, rgba(0, 229, 255, 0.15), transparent 60%),
-        radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.12), transparent 50%);
+        radial-gradient(circle at 50% 30%, rgba(0, 229, 255, 0.12), transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08), transparent 50%),
+        radial-gradient(circle at 10% 90%, rgba(239, 68, 68, 0.06), transparent 50%);
       pointer-events: none;
       z-index: 0;
     }
@@ -51,13 +52,13 @@
     }
 
     .login-card {
-      background: rgba(10, 16, 30, 0.94);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      background: rgba(6, 6, 10, 0.94);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
       border: 1px solid var(--border-hover, rgba(0, 229, 255, 0.25));
       border-radius: var(--radius-lg, 16px);
       padding: 2.25rem 2rem;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(0, 229, 255, 0.1);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.95), 0 0 40px rgba(0, 229, 255, 0.12);
       animation: fadeIn 0.4s ease;
     }
 
@@ -217,26 +218,6 @@
       box-shadow: 0 8px 30px rgba(0, 229, 255, 0.5);
     }
 
-    .btn-quick-access {
-      width: 100%;
-      margin-top: 0.75rem;
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--text-secondary, #cbd5e1);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 10px;
-      padding: 0.65rem;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-quick-access:hover {
-      background: rgba(0, 229, 255, 0.1);
-      color: var(--cyan, #00e5ff);
-      border-color: var(--cyan, #00e5ff);
-    }
-
     .login-alert-msg {
       display: none;
       padding: 0.65rem 0.85rem;
@@ -322,10 +303,6 @@
           <button type="submit" class="btn-login">
             <i data-lucide="key-round" style="width:18px;height:18px;"></i>
             Entrar no Sistema
-          </button>
-
-          <button type="button" class="btn-quick-access" id="btnQuickAccess">
-            🚀 Acesso Rápido de Teste (Admin)
           </button>
         </form>
       </div>
@@ -464,17 +441,6 @@
         showAlert(res.message, false);
       }
     };
-
-    // Botão de Acesso Rápido Admin
-    document.getElementById('btnQuickAccess').addEventListener('click', function () {
-      hideAlert();
-      document.getElementById('usernameInput').value = 'admin@sentinel.ia';
-      document.getElementById('passwordInput').value = 'admin123';
-      const res = window.sentinelLogin('admin@sentinel.ia', 'admin123', true);
-      if (res.success) {
-        window.location.href = 'dashboard.html';
-      }
-    });
   </script>
 </body>
 </html>

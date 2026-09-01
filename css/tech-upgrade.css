@@ -20,8 +20,12 @@
 }
 
 /* ============================================
-   1. BODY — Scanlines + Fundo Vivo
+   1. BODY — Scanlines + Fundo 100% Preto
    ============================================ */
+body {
+  background-color: #000000 !important;
+}
+
 body::after {
   content: '';
   position: fixed;
@@ -43,26 +47,26 @@ body::after {
   100% { background-position: 0 100vh; }
 }
 
-/* Vinheta de borda neon */
+/* Vinheta de borda neon sutil sobre fundo 100% preto */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.07) 0%, transparent 60%),
-    radial-gradient(ellipse at 100% 100%, rgba(168, 85, 247, 0.07) 0%, transparent 60%),
-    radial-gradient(ellipse at 0% 100%, rgba(0, 255, 136, 0.04) 0%, transparent 50%);
+    radial-gradient(ellipse at 50% 0%, rgba(0, 229, 255, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 100% 100%, rgba(168, 85, 247, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 0% 100%, rgba(239, 68, 68, 0.05) 0%, transparent 50%);
   pointer-events: none;
   z-index: 0;
 }
 
 /* ============================================
-   2. SIDEBAR — Holo HUD
+   2. SIDEBAR — Holo HUD Total Black
    ============================================ */
 .sidebar {
-  background: rgba(4, 8, 18, 0.98) !important;
-  border-right: 1px solid rgba(0, 229, 255, 0.15) !important;
-  box-shadow: 4px 0 30px rgba(0, 229, 255, 0.05);
+  background: rgba(3, 3, 5, 0.98) !important;
+  border-right: 1px solid rgba(0, 229, 255, 0.18) !important;
+  box-shadow: 4px 0 35px rgba(0, 0, 0, 0.9), 1px 0 15px rgba(0, 229, 255, 0.05) !important;
 }
 
 /* Linha decorativa superior da sidebar */
@@ -114,7 +118,7 @@ body::before {
 
 .sidebar-link:hover {
   color: var(--neon-cyan) !important;
-  background: rgba(0, 229, 255, 0.06) !important;
+  background: rgba(0, 229, 255, 0.08) !important;
   letter-spacing: 0.02em;
   text-shadow: 0 0 8px rgba(0, 229, 255, 0.5);
 }
@@ -127,9 +131,9 @@ body::before {
    3. TOPBAR — Command Center HUD
    ============================================ */
 .dashboard-topbar {
-  background: rgba(4, 8, 18, 0.96) !important;
+  background: rgba(3, 3, 5, 0.95) !important;
   border-bottom: 1px solid rgba(0, 229, 255, 0.15) !important;
-  box-shadow: 0 1px 0 rgba(0, 229, 255, 0.1), 0 2px 20px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 1px 0 rgba(0, 229, 255, 0.1), 0 2px 25px rgba(0, 0, 0, 0.8) !important;
 }
 
 /* Linha de progresso animada no topo da topbar */
@@ -322,22 +326,24 @@ body::before {
 }
 
 /* ============================================
-   8. CARDS — Glassmorphism Avançado
+   8. CARDS — Glassmorphism Avançado Total Black
    ============================================ */
 .card {
-  background: rgba(8, 13, 25, 0.88) !important;
-  border: 1px solid rgba(0, 229, 255, 0.08) !important;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+  background: rgba(5, 5, 8, 0.92) !important;
+  border: 1px solid rgba(0, 229, 255, 0.12) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.02), 0 10px 30px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
   transition: all 0.3s ease !important;
 }
 
 .card:hover {
-  background: rgba(10, 17, 32, 0.95) !important;
-  border-color: rgba(0, 229, 255, 0.25) !important;
+  background: rgba(8, 8, 12, 0.96) !important;
+  border-color: rgba(0, 229, 255, 0.35) !important;
   box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.12),
-    0 8px 40px rgba(0, 0, 0, 0.6),
-    0 0 30px rgba(0, 229, 255, 0.06) !important;
+    0 0 0 1px rgba(0, 229, 255, 0.18),
+    0 12px 45px rgba(0, 0, 0, 0.9),
+    0 0 35px rgba(0, 229, 255, 0.12) !important;
   transform: translateY(-3px) !important;
 }
 
@@ -521,19 +527,22 @@ body::before {
 }
 
 /* ============================================
-   15. MODAL — Command Center Overlay
+   15. MODAL — Command Center Overlay Total Black
    ============================================ */
 .sentinel-modal-backdrop {
-  backdrop-filter: blur(8px) !important;
-  background: rgba(4, 8, 18, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  background: rgba(0, 0, 0, 0.9) !important;
 }
 
 .sentinel-modal {
-  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  background: rgba(6, 6, 10, 0.97) !important;
+  border: 1px solid rgba(0, 229, 255, 0.25) !important;
+  border-radius: 16px !important;
   box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.05),
-    0 0 60px rgba(0, 229, 255, 0.08),
-    0 20px 80px rgba(0, 0, 0, 0.8) !important;
+    0 0 0 1px rgba(0, 229, 255, 0.1),
+    0 0 60px rgba(0, 229, 255, 0.15),
+    0 25px 90px rgba(0, 0, 0, 0.95) !important;
   position: relative;
   overflow: hidden;
 }
@@ -902,3 +911,143 @@ h2.section-heading {
   pointer-events: none;
   z-index: 0;
 }
+
+/* ============================================
+   31. CHATBOT IA — CYBER HUD INTERFACE v3.5
+   ============================================ */
+.ai-chat-launcher {
+  background: linear-gradient(135deg, #00e5ff 0%, #3b82f6 50%, #a855f7 100%) !important;
+  color: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.5), 0 8px 30px rgba(0, 0, 0, 0.8) !important;
+}
+
+.ai-chat-launcher:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 0 35px rgba(0, 229, 255, 0.8), 0 12px 40px rgba(0, 0, 0, 0.9) !important;
+}
+
+.ai-chat-drawer {
+  background: rgba(3, 3, 6, 0.96) !important;
+  backdrop-filter: blur(28px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+  border: 1px solid rgba(0, 229, 255, 0.28) !important;
+  box-shadow:
+    0 0 0 1px rgba(0, 229, 255, 0.1),
+    0 0 50px rgba(0, 229, 255, 0.12),
+    0 25px 80px rgba(0, 0, 0, 0.95) !important;
+}
+
+.ai-chat-header {
+  background: linear-gradient(90deg, rgba(0, 229, 255, 0.08), rgba(0, 0, 0, 0.4)) !important;
+  border-bottom: 1px solid rgba(0, 229, 255, 0.18) !important;
+}
+
+.ai-chat-header h4 {
+  font-family: var(--font-hud) !important;
+  font-size: 0.92rem !important;
+  letter-spacing: 0.05em;
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+
+.ai-avatar-icon {
+  background: rgba(0, 229, 255, 0.18) !important;
+  border: 1px solid rgba(0, 229, 255, 0.4) !important;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.3) !important;
+}
+
+.ai-msg-row.user .ai-msg-bubble {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.15), rgba(59, 130, 246, 0.18)) !important;
+  border: 1px solid rgba(0, 229, 255, 0.4) !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.12);
+  color: #ffffff !important;
+}
+
+.ai-msg-row.bot .ai-msg-bubble {
+  background: rgba(8, 8, 12, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-left: 3px solid var(--neon-cyan) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  color: #f1f5f9 !important;
+}
+
+.ai-prompt-chips {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border-top: 1px solid rgba(0, 229, 255, 0.12) !important;
+}
+
+.ai-chip-btn {
+  background: rgba(0, 229, 255, 0.06) !important;
+  border: 1px solid rgba(0, 229, 255, 0.2) !important;
+  color: #94a3b8 !important;
+  font-family: var(--font-data) !important;
+  letter-spacing: 0.02em;
+}
+
+.ai-chip-btn:hover {
+  background: rgba(0, 229, 255, 0.18) !important;
+  border-color: var(--neon-cyan) !important;
+  color: var(--neon-cyan) !important;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.3) !important;
+}
+
+.ai-chat-footer {
+  background: rgba(0, 0, 0, 0.7) !important;
+  border-top: 1px solid rgba(0, 229, 255, 0.15) !important;
+}
+
+.ai-chat-input {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(0, 229, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.ai-chat-input:focus {
+  border-color: var(--neon-cyan) !important;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.25) !important;
+}
+
+.ai-chat-send-btn {
+  background: var(--neon-cyan) !important;
+  color: #000000 !important;
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.4) !important;
+}
+
+.ai-chat-send-btn:hover {
+  box-shadow: 0 0 25px rgba(0, 229, 255, 0.7) !important;
+  transform: scale(1.08) !important;
+}
+
+/* ============================================
+   32. SCROLL REVEAL & ENTRANCE ANIMATIONS
+   ============================================ */
+.reveal,
+.cyber-reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal.visible,
+.cyber-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   33. MICROINTERAÇÕES E CONTRASTES
+   ============================================ */
+button,
+.btn,
+.sidebar-link,
+.auth-tab-btn,
+.tab-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn:active,
+button:active {
+  transform: scale(0.98);
+}
+
