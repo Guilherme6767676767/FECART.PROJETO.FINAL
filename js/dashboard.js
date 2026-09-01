@@ -364,8 +364,8 @@ function initMap() {
     attributionControl: false,
   }).setView([-23.5505, -46.6333], 12);
 
-  // Dark tile layer — CartoDB dark_all
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  // Dark tile layer — CartoDB / OSM
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
     maxZoom: 19,
   }).addTo(map);
 
