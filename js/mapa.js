@@ -295,7 +295,10 @@
   // Vincular checkboxes existentes no HTML
   ['layerCritical', 'layerWarning', 'layerClimate', 'layerInfra', 'layerSafe'].forEach(id => {
     const cb = document.getElementById(id);
-    if (cb) cb.addEventListener('change', aplicarFiltros);
+    if (cb) cb.addEventListener('change', () => {
+      aplicarFiltros();
+      if (is3DMode && map3D) atualizarCamadas3D();
+    });
   });
 
   const cbZones = document.getElementById('layerZones');
@@ -303,15 +306,22 @@
     cbZones.addEventListener('change', function () {
       if (this.checked) map.addLayer(staticLayerGroup);
       else map.removeLayer(staticLayerGroup);
+      if (is3DMode && map3D && map3D.getLayer('zones-3d-extrusion')) {
+        map3D.setLayoutProperty('zones-3d-extrusion', 'visibility', this.checked ? 'visible' : 'none');
+      }
     });
   }
 
   const cbHeatmap = document.getElementById('layerHeatmap');
   if (cbHeatmap) {
     cbHeatmap.addEventListener('change', function () {
-      if (!heatLayer) return;
-      if (this.checked) map.addLayer(heatLayer);
-      else map.removeLayer(heatLayer);
+      if (heatLayer) {
+        if (this.checked) map.addLayer(heatLayer);
+        else map.removeLayer(heatLayer);
+      }
+      if (is3DMode && map3D && map3D.getLayer('bos-heat-layer-3d')) {
+        map3D.setLayoutProperty('bos-heat-layer-3d', 'visibility', this.checked ? 'visible' : 'none');
+      }
     });
   }
 
@@ -645,7 +655,7 @@
     map.flyTo(SP_CENTER, SP_ZOOM);
   }
 
-  // ── MODO 3D: MapLibre GL JS Engine ──────────────────────────────────────
+  // ── MODO 3D: MapLibre GL JS Engine com 3D Buildings & Relevo Volumétrico ────
   let map3D = null;
   let is3DMode = false;
   let markers3D = [];
@@ -660,49 +670,218 @@
     const container = document.getElementById('map3DContainer');
     if (!container) return;
 
-    // Estilo dark open vector com relevo e prédios 3D
+    // Estilo dark vetorial gratuito de alta fidelidade com camadas de edifícios e relevo
     map3D = new maplibregl.Map({
       container: 'map3DContainer',
       style: {
         version: 8,
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
         sources: {
-          'osm-tiles': {
+          'osm-dark-tiles': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+              'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+              'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+              'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
+              'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
             ],
             tileSize: 256,
-            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+          },
+          'openmaptiles': {
+            type: 'vector',
+            url: 'https://demotiles.maplibre.org/tiles/tiles.json'
           }
         },
         layers: [
           {
-            id: 'osm-layer',
+            id: 'dark-background',
+            type: 'background',
+            paint: {
+              'background-color': '#050914'
+            }
+          },
+          {
+            id: 'osm-base-layer',
             type: 'raster',
-            source: 'osm-tiles',
+            source: 'osm-dark-tiles',
             minzoom: 0,
-            maxzoom: 22
+            maxzoom: 22,
+            paint: {
+              'raster-opacity': 0.85,
+              'raster-contrast': 0.15,
+              'raster-brightness-min': 0.05,
+              'raster-brightness-max': 0.95
+            }
+          },
+          // ── Extrusão 3D de Edificações / Estruturas Urbanas ──
+          {
+            id: '3d-buildings',
+            source: 'openmaptiles',
+            'source-layer': 'building',
+            type: 'fill-extrusion',
+            minzoom: 12,
+            paint: {
+              'fill-extrusion-color': [
+                'interpolate',
+                ['linear'],
+                ['get', 'render_height'],
+                0, 'rgba(10, 25, 47, 0.75)',
+                50, 'rgba(0, 229, 255, 0.65)',
+                100, 'rgba(168, 85, 247, 0.75)'
+              ],
+              'fill-extrusion-height': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                12, 0,
+                14.05, ['coalesce', ['get', 'render_height'], ['get', 'height'], 28]
+              ],
+              'fill-extrusion-base': [
+                'interpolate',
+                ['linear'],
+                ['zoom'],
+                12, 0,
+                14.05, ['coalesce', ['get', 'render_min_height'], ['get', 'min_height'], 0]
+              ],
+              'fill-extrusion-opacity': 0.82
+            }
           }
         ]
       },
-      center: [-46.6333, -23.5505], // MapLibre usa [lng, lat]
-      zoom: 13.5,
+      center: [-46.6333, -23.5505], // MapLibre usa [longitude, latitude]
+      zoom: 14.2,
       pitch: 60, // Inclinação 3D
       bearing: -17.6 // Rotação 3D
     });
 
-    map3D.addControl(new maplibregl.NavigationControl(), 'top-left');
+    map3D.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), 'top-left');
 
     map3D.on('load', () => {
-      // Camada de Calor Volumétrica (Heatmap 3D / Heat Layer)
+      adicionarZonas3D();
+      adicionarHeatmap3D();
       atualizarCamadas3D();
+    });
+  }
+
+  // ── Prismas e Colunas Volumétricas 3D para as Zonas Urbanas ──────────────
+  function adicionarZonas3D() {
+    if (!map3D || map3D.getSource('zones-3d-source')) return;
+
+    // Converter zonePolygons para GeoJSON com extrusão
+    const features = zonePolygons.map((z, idx) => {
+      // Leaflet usa [lat, lng], MapLibre GeoJSON usa [lng, lat]
+      const coords = z.coords.map(pt => [pt[1], pt[0]]);
+      coords.push(coords[0]); // Fechar polígono
+
+      const height = (idx + 1) * 35 + 40; // Altura do prisma volumétrico
+
+      return {
+        type: 'Feature',
+        properties: {
+          name: z.name,
+          color: z.color,
+          height: height,
+          base: 0
+        },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [coords]
+        }
+      };
+    });
+
+    map3D.addSource('zones-3d-source', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: features
+      }
+    });
+
+    map3D.addLayer({
+      id: 'zones-3d-extrusion',
+      type: 'fill-extrusion',
+      source: 'zones-3d-source',
+      paint: {
+        'fill-extrusion-color': ['get', 'color'],
+        'fill-extrusion-height': ['get', 'height'],
+        'fill-extrusion-base': ['get', 'base'],
+        'fill-extrusion-opacity': 0.35
+      }
+    });
+  }
+
+  // ── Camada de Calor Volumétrica (Heatmap) em 3D ───────────────────────────
+  function adicionarHeatmap3D() {
+    if (!map3D || map3D.getSource('bos-heat-source')) return;
+
+    const bos = lastBoData.length > 0 ? lastBoData : [];
+    const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
+      type: 'Feature',
+      properties: {
+        intensity: getGravityConfig(b.gravidade).heatIntensity
+      },
+      geometry: {
+        type: 'Point',
+        coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
+      }
+    }));
+
+    map3D.addSource('bos-heat-source', {
+      type: 'geojson',
+      data: {
+        type: 'FeatureCollection',
+        features: features
+      }
+    });
+
+    map3D.addLayer({
+      id: 'bos-heat-layer-3d',
+      type: 'heatmap',
+      source: 'bos-heat-source',
+      maxzoom: 17,
+      paint: {
+        'heatmap-weight': ['get', 'intensity'],
+        'heatmap-intensity': 1.6,
+        'heatmap-color': [
+          'interpolate',
+          ['linear'],
+          ['heatmap-density'],
+          0, 'rgba(0, 229, 255, 0)',
+          0.2, '#10b981',
+          0.4, '#3b82f6',
+          0.6, '#a855f7',
+          0.8, '#f59e0b',
+          1, '#ef4444'
+        ],
+        'heatmap-radius': 32,
+        'heatmap-opacity': 0.75
+      }
     });
   }
 
   function atualizarCamadas3D() {
     if (!map3D) return;
+
+    // Atualizar dados de calor
+    if (map3D.getSource('bos-heat-source')) {
+      const bos = lastBoData.length > 0 ? lastBoData : [];
+      const features = bos.filter(b => b.latitude && b.longitude).map(b => ({
+        type: 'Feature',
+        properties: {
+          intensity: getGravityConfig(b.gravidade).heatIntensity
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [parseFloat(b.longitude), parseFloat(b.latitude)]
+        }
+      }));
+      map3D.getSource('bos-heat-source').setData({
+        type: 'FeatureCollection',
+        features: features
+      });
+    }
 
     // Limpar marcadores 3D anteriores
     markers3D.forEach(m => m.remove());
@@ -726,24 +905,25 @@
         cursor: pointer;
       `;
 
-      // Altura da coluna proporcional à gravidade
-      const height = bo.gravidade === 'CRITICA' ? 70 : (bo.gravidade === 'ALTA' ? 50 : 35);
+      // Altura da coluna volumétrica proporcional à gravidade
+      const height = bo.gravidade === 'CRITICA' ? 75 : (bo.gravidade === 'ALTA' ? 52 : 36);
       
       el.innerHTML = `
         <div style="
-          width: 14px;
-          height: 14px;
+          width: 16px;
+          height: 16px;
           border-radius: 50%;
           background: ${cfg.color};
-          box-shadow: 0 0 16px ${cfg.color}, 0 0 30px ${cfg.color};
+          box-shadow: 0 0 18px ${cfg.color}, 0 0 35px ${cfg.color};
           border: 2px solid #ffffff;
-          animation: pulse-dot 1.8s infinite;
+          animation: pulse-dot 1.5s infinite;
         "></div>
         <div style="
-          width: 4px;
+          width: 5px;
           height: ${height}px;
-          background: linear-gradient(180deg, ${cfg.color}, transparent);
-          box-shadow: 0 0 10px ${cfg.color};
+          background: linear-gradient(180deg, ${cfg.color}, rgba(0,0,0,0.2));
+          box-shadow: 0 0 12px ${cfg.color};
+          border-radius: 2px;
         "></div>
       `;
 
@@ -758,6 +938,16 @@
 
       markers3D.push(marker);
     });
+
+    // Controlar visibilidade de camadas com base nos checkboxes da UI
+    const cbZones = document.getElementById('layerZones');
+    if (cbZones && map3D.getLayer('zones-3d-extrusion')) {
+      map3D.setLayoutProperty('zones-3d-extrusion', 'visibility', cbZones.checked ? 'visible' : 'none');
+    }
+    const cbHeatmap = document.getElementById('layerHeatmap');
+    if (cbHeatmap && map3D.getLayer('bos-heat-layer-3d')) {
+      map3D.setLayoutProperty('bos-heat-layer-3d', 'visibility', cbHeatmap.checked ? 'visible' : 'none');
+    }
   }
 
   // ── Alternância entre Mapa 2D e Mapa 3D ───────────────────────────────────
