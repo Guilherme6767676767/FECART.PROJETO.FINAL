@@ -103,9 +103,8 @@
   }
 
   // ── Layers ─────────────────────────────────────────────────────────────────
-  const crimeLayer = L.layerGroup().addTo(map);
-  const staticLayerGroup  = L.layerGroup().addTo(map);
-  let heatLayer = null;
+const staticLayerGroup = L.layerGroup().addTo(map);
+let heatLayer = null;
   let allApiMarkers = [];
   let lastBoData = [];
 
@@ -176,8 +175,8 @@
     allApiMarkers.forEach(({ marker, bo }) => {
       const g = String(bo.gravidade).toUpperCase();
       const v = (g==='CRITICA'&&critica)||(g==='ALTA'&&alta)||(g==='MEDIA'&&media)||(g==='BAIXA'&&baixa);
-      if (v) { if (!markersLayerGroup.hasLayer(marker)) markersLayerGroup.addLayer(marker); }
-      else   { if (markersLayerGroup.hasLayer(marker)) markersLayerGroup.removeLayer(marker); }
+      if (v) { if (!crimeLayer.hasLayer(marker)) crimeLayer.addLayer(marker); }
+      else   { if (crimeLayer.hasLayer(marker)) crimeLayer.removeLayer(marker); }
     });
   }
 
@@ -223,7 +222,7 @@
   }
 
   function renderizarMarcadores(bos, total) {
-    markersLayerGroup.clearLayers();
+    crimeLayer.clearLayers();
     allApiMarkers = [];
     bos.forEach(bo => {
       if (!bo.latitude || !bo.longitude) return;
