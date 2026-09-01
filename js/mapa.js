@@ -12,13 +12,33 @@
   'use strict';
 
   // ── Constantes ──────────────────────────────────────────────────────────────
-  const API_BASE_URL = window.SENTINEL_API_URL || 'http://localhost:8000/api/v1';
+  const API_BASE_URL = window.SENTINEL_API_URL || '/api';
   const SP_CENTER    = [-23.5505, -46.6333];
   const SP_ZOOM      = 12;
   const REFRESH_MS   = 30 * 1000;
 
   // ── Lucide Icons ───────────────────────────────────────────────────────────
   if (window.lucide) lucide.createIcons();
+
+  // ── Mapa Leaflet ───────────────────────────────────────────────────────────
+  const map = L.map('mainMap', {
+    center: SP_CENTER,
+    zoom: SP_ZOOM,
+    minZoom: 10,
+    maxZoom: 18,
+    zoomControl: true,
+    attributionControl: true
+  });
+
+  // OpenStreetMap tiles – free, no API key required
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19
+  }).addTo(map);
+
+  // New layer groups for crimes and flood‑risk points
+  const crimeLayer = L.layerGroup().addTo(map);
+  const floodLayer = L.layerGroup().addTo(map);
 
   // ── Relógio ────────────────────────────────────────────────────────────────
   function updateClock() {
@@ -44,22 +64,7 @@
   }
 
   // ── Mapa Leaflet ───────────────────────────────────────────────────────────
-  const map = L.map('mainMap', {
-    center: SP_CENTER,
-    zoom: SP_ZOOM,
-    minZoom: 10,
-    maxZoom: 18,
-    zoomControl: true,
-    attributionControl: true
-  });
-
-  // CartoDB Dark Matter — 100% gratuito, sem API Key
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
-    subdomains: 'abcd',
-    maxZoom: 20
-  }).addTo(map);
-
+  
   // ── Gravidade → Estilos ────────────────────────────────────────────────────
   const gravityConfig = {
     CRITICA: { color: '#ef4444', badgeClass: 'critical', label: '🔴 Severidade Crítica', emoji: '🚨', iconName: 'alert-triangle', heatIntensity: 1.0 },
@@ -98,7 +103,7 @@
   }
 
   // ── Layers ─────────────────────────────────────────────────────────────────
-  const markersLayerGroup = L.layerGroup().addTo(map);
+  const crimeLayer = L.layerGroup().addTo(map);
   const staticLayerGroup  = L.layerGroup().addTo(map);
   let heatLayer = null;
   let allApiMarkers = [];
@@ -128,7 +133,7 @@
       html: `<div class="sentinel-map-pin ${cfg.badgeClass}" style="--pin-color: ${cfg.color};"><i data-lucide="${cfg.iconName}"></i><div class="pin-pulse-ring"></div></div>`,
       iconSize: [24, 24], iconAnchor: [12, 12]
     });
-    const marker = L.marker([bo.latitude, bo.longitude], { icon }).addTo(markersLayerGroup);
+    const marker = L.marker([bo.latitude, bo.longitude], { icon }).addTo(crimeLayer);
     marker.bindPopup(criarPopupHTML(bo), { maxWidth: 300, className: 'dark-popup' });
     if (window.lucide) setTimeout(() => lucide.createIcons(), 15);
     return { marker, bo };

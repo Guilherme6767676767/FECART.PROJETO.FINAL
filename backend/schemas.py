@@ -3,8 +3,53 @@ from typing import List, Optional
 from datetime import datetime
 
 # ==========================================
+# SCHEMAS - CRIMES E OCORRÊNCIAS (JSON / COLABORATIVO)
+# ==========================================
+class CrimeItem(BaseModel):
+    id: str
+    latitude: float
+    longitude: float
+    categoria: str
+    data_hora: str
+    descricao: str
+
+class CriarCrimeRequest(BaseModel):
+    latitude: float
+    longitude: float
+    categoria: str
+    data_hora: Optional[str] = None
+    descricao: str
+
+class AlagamentoPoint(BaseModel):
+    id: str
+    local: str
+    bairro: str
+    latitude: float
+    longitude: float
+    nivel_risco: str  # "Baixo", "Médio", "Alto"
+    precipitacao_mm: float
+    descricao: str
+    recomendacao: str
+
+# ==========================================
 # SCHEMAS - CLIMA E TELEMETRIA URBANA
 # ==========================================
+class ClimaCoordenadaResponse(BaseModel):
+    cidade: str = "São Paulo, SP"
+    latitude: float
+    longitude: float
+    temperatura: float
+    sensacao_termica: Optional[float] = None
+    umidade: int
+    vento_kmh: float
+    precipitacao: float
+    probabilidade_chuva: Optional[int] = 0
+    condicao: str
+    alerta_risco: str
+    icone: str
+    atualizado_em: str
+    fonte: str = "Open-Meteo API"
+
 class WeatherResponse(BaseModel):
     cidade: str = Field(default="São Paulo, SP", description="Localidade do monitoramento")
     temperatura: float = Field(..., description="Temperatura atual em °C")
@@ -13,6 +58,7 @@ class WeatherResponse(BaseModel):
     umidade: int = Field(..., description="Umidade relativa do ar (%)")
     vento_kmh: float = Field(..., description="Velocidade do vento em km/h")
     precipitacao_mm: float = Field(default=0.0, description="Volume de precipitação em mm")
+    probabilidade_chuva: Optional[int] = Field(default=0, description="Probabilidade de chuva (%)")
     alerta_risco: str = Field(default="BAIXO", description="Nível de risco urbano preditivo (BAIXO, MEDIO, ALTO, CRITICO)")
     icone: str = Field(default="cloud-sun", description="Identificador do ícone")
     atualizado_em: str = Field(..., description="Horário da última medição")

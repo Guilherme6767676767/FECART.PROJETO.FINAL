@@ -5,7 +5,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from schemas import (
-    WeatherResponse, 
+    WeatherResponse,
+    ClimaCoordenadaResponse,
+    AlagamentoPoint,
+    CrimeItem,
+    CriarCrimeRequest,
     OcorrenciasPaginadas, 
     ResumoEstatistico,
     CriarSimulacaoRequest,
@@ -21,39 +25,130 @@ from database import (
     disparar_cenario_pronto,
     limpar_ocorrencias_simuladas
 )
-from services.weather_service import get_sao_paulo_weather
+from services.weather_service import (
+    get_sao_paulo_weather,
+    get_weather_by_coords,
+    obter_pontos_alagamento
+)
 from services.chat_service import processar_mensagem_chat
+import json
+from datetime import datetime
 
-load_dotenv()
+# Caminho para data/crimes.json
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+CRIMES_FILE = os.path.join(DATA_DIR, "crimes.json")
 
-app = FastAPI(
-    title="Sentinel IA — Backend API",
-    description="Sistema de Inteligência Preditiva Urbana e Segurança Pública para São Paulo",
-    version="1.0.0"
-)
+def carregar_crimes_json() -> list:
+    if os.path.exists(CRIMES_FILE):
+        try:
+            with open(CRIMES_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Erro ao ler {CRIMES_FILE}: {e}")
+    return []
 
-# ----------------------------------------------------
-# CONFIGURAÇÃO DE CORS
-# ----------------------------------------------------
-cors_origins_env = os.getenv(
-    "CORS_ORIGINS",
-    "https://guilherme6767676767.github.io,http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,http://localhost:8080,http://127.0.0.1:8080"
-)
-origins = [origin.strip() for origin in cors_origins_env.split(",") if origin.strip()]
-
-# Permite acesso seguro e flexível para GitHub Pages e instâncias locais
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins if origins else ["*"],
-    allow_origin_regex=r"https://.*\.github\.io",
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+def salvar_crimes_json(crimes: list) -> bool:
+    os.makedirs(DATA_DIR, exist_ok=True)
+    try:
+        with open(CRIMES_FILE, "w", encoding="utf-8") as f:
+            json.dump(crimes, f, ensure_ascii=False, indent=2)
+        return True
+    except Exception as e:
+        print(f"Erro ao salvar {CRIMES_FILE}: {e}")
+        return False
 
 # ----------------------------------------------------
-# ROTAS: CLIMA E MEIO AMBIENTE
+# ROTAS REQUISITADAS: /api/clima, /api/alagamentos, /api/crimes
+# ----------------------------------------------------
+
+@app.get(
+    "/api/clima",
+    summary="Consultar Clima via Open-Meteo por Coordenadas",
+    tags=["Clima & Open-Meteo"]
+)
+async def api_clima_coordenadas(
+    lat: float = Query(-23.5505, description="Latitude (padrão: São Paulo)"),
+    lon: float = Query(-46.6333, description="Longitude (padrão: São Paulo)")
+):
+    """
+    Consulta a API pública e gratuita da Open-Meteo para obter temperatura,
+    precipitação, probabilidade de chuva, umidade e vento na coordenada indicada.
+    """
+    try:
+        return await get_weather_by_coords(lat, lon)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao consultar Open-Meteo: {str(e)}"
+        )
+
+
+@app.get(
+    "/api/alagamentos",
+    summary="Listar Pontos de Atenção e Risco de Alagamento (Open-Meteo)",
+    tags=["Alagamentos & Defesa Civil"]
+)
+async def api_alagamentos():
+    """
+    Retorna pontos de risco de alagamento em São Paulo calculados
+    com base no volume de chuva atual fornecido pela Open-Meteo.
+    """
+    try:
+        return await obter_pontos_alagamento()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Erro ao calcular pontos de alagamento: {str(e)}"
+        )
+
+
+@app.get(
+    "/api/crimes",
+    summary="Listar Ocorrências e Crimes Cadastrados",
+    tags=["Crimes & B.O.s"]
+)
+async def api_listar_crimes():
+    """Retorna a lista de todas as ocorrências cadastradas em data/crimes.json."""
+    return carregar_crimes_json()
+
+
+@app.post(
+    "/api/crimes",
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar Nova Denúncia/Ocorrência de Crime",
+    tags=["Crimes & B.O.s"]
+)
+async def api_cadastrar_crime(req: CriarCrimeRequest):
+    """
+    Permite que novos relatórios de ocorrências enviados pelos usuários
+    sejam gravados no arquivo data/crimes.json e retornados instantaneamente.
+    """
+    crimes = carregar_crimes_json()
+    novo_id = f"CR-{int(datetime.now().timestamp() * 1000) % 1000000:06d}"
+    data_hora = req.data_hora or datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+
+    novo_crime = {
+        "id": novo_id,
+        "latitude": round(req.latitude, 6),
+        "longitude": round(req.longitude, 6),
+        "categoria": req.categoria.strip() if req.categoria else "Outros",
+        "data_hora": data_hora,
+        "descricao": req.descricao.strip() if req.descricao else "Sem descrição adicional"
+    }
+
+    crimes.insert(0, novo_crime)
+    salvo = salvar_crimes_json(crimes)
+    if not salvo:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Falha ao gravar ocorrência no arquivo data/crimes.json"
+        )
+
+    return novo_crime
+
+
+# ----------------------------------------------------
+# ROTAS: CLIMA E MEIO AMBIENTE (LEGACY /api/v1/clima)
 # ----------------------------------------------------
 @app.get(
     "/api/v1/clima",
@@ -64,12 +159,6 @@ app.add_middleware(
 async def obter_clima(
     force_refresh: bool = Query(False, description="Forçar atualização ignorando o cache TTL")
 ):
-    """
-    Retorna a telemetria climática em tempo real para São Paulo:
-    - Temperatura e Sensação Térmica
-    - Umidade, Vento e Precipitação (Chuva)
-    - Condição visual e Índice Preditivo de Risco Urbano
-    """
     try:
         dados_clima = await get_sao_paulo_weather(force_refresh=force_refresh)
         return dados_clima
