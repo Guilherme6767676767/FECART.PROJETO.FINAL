@@ -428,24 +428,8 @@ body::before {
 }
 
 /* ============================================
-   12. MAP OVERLAY & DARK MAP TILES — Terminal Glass
+   12. MAP OVERLAY — Terminal Glass
    ============================================ */
-.maplibregl-canvas-container,
-.maplibregl-map,
-#mainMap canvas {
-  background-color: #060a14 !important;
-}
-
-.maplibregl-ctrl-group {
-  background: rgba(4, 8, 18, 0.92) !important;
-  border: 1px solid rgba(0, 229, 255, 0.25) !important;
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.1) !important;
-}
-
-.maplibregl-ctrl-group button {
-  border-color: rgba(255, 255, 255, 0.08) !important;
-}
-
 .map-layer-toggle,
 .map-info-panel,
 .map-legend-panel {
