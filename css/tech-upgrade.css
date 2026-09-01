@@ -428,8 +428,17 @@ body::before {
 }
 
 /* ============================================
-   12. MAP OVERLAY — Terminal Glass
+   12. MAP OVERLAY & DARK MAP TILES — Terminal Glass
    ============================================ */
+.leaflet-tile-pane {
+  filter: brightness(0.7) invert(1) contrast(3.2) hue-rotate(200deg) saturate(0.3) brightness(0.65);
+}
+
+.maplibre-map,
+#map3DContainer canvas {
+  background-color: #030712 !important;
+}
+
 .map-layer-toggle,
 .map-info-panel,
 .map-legend-panel {

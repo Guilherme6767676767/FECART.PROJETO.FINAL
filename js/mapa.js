@@ -53,9 +53,9 @@
     attributionControl: true
   });
 
-  // Tile layer escuro (OpenStreetMap Dark Matter - sem restrição / sem marca d'água)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>',
+  // Tile layer escuro — Dark Matter Oficial (Fundo 100% Escuro Cyberpunk)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
     subdomains: 'abcd',
     maxZoom: 19
   }).addTo(map);
@@ -680,13 +680,13 @@
           'osm-dark-tiles': {
             type: 'raster',
             tiles: [
-              'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-              'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-              'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png',
-              'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}@2x.png'
+              'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+              'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+              'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+              'https://d.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
             ],
             tileSize: 256,
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/">CARTO</a>'
+            attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
           },
           'openmaptiles': {
             type: 'vector',
