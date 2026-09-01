@@ -957,20 +957,21 @@
 /* Legenda do Mapa em 5 Cores */
 .map-legend-panel {
   position: absolute;
-  top: var(--space-md);
+  top: 1rem;
   left: 60px;
   z-index: 500;
-  background: rgba(6, 10, 20, 0.92);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--border);
+  background: rgba(4, 8, 18, 0.94) !important;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 229, 255, 0.2);
   border-radius: var(--radius-md);
-  padding: 0.75rem 1rem;
+  padding: 0.45rem 0.85rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  max-width: calc(100% - 320px);
-  flex-wrap: wrap;
+  gap: 0.85rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  max-width: fit-content;
+  flex-wrap: nowrap;
+  pointer-events: auto;
 }
 
 .legend-title {
