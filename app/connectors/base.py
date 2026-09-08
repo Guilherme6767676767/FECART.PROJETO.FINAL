@@ -10,7 +10,12 @@ try:
 except ImportError:
     import logging as structlog
     structlog.get_logger = lambda: logging.getLogger(__name__)
-import aioredis
+try:
+    import aioredis
+    _redis_from_url = aioredis.from_url
+except Exception:
+    import redis.asyncio as redis
+    _redis_from_url = redis.from_url
 from pydantic import BaseModel
 
 from ..config import settings
@@ -33,7 +38,7 @@ class BaseConnector(ABC):
     rate_limit: int = 60  # requisições por minuto
 
     def __init__(self):
-        self._redis = aioredis.from_url(settings.REDIS_URL)
+        self._redis = _redis_from_url(settings.REDIS_URL)
         self._last_reset = time.time()
         self._tokens = self.rate_limit
         self._lock = asyncio.Lock()
