@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -118,47 +118,8 @@
                             <h4><i data-lucide="clock"></i> Últimas 24 Horas</h4>
                         </div>
                         <div class="panel-body" style="height: 600px; overflow-y: auto;">
-                            <div class="timeline">
-                                <div class="timeline-item critical">
-                                    <div class="timeline-time">Hoje, 14:30</div>
-                                    <div class="timeline-content">
-                                        <h5>Alerta Máximo Disparado</h5>
-                                        <p>Múltiplas ocorrências de alagamento reportadas na região da Marginal Tietê.</p>
-                                    </div>
-                                </div>
-                                <div class="timeline-item warning">
-                                    <div class="timeline-time">Hoje, 12:15</div>
-                                    <div class="timeline-content">
-                                        <h5>Pico de Congestionamento</h5>
-                                        <p>Detectado aumento atípico de 45% no trânsito da Zona Sul.</p>
-                                    </div>
-                                </div>
-                                <div class="timeline-item">
-                                    <div class="timeline-time">Hoje, 09:00</div>
-                                    <div class="timeline-content">
-                                        <h5>Atualização de Modelos</h5>
-                                        <p>O modelo LSTM concluiu o retreinamento diário com sucesso (Acurácia: 94.2%).</p>
-                                    </div>
-                                </div>
-                                <div class="timeline-item warning">
-                                    <div class="timeline-time">Hoje, 07:45</div>
-                                    <div class="timeline-content">
-                                        <h5>Acidente Múltiplo</h5>
-                                        <p>Colisão detectada na Av. 23 de Maio pelas câmeras CNN.</p>
-                                    </div>
-                                </div>
-                                <div class="timeline-item">
-                                    <div class="timeline-time">Ontem, 23:20</div>
-                                    <div class="timeline-content">
-                                        <h5>Varredura Noturna</h5>
-                                        <p>Sistema iniciou protocolo de monitoramento reduzido (economia de energia).</p>
-                                    </div>
-                                </div>
-                                <div class="timeline-item critical">
-                                    <div class="timeline-content">
-                                        <h5>Início do Histórico</h5>
-                                    </div>
-                                </div>
+                            <div class="timeline" id="timelineList">
+                                <!-- Preenchido dinamicamente via API -->
                             </div>
                         </div>
                     </div>

@@ -103,6 +103,44 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = `mapa.html?lat=${lat}&lng=${lng}&search=${encodeURIComponent(locationName)}`;
     };
 
+    // Função para renderizar a timeline lateral ("Últimas 24 Horas") de forma dinâmica com dados da API
+    function renderTimeline() {
+        const timelineList = document.getElementById('timelineList');
+        if (!timelineList) return;
+        timelineList.innerHTML = '';
+
+        if (!alertsData || alertsData.length === 0) {
+            timelineList.innerHTML = `
+                <div class="timeline-item">
+                    <div class="timeline-time">Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</div>
+                    <div class="timeline-content">
+                        <h5>Telemetria Ativa</h5>
+                        <p>Monitoramento urbano em tempo real sem anomalias nas últimas 24 horas.</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        alertsData.forEach(alert => {
+            const itemClass = alert.type === 'critical' ? 'critical' : (alert.type === 'high' ? 'warning' : '');
+            const timeFormatted = alert.time === 'Tempo Real' || alert.time === 'Agora' || alert.time === 'Recente'
+                ? `Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`
+                : `Hoje, ${alert.time}`;
+
+            const itemHTML = `
+                <div class="timeline-item ${itemClass}">
+                    <div class="timeline-time">${timeFormatted}</div>
+                    <div class="timeline-content">
+                        <h5>${alert.title}</h5>
+                        <p>${alert.desc}</p>
+                    </div>
+                </div>
+            `;
+            timelineList.insertAdjacentHTML('beforeend', itemHTML);
+        });
+    }
+
     // Função para renderizar alertas
     function renderAlerts(filterType = 'all') {
         alertListContainer.innerHTML = '';
@@ -140,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (alertCountElement) alertCountElement.textContent = count;
         if (window.lucide) lucide.createIcons();
+        renderTimeline();
     }
 
     // Chamada Inicial
