@@ -5,11 +5,24 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List
 
 import httpx
+import logging
 try:
     import structlog
 except ImportError:
-    import logging as structlog
-    structlog.get_logger = lambda: logging.getLogger(__name__)
+    class SimpleLogger:
+        def __init__(self, logger):
+            self.logger = logger
+        def info(self, msg, **kwargs):
+            self.logger.info(f"{msg} {kwargs if kwargs else ''}")
+        def error(self, msg, **kwargs):
+            self.logger.error(f"{msg} {kwargs if kwargs else ''}")
+        def warning(self, msg, **kwargs):
+            self.logger.warning(f"{msg} {kwargs if kwargs else ''}")
+    class StructlogFallback:
+        @staticmethod
+        def get_logger(*args, **kwargs):
+            return SimpleLogger(logging.getLogger(__name__))
+    structlog = StructlogFallback()
 try:
     import aioredis
     _redis_from_url = aioredis.from_url
@@ -58,7 +71,7 @@ class BaseConnector(ABC):
 
     async def _request(self, method: str, url: str, params: Dict[str, Any] = None, headers: Dict[str, str] = None) -> Dict[str, Any]:
         await self._acquire_token()
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             attempt = 0
             backoff = 1
             while True:
@@ -98,13 +111,19 @@ class BaseConnector(ABC):
                     raise
 
     async def _cache_get(self, key: str) -> Any:
-        data = await self._redis.get(key)
-        if data:
-            return json.loads(data)
+        try:
+            data = await self._redis.get(key)
+            if data:
+                return json.loads(data)
+        except Exception as exc:
+            log.warning("cache_get_failed", source=self.source_name, error=str(exc))
         return None
 
     async def _cache_set(self, key: str, value: Any, ttl: int | None = None):
-        await self._redis.set(key, json.dumps(value), ex=ttl or self.cache_ttl)
+        try:
+            await self._redis.set(key, json.dumps(value), ex=ttl or self.cache_ttl)
+        except Exception as exc:
+            log.warning("cache_set_failed", source=self.source_name, error=str(exc))
 
     @abstractmethod
     async def fetch(self, params: Dict[str, Any]) -> List[EventoUrbano]:

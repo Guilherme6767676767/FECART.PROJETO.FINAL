@@ -2,6 +2,7 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Dict, List
+import logging
 try:
     import structlog
 except ImportError:
@@ -29,9 +30,8 @@ class TransitoConnector(BaseConnector):
         if cached:
             return [EventoUrbano(**e) for e in cached]
 
-        # TomTom Traffic Flow – requires API key
         if not settings.TOMTOM_API_KEY:
-            log.warning("transito_connector_disabled", reason="missing TOMTOM_API_KEY")
+            log.warning("transito_connector_disabled: missing TOMTOM_API_KEY")
             raise RuntimeError("TomTom API key not configured; connector disabled")
 
         url = "https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json"

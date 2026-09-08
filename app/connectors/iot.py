@@ -2,7 +2,12 @@ import asyncio
 from datetime import datetime
 from typing import Dict, List
 
-import structlog
+import logging
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
+    structlog.get_logger = lambda: logging.getLogger(__name__)
 
 from .base import BaseConnector
 from ..models.evento import EventoUrbano

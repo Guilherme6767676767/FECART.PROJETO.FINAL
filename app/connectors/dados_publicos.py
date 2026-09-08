@@ -1,7 +1,12 @@
 import csv
 import json
-import aiohttp
-import structlog
+import logging
+try:
+    import structlog
+except ImportError:
+    import logging as structlog
+    structlog.get_logger = lambda: logging.getLogger(__name__)
+import httpx
 from datetime import datetime
 from typing import Dict, List
 
@@ -46,31 +51,30 @@ class DadosPublicosConnector(BaseConnector):
         # Normalizar os registros para EventoUrbano
         eventos = [self._normalize_record(r, cidade) for r in results]
         # Cache lista de dicts
-        await self._cache_set(cache_key, [e.dict() for e in eventos])
+        await self._cache_set(cache_key, [e.model_dump() if hasattr(e, "model_dump") else e.dict() for e in eventos])
         return eventos
 
     async def _parse_csv(self, url: str) -> List[Dict]:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                text = await resp.text()
-                reader = csv.DictReader(text.splitlines())
-                rows = []
-                for row in reader:
-                    rows.append(dict(row))
-                return rows
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(url)
+            text = resp.text
+            reader = csv.DictReader(text.splitlines())
+            rows = []
+            for row in reader:
+                rows.append(dict(row))
+            return rows
 
     async def _parse_json(self, url: str) -> List[Dict]:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as resp:
-                data = await resp.json()
-                if isinstance(data, list):
-                    return data
-                if isinstance(data, dict):
-                    # assume top‑level list under a key like "records"
-                    for key in ("records", "results", "data"):
-                        if key in data and isinstance(data[key], list):
-                            return data[key]
-                return []
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(url)
+            data = resp.json()
+            if isinstance(data, list):
+                return data
+            if isinstance(data, dict):
+                for key in ("records", "results", "data"):
+                    if key in data and isinstance(data[key], list):
+                        return data[key]
+            return []
 
     def _normalize_record(self, rec: Dict, cidade: str) -> EventoUrbano:
         # Tolerante a diferentes nomes de colunas

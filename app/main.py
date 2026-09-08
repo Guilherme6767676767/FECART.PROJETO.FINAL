@@ -20,7 +20,18 @@ app.add_middleware(
 app.include_router(coleta_router)
 app.include_router(health_router)
 
+# Mount legacy backend app if available
+try:
+    import sys, os
+    backend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend"))
+    if backend_path not in sys.path:
+        sys.path.insert(0, backend_path)
+    from main import app as legacy_app
+    app.mount("", legacy_app)
+except Exception as exc:
+    pass
+
 # Root endpoint
-@app.get("/")
+@app.get("/api/v1/ping")
 async def raiz():
     return {"message": "Sentinel IA API"}

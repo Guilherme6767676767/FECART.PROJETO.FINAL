@@ -1,6 +1,7 @@
 import time
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict
+import logging
 try:
     import structlog
 except ImportError:

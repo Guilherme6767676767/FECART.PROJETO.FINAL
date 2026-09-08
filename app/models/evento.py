@@ -14,4 +14,4 @@ class EventoUrbano(BaseModel):
     dados_brutos: Dict
 
     class Config:
-        orm_mode = True
+        from_attributes = True
