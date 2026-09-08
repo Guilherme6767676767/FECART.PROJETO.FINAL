@@ -510,7 +510,7 @@ async function initAlertFeed() {
       const dbData = await window.SentinelAPI.supabaseEngine.fetchAlertsFromDB();
       if (dbData && dbData.length > 0) {
         feed.innerHTML = '';
-        dbData.slice(0, 10).forEach((dbRow) => {
+        dbData.slice(0, 10).forEach((dbRow, idx) => {
           const alertObj = {
             icon: dbRow.severity === 'critical' ? 'alert-triangle' : dbRow.severity === 'climate' ? 'cloud-rain' : dbRow.severity === 'infra' ? 'camera' : 'car',
             severity: dbRow.severity === 'critical' ? 'critical' : dbRow.severity === 'warning' ? 'high' : 'medium',
@@ -518,7 +518,8 @@ async function initAlertFeed() {
             desc: dbRow.type,
             area: dbRow.name || 'São Paulo'
           };
-          feed.appendChild(createAlertElement(alertObj, 'PostgreSQL DB'));
+          const timeLabel = dbRow.created_at ? new Date(dbRow.created_at).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : `${(idx + 1) * 4} min atrás`;
+          feed.appendChild(createAlertElement(alertObj, timeLabel));
         });
       }
     } catch (err) {
