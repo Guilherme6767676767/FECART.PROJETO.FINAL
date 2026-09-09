@@ -1051,3 +1051,173 @@ button:active {
   transform: scale(0.98);
 }
 
+/* ============================================
+   34. PURE BLACK (#000000) HIGH-CONTRAST THEME,
+       GLASSMORPHISM & GLOW MICROINTERACTIONS
+   ============================================ */
+
+/* 1. Fundo Preto Puro e Remoção de Tons Azulados */
+:root {
+  --bg-primary: #000000 !important;
+  --bg-secondary: #050505 !important;
+  --bg-tertiary: #08080a !important;
+  --bg-card: rgba(5, 5, 8, 0.9) !important;
+  --bg-card-hover: rgba(10, 10, 15, 0.98) !important;
+}
+
+body,
+.dashboard-layout,
+.dashboard-main,
+.dashboard-content {
+  background-color: #000000 !important;
+  background: #000000 !important;
+}
+
+/* Sidebar e Topbar em Preto Absoluto com Vidro Fosco */
+.sidebar {
+  background: rgba(3, 3, 5, 0.98) !important;
+  border-right: 1px solid rgba(0, 229, 255, 0.16) !important;
+  box-shadow: 4px 0 35px rgba(0, 0, 0, 0.95), 1px 0 15px rgba(0, 229, 255, 0.05) !important;
+}
+
+.dashboard-topbar {
+  background: rgba(0, 0, 0, 0.88) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+
+/* 2. Glassmorphism + Glow Suave nas Bordas e Hover nos Cards */
+.kpi-card,
+.dashboard-panel,
+.activity-panel {
+  background: rgba(5, 5, 8, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 15px rgba(0, 229, 255, 0.04) !important;
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(0, 229, 255, 0.45) !important;
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.95), 0 0 24px rgba(0, 229, 255, 0.22) !important;
+}
+
+.dashboard-panel:hover {
+  border-color: rgba(0, 229, 255, 0.35) !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.95), 0 0 28px rgba(0, 229, 255, 0.16) !important;
+}
+
+/* Efeito de Vidro Fosco nos Modais */
+.sentinel-modal-backdrop {
+  background: rgba(0, 0, 0, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+.sentinel-modal {
+  background: rgba(4, 4, 8, 0.94) !important;
+  backdrop-filter: blur(28px) !important;
+  -webkit-backdrop-filter: blur(28px) !important;
+  border: 1px solid rgba(0, 229, 255, 0.35) !important;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(0, 229, 255, 0.22) !important;
+}
+
+/* 3. Tabela de Atividades & Linhas com Hover e Brilho Lateral (Edge Glow) */
+.activity-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.activity-table thead tr {
+  background: rgba(8, 8, 14, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.activity-table th {
+  padding: 0.95rem 1.25rem;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
+.activity-table td {
+  padding: 1rem 1.25rem;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.25s ease;
+}
+
+.activity-table tbody tr {
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.activity-table tbody tr:hover {
+  background: rgba(0, 229, 255, 0.06) !important;
+  border-left: 3px solid var(--neon-cyan) !important;
+  box-shadow: inset 4px 0 16px rgba(0, 229, 255, 0.16), 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  transform: translateX(4px);
+}
+
+.activity-table tbody tr:hover td {
+  color: #ffffff !important;
+}
+
+/* Alertas Recentes (Alert Feed) - Hover Glow */
+.alert-item {
+  border-left: 3px solid transparent;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.alert-item:hover {
+  background: rgba(0, 229, 255, 0.06) !important;
+  border-left: 3px solid var(--neon-cyan) !important;
+  box-shadow: inset 4px 0 16px rgba(0, 229, 255, 0.16), 0 2px 10px rgba(0, 0, 0, 0.7) !important;
+  transform: translateX(6px) !important;
+}
+
+/* 4. Animação de Entrada Fade-In Suave na Tela */
+@keyframes dashboardFadeInUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dashboard-topbar {
+  animation: dashboardFadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.kpi-card:nth-child(1) { animation: dashboardFadeInUp 0.6s 0.08s cubic-bezier(0.16, 1, 0.3, 1) both !important; }
+.kpi-card:nth-child(2) { animation: dashboardFadeInUp 0.6s 0.16s cubic-bezier(0.16, 1, 0.3, 1) both !important; }
+.kpi-card:nth-child(3) { animation: dashboardFadeInUp 0.6s 0.24s cubic-bezier(0.16, 1, 0.3, 1) both !important; }
+.kpi-card:nth-child(4) { animation: dashboardFadeInUp 0.6s 0.32s cubic-bezier(0.16, 1, 0.3, 1) both !important; }
+
+.dashboard-grid:nth-of-type(1) .dashboard-panel:nth-child(1) { animation: dashboardFadeInUp 0.6s 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-grid:nth-of-type(1) .dashboard-panel:nth-child(2) { animation: dashboardFadeInUp 0.6s 0.48s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.dashboard-grid-wide .dashboard-panel:nth-child(1) { animation: dashboardFadeInUp 0.6s 0.56s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-grid-wide .dashboard-panel:nth-child(2) { animation: dashboardFadeInUp 0.6s 0.64s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.activity-panel { animation: dashboardFadeInUp 0.6s 0.72s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+.dashboard-grid:nth-of-type(2) .dashboard-panel:nth-child(1) { animation: dashboardFadeInUp 0.6s 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+.dashboard-grid:nth-of-type(2) .dashboard-panel:nth-child(2) { animation: dashboardFadeInUp 0.6s 0.88s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* Brilho pulsante durante contagem dos números */
+.kpi-value.kpi-counting {
+  text-shadow: 0 0 20px rgba(0, 229, 255, 0.75), 0 0 40px rgba(0, 229, 255, 0.35) !important;
+}
+

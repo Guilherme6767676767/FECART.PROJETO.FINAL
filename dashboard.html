@@ -126,37 +126,50 @@
 
         <!-- KPI Grid -->
         <div class="kpi-grid">
-          <!-- KPI 1 — Alertas Ativos -->
+          <!-- KPI 1 — Índice de Risco -->
           <div class="kpi-card red">
             <div class="kpi-header">
               <div class="kpi-icon red">
-                <i data-lucide="alert-triangle" style="width:20px;height:20px"></i>
+                <i data-lucide="shield-alert" style="width:20px;height:20px"></i>
               </div>
-              <span class="kpi-trend up">
-                <i data-lucide="trending-up" style="width:12px;height:12px"></i>
-                +12%
+              <span class="kpi-trend down" style="color:var(--red); background:var(--red-glow);">
+                Alto Risco
               </span>
             </div>
-            <div class="kpi-value" data-target="23" data-suffix="">0</div>
-            <div class="kpi-label">Alertas Ativos</div>
+            <div class="kpi-value" data-target="68" data-suffix="/100">0</div>
+            <div class="kpi-label">Índice de Risco</div>
           </div>
 
-          <!-- KPI 2 — Zonas Monitoradas -->
+          <!-- KPI 2 — Ocorrências Hoje -->
           <div class="kpi-card cyan">
             <div class="kpi-header">
               <div class="kpi-icon cyan">
-                <i data-lucide="radar" style="width:20px;height:20px"></i>
+                <i data-lucide="activity" style="width:20px;height:20px"></i>
               </div>
               <span class="kpi-trend up">
                 <i data-lucide="trending-up" style="width:12px;height:12px"></i>
-                +3%
+                +8%
               </span>
             </div>
-            <div class="kpi-value" data-target="847" data-suffix="">0</div>
-            <div class="kpi-label">Zonas Monitoradas</div>
+            <div class="kpi-value" data-target="142" data-suffix="">0</div>
+            <div class="kpi-label">Ocorrências Hoje</div>
           </div>
 
-          <!-- KPI 3 — Índice de Segurança -->
+          <!-- KPI 3 — Zonas Críticas -->
+          <div class="kpi-card purple">
+            <div class="kpi-header">
+              <div class="kpi-icon purple">
+                <i data-lucide="radar" style="width:20px;height:20px"></i>
+              </div>
+              <span class="kpi-trend up" style="color:var(--purple); background:var(--purple-glow);">
+                4 AOIs
+              </span>
+            </div>
+            <div class="kpi-value" data-target="4" data-suffix=" Setores">0</div>
+            <div class="kpi-label">Zonas Críticas</div>
+          </div>
+
+          <!-- KPI 4 — Índice de Segurança -->
           <div class="kpi-card green">
             <div class="kpi-header">
               <div class="kpi-icon green">
@@ -169,17 +182,6 @@
             </div>
             <div class="kpi-value" data-target="87.4" data-suffix="%">0</div>
             <div class="kpi-label">Índice de Segurança</div>
-          </div>
-
-          <!-- KPI 4 — Previsões Hoje -->
-          <div class="kpi-card purple">
-            <div class="kpi-header">
-              <div class="kpi-icon purple">
-                <i data-lucide="sparkles" style="width:20px;height:20px"></i>
-              </div>
-            </div>
-            <div class="kpi-value" data-target="156" data-suffix="">0</div>
-            <div class="kpi-label">Previsões Hoje</div>
           </div>
         </div>
 
@@ -278,6 +280,44 @@
             </div>
             <div class="alert-feed" id="alertFeed">
               <!-- Alerts will be injected by JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Table Panel -->
+        <div class="dashboard-panel activity-panel">
+          <div class="panel-header">
+            <h4>
+              <i data-lucide="list-filter" style="width:16px;height:16px;color:var(--cyan)"></i>
+              Tabela de Atividades & Ocorrências em Tempo Real
+            </h4>
+            <div class="panel-actions" style="display:flex; align-items:center; gap:8px;">
+              <span class="badge badge-green" style="font-size:0.7rem;">
+                <span class="status-dot online" style="width:5px;height:5px;"></span>
+                Live Telemetria
+              </span>
+              <a href="mapa.html" class="badge badge-cyan" style="text-decoration:none;font-size:0.65rem">
+                Explorar no Mapa
+              </a>
+            </div>
+          </div>
+          <div class="panel-body panel-body-flush">
+            <div class="table-container">
+              <table class="activity-table">
+                <thead>
+                  <tr>
+                    <th>Protocolo (B.O.)</th>
+                    <th>Tipo de Incidente</th>
+                    <th>Bairro & Logradouro</th>
+                    <th>Severidade</th>
+                    <th>Horário</th>
+                    <th>Status Operacional</th>
+                  </tr>
+                </thead>
+                <tbody id="activityTableBody">
+                  <!-- Linhas injetadas e animadas via JS com suporte à API e fallback -->
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

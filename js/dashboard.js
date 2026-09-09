@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initUrbanRadarChart();
   initMap();
   initAlertFeed();
+  initActivityTable();
   initSidebarToggle();
 });
 
@@ -77,41 +78,51 @@ function initDate() {
 
 
 /* ============================================
-   KPI Value Animations
+   KPI Value Animations (Contadores Progressivos Fluídos)
    ============================================ */
 function initKPIAnimations() {
   const kpis = document.querySelectorAll('.kpi-value[data-target]');
-  kpis.forEach((kpi) => {
-    const target = parseFloat(kpi.dataset.target);
+  kpis.forEach((kpi, idx) => {
+    const rawTarget = kpi.dataset.target;
+    const target = parseFloat(rawTarget);
     const suffix = kpi.dataset.suffix || '';
     const isDecimal = target % 1 !== 0;
-    const duration = 1500;
-    const startTime = performance.now();
+    const duration = 1600;
+    const startDelay = idx * 120; // Efeito escalonado elegante
 
-    function animate(currentTime) {
-      const elapsed = currentTime - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = eased * target;
+    // Estado inicial visual antes do início
+    kpi.textContent = (isDecimal ? '0.0' : '0') + suffix;
 
-      if (isDecimal) {
-        kpi.textContent = current.toFixed(1) + suffix;
-      } else {
-        kpi.textContent = Math.floor(current).toLocaleString('pt-BR') + suffix;
-      }
+    setTimeout(() => {
+      const startTime = performance.now();
+      kpi.classList.add('kpi-counting');
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      } else {
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Easing cúbico ultra suave (out-cubic)
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = eased * target;
+
         if (isDecimal) {
-          kpi.textContent = target.toFixed(1) + suffix;
+          kpi.textContent = current.toFixed(1) + suffix;
         } else {
-          kpi.textContent = target.toLocaleString('pt-BR') + suffix;
+          kpi.textContent = Math.floor(current).toLocaleString('pt-BR') + suffix;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          if (isDecimal) {
+            kpi.textContent = target.toFixed(1) + suffix;
+          } else {
+            kpi.textContent = target.toLocaleString('pt-BR') + suffix;
+          }
+          kpi.classList.remove('kpi-counting');
         }
       }
-    }
-    requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
+    }, startDelay);
   });
 }
 
@@ -578,6 +589,79 @@ function createAlertElement(alert, timeStr) {
   // Re-render lucide icons in the new element
   setTimeout(() => lucide.createIcons(), 10);
   return el;
+}
+
+
+/* ============================================
+   Tabela de Atividades & Incidentes Recentes
+   ============================================ */
+async function initActivityTable() {
+  const tbody = document.getElementById('activityTableBody');
+  if (!tbody) return;
+
+  const fallbackActivities = [
+    { id: '98124/2026', type: 'Furto de Celular / Transeunte', location: 'Sé — Praça da Sé', severity: 'MEDIA', time: '14:25', status: 'Em Investigação' },
+    { id: '98125/2026', type: 'Roubo de Veículo', location: 'Pinheiros — Av. Faria Lima', severity: 'ALTA', time: '13:40', status: 'Patrulha Despachada' },
+    { id: '98127/2026', type: 'Alagamento Pista Expressa', location: 'Lapa — Marginal Tietê', severity: 'ALTA', time: '12:15', status: 'Defesa Civil Notificada' },
+    { id: '98128/2026', type: 'Tentativa de Roubo Comercial', location: 'Moema — Av. Ibirapuera', severity: 'CRITICA', time: '11:10', status: 'Flagrante Delito' },
+    { id: '98130/2026', type: 'Câmera OCR — Reconhecimento IA', location: 'Bela Vista — Av. Paulista, 1578', severity: 'BAIXA', time: '10:30', status: 'Operacional' }
+  ];
+
+  function renderRows(items) {
+    tbody.innerHTML = '';
+    items.forEach((item, index) => {
+      const tr = document.createElement('tr');
+      tr.style.animation = `dashboardFadeInUp 0.5s ${0.1 * index}s cubic-bezier(0.16, 1, 0.3, 1) both`;
+      
+      const sev = (item.severity || item.gravidade || 'MEDIA').toUpperCase();
+      let badgeClass = 'badge-blue';
+      let sevLabel = 'Média';
+      if (sev === 'CRITICA' || sev === 'CRÍTICA') { badgeClass = 'badge-red'; sevLabel = 'Crítica'; }
+      else if (sev === 'ALTA') { badgeClass = 'badge-yellow'; sevLabel = 'Alta'; }
+      else if (sev === 'BAIXA') { badgeClass = 'badge-green'; sevLabel = 'Baixa'; }
+
+      const idDisplay = item.id || item.numero_bo || `BO-${1000 + index}`;
+      const typeDisplay = item.type || item.tipo_crime || 'Ocorrência Urbana';
+      const locDisplay = item.location || (item.bairro ? `${item.bairro} — ${item.logradouro || 'Via Pública'}` : 'São Paulo, SP');
+      const timeDisplay = item.time || (item.data_hora ? new Date(item.data_hora).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : 'Recente');
+      const statusDisplay = item.status || 'Registrado';
+
+      tr.innerHTML = `
+        <td style="font-family: var(--font-mono, monospace); font-weight: 600; color: var(--cyan);">${idDisplay}</td>
+        <td style="font-weight: 600; color: #f8fafc;">${typeDisplay}</td>
+        <td>${locDisplay}</td>
+        <td><span class="badge ${badgeClass}">${sevLabel}</span></td>
+        <td style="font-family: var(--font-mono, monospace); font-size: 0.8rem; color: #94a3b8;">${timeDisplay}</td>
+        <td><span class="badge badge-cyan" style="font-size: 0.72rem;">${statusDisplay}</span></td>
+      `;
+
+      tr.addEventListener('click', () => {
+        window.location.href = `mapa.html?search=${encodeURIComponent(locDisplay)}`;
+      });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Tentar buscar ocorrências reais da API FastAPI
+  const API_BASE = window.SENTINEL_BACKEND_URL || (
+    window.location.port === '8000' || window.location.origin.includes('vercel.app') ? '' : 'http://localhost:8000'
+  );
+
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/ocorrencias?page=1&page_size=5`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ocorrencias && data.ocorrencias.length > 0) {
+        renderRows(data.ocorrencias);
+        return;
+      }
+    }
+  } catch (e) {
+    // Modo resiliente automático
+  }
+
+  renderRows(fallbackActivities);
 }
 
 
