@@ -1,4 +1,12 @@
-﻿[
+[
+  {
+    "id": "CR-881802",
+    "latitude": -23.55,
+    "longitude": -46.63,
+    "categoria": "Teste",
+    "data_hora": "2026-09-09T14:28:01",
+    "descricao": "Denuncia teste"
+  },
   {
     "id": "CR-1001",
     "latitude": -23.5505,
@@ -18,7 +26,7 @@
   {
     "id": "CR-1003",
     "latitude": -23.5614,
-    "longitude": -46.6560,
+    "longitude": -46.656,
     "categoria": "Furto",
     "data_hora": "2026-09-01T15:05:00",
     "descricao": "Furto de bicicleta no bicicletário da Av. Paulista."
@@ -26,23 +34,23 @@
   {
     "id": "CR-1004",
     "latitude": -23.5675,
-    "longitude": -46.6920,
+    "longitude": -46.692,
     "categoria": "Roubo",
     "data_hora": "2026-09-01T11:40:00",
     "descricao": "Roubo de veículo estacionado na Av. Brigadeiro Faria Lima."
   },
   {
     "id": "CR-1005",
-    "latitude": -23.5350,
-    "longitude": -46.7020,
+    "latitude": -23.535,
+    "longitude": -46.702,
     "categoria": "Vandalismo",
     "data_hora": "2026-09-01T09:20:00",
     "descricao": "Dano ao patrimônio público e pichação em ponto de ônibus na Lapa."
   },
   {
     "id": "CR-1006",
-    "latitude": -23.5410,
-    "longitude": -46.5750,
+    "latitude": -23.541,
+    "longitude": -46.575,
     "categoria": "Furto",
     "data_hora": "2026-09-01T12:00:00",
     "descricao": "Tentativa de furto de estepe veicular próximo à Praça Silvio Romero."
@@ -50,15 +58,15 @@
   {
     "id": "CR-1007",
     "latitude": -23.5876,
-    "longitude": -46.6580,
+    "longitude": -46.658,
     "categoria": "Vandalismo",
     "data_hora": "2026-09-01T08:10:00",
     "descricao": "Depredação de lixeiras no entorno do Parque Ibirapuera."
   },
   {
     "id": "CR-1008",
-    "latitude": -23.5480,
-    "longitude": -46.6050,
+    "latitude": -23.548,
+    "longitude": -46.605,
     "categoria": "Roubo",
     "data_hora": "2026-09-01T16:20:00",
     "descricao": "Assalto a comércio na região do Brás."

@@ -19,12 +19,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Motor de Carregamento Dinâmico de Alertas via API Real
     async function carregarAlertasReais() {
+        const API_BASE = window.SENTINEL_BACKEND_URL || (
+            window.location.port === '8000' || window.location.origin.includes('vercel.app')
+                ? ''
+                : 'http://localhost:8000'
+        );
         try {
             let apiAlerts = [];
             
             // 1. Consultar Pontos de Alagamento Reais via API
             try {
-                const resAlag = await fetch('/api/alagamentos');
+                const resAlag = await fetch(`${API_BASE}/api/alagamentos`);
                 if (resAlag.ok) {
                     const alagamentos = await resAlag.json();
                     alagamentos.forEach(item => {
@@ -49,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 2. Consultar Boletins de Ocorrência / Crimes Reais via API
             try {
-                const resCrimes = await fetch('/api/crimes');
+                const resCrimes = await fetch(`${API_BASE}/api/crimes`);
                 if (resCrimes.ok) {
                     const crimes = await resCrimes.json();
                     crimes.slice(0, 10).forEach(c => {

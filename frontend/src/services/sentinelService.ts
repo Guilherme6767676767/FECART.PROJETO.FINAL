@@ -17,18 +17,17 @@ import type {
 
 // ─── Dados de Fallback Resilientes (Mock de Segurança para GitHub Pages / Offline) ──
 const FALLBACK_CLIMA: WeatherData = {
-  cidade: 'São Paulo',
+  cidade: 'São Paulo, SP',
   temperatura: 24.5,
   sensacao_termica: 25.2,
-  umidade_relativa: 68,
-  velocidade_vento_kmh: 14.2,
-  direcao_vento_graus: 135,
+  condicao: 'Parcialmente Nublado',
+  umidade: 68,
+  vento_kmh: 14.2,
   precipitacao_mm: 0.0,
-  condicao_tempo: 'Parcialmente Nublado',
-  icone_sugerido: 'cloud-sun',
-  risco_climatico: 'BAIXO',
-  indice_risco_score: 18,
-  atualizado_em: new Date().toISOString()
+  alerta_risco: 'BAIXO (Condições Estáveis)',
+  icone: 'cloud-sun',
+  atualizado_em: new Date().toLocaleTimeString('pt-BR'),
+  fonte: 'Sentinel IA Resilient Fallback'
 };
 
 const FALLBACK_BOS: OcorrenciasResponse = {
@@ -50,14 +49,12 @@ const FALLBACK_BOS: OcorrenciasResponse = {
 
 const FALLBACK_RESUMO: ResumoEstatistico = {
   total_ocorrencias: 8,
-  por_gravidade: { CRITICA: 3, ALTA: 2, MEDIA: 2, BAIXA: 1 },
-  por_bairro: { 'Sé': 1, 'Pinheiros': 1, 'Moema': 1, 'Tatuapé': 1, 'Lapa': 1, 'Brás': 1, 'Consolação': 1, 'Brasilândia': 1 },
-  principais_crimes: [
-    { tipo: 'Furto de Celular', quantidade: 2 },
-    { tipo: 'Roubo de Veículo', quantidade: 2 },
-    { tipo: 'Alagamento', quantidade: 1 }
-  ],
-  taxa_resolucao_percentual: 84.5
+  criticas: 3,
+  altas: 2,
+  medias: 2,
+  baixas: 1,
+  bairro_mais_afetado: 'Sé',
+  tipo_mais_frequente: 'Furto de Celular'
 };
 
 // ─── Clima ───────────────────────────────────────────────────────────────────

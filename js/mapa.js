@@ -12,7 +12,11 @@
   'use strict';
 
   // ── Constantes ──────────────────────────────────────────────────────────────
-  const API_BASE_URL = window.SENTINEL_API_URL || '/api';
+  const API_BASE_URL = window.SENTINEL_API_URL || (
+    window.location.port === '8000' || window.location.origin.includes('vercel.app')
+      ? '/api'
+      : 'http://localhost:8000/api'
+  );
   const SP_CENTER    = [-23.5505, -46.6333];
   const SP_ZOOM      = 12;
   const REFRESH_MS   = 30 * 1000;

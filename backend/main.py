@@ -1,8 +1,21 @@
 import os
+import sys
 import math
+import json
+from datetime import datetime
 from fastapi import FastAPI, Query, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
+
+# Garantir que o diretório 'backend' esteja no sys.path
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.insert(0, BACKEND_DIR)
+
+# Carregar variáveis de ambiente
+load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 
 from schemas import (
     WeatherResponse,
@@ -31,17 +44,33 @@ from services.weather_service import (
     obter_pontos_alagamento
 )
 from services.chat_service import processar_mensagem_chat
-import json
-from datetime import datetime
+
+# Inicialização do FastAPI
+app = FastAPI(
+    title="Sentinel IA - Plataforma de Inteligência Preditiva Urbana",
+    description="API de telemetria climática, monitoramento geoespacial, segurança pública (SSP-SP), simulação preditiva e assistente tático de IA.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
+
+# Configuração de CORS para permitir acesso local, Vite, Vercel e portas comuns
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Caminho para data/crimes.json
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+DATA_DIR = os.path.abspath(os.path.join(BACKEND_DIR, "..", "data"))
 CRIMES_FILE = os.path.join(DATA_DIR, "crimes.json")
 
 def carregar_crimes_json() -> list:
     if os.path.exists(CRIMES_FILE):
         try:
-            with open(CRIMES_FILE, "r", encoding="utf-8") as f:
+            with open(CRIMES_FILE, "r", encoding="utf-8-sig") as f:
                 return json.load(f)
         except Exception as e:
             print(f"Erro ao ler {CRIMES_FILE}: {e}")
@@ -57,10 +86,24 @@ def salvar_crimes_json(crimes: list) -> bool:
         print(f"Erro ao salvar {CRIMES_FILE}: {e}")
         return False
 
-# ----------------------------------------------------
-# ROTAS REQUISITADAS: /api/clima, /api/alagamentos, /api/crimes
-# ----------------------------------------------------
 
+# ----------------------------------------------------
+# ROTAS: HEALTHCHECK & STATUS DO SISTEMA
+# ----------------------------------------------------
+@app.get("/health", tags=["Sistema"])
+@app.get("/api/health", tags=["Sistema"])
+@app.get("/api/v1/health", tags=["Sistema"])
+async def health_check():
+    return {
+        "status": "ONLINE",
+        "system": "Sentinel IA Core Engine",
+        "version": "1.0.0"
+    }
+
+
+# ----------------------------------------------------
+# ROTAS: CLIMA & OPEN-METEO
+# ----------------------------------------------------
 @app.get(
     "/api/clima",
     summary="Consultar Clima via Open-Meteo por Coordenadas",
@@ -84,7 +127,34 @@ async def api_clima_coordenadas(
 
 
 @app.get(
+    "/api/v1/clima",
+    response_model=WeatherResponse,
+    summary="Obter Clima Atual de São Paulo em Tempo Real",
+    tags=["Clima & Meio Ambiente"]
+)
+async def obter_clima(
+    force_refresh: bool = Query(False, description="Forçar atualização ignorando o cache TTL")
+):
+    try:
+        dados_clima = await get_sao_paulo_weather(force_refresh=force_refresh)
+        return dados_clima
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Falha no serviço meteorológico: {str(e)}"
+        )
+
+
+# ----------------------------------------------------
+# ROTAS: ALAGAMENTOS & DEFESA CIVIL
+# ----------------------------------------------------
+@app.get(
     "/api/alagamentos",
+    summary="Listar Pontos de Atenção e Risco de Alagamento (Open-Meteo)",
+    tags=["Alagamentos & Defesa Civil"]
+)
+@app.get(
+    "/api/v1/alagamentos",
     summary="Listar Pontos de Atenção e Risco de Alagamento (Open-Meteo)",
     tags=["Alagamentos & Defesa Civil"]
 )
@@ -102,8 +172,16 @@ async def api_alagamentos():
         )
 
 
+# ----------------------------------------------------
+# ROTAS: CRIMES & BOLETINS DE OCORRÊNCIA (JSON)
+# ----------------------------------------------------
 @app.get(
     "/api/crimes",
+    summary="Listar Ocorrências e Crimes Cadastrados",
+    tags=["Crimes & B.O.s"]
+)
+@app.get(
+    "/api/v1/crimes",
     summary="Listar Ocorrências e Crimes Cadastrados",
     tags=["Crimes & B.O.s"]
 )
@@ -114,6 +192,12 @@ async def api_listar_crimes():
 
 @app.post(
     "/api/crimes",
+    status_code=status.HTTP_201_CREATED,
+    summary="Registrar Nova Denúncia/Ocorrência de Crime",
+    tags=["Crimes & B.O.s"]
+)
+@app.post(
+    "/api/v1/crimes",
     status_code=status.HTTP_201_CREATED,
     summary="Registrar Nova Denúncia/Ocorrência de Crime",
     tags=["Crimes & B.O.s"]
@@ -148,32 +232,16 @@ async def api_cadastrar_crime(req: CriarCrimeRequest):
 
 
 # ----------------------------------------------------
-# ROTAS: CLIMA E MEIO AMBIENTE (LEGACY /api/v1/clima)
-# ----------------------------------------------------
-@app.get(
-    "/api/v1/clima",
-    response_model=WeatherResponse,
-    summary="Obter Clima Atual de São Paulo em Tempo Real",
-    tags=["Clima & Meio Ambiente"]
-)
-async def obter_clima(
-    force_refresh: bool = Query(False, description="Forçar atualização ignorando o cache TTL")
-):
-    try:
-        dados_clima = await get_sao_paulo_weather(force_refresh=force_refresh)
-        return dados_clima
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Falha no serviço meteorológico: {str(e)}"
-        )
-
-
-# ----------------------------------------------------
 # ROTAS: SEGURANÇA PÚBLICA (SSP-SP)
 # ----------------------------------------------------
 @app.get(
     "/api/v1/ocorrencias",
+    response_model=OcorrenciasPaginadas,
+    summary="Listar Boletins de Ocorrência com Filtros e Paginação",
+    tags=["Segurança Pública (SSP-SP)"]
+)
+@app.get(
+    "/api/ocorrencias",
     response_model=OcorrenciasPaginadas,
     summary="Listar Boletins de Ocorrência com Filtros e Paginação",
     tags=["Segurança Pública (SSP-SP)"]
@@ -184,7 +252,7 @@ async def listar_ocorrencias(
     gravidade: str = Query(None, description="Filtrar por gravidade: BAIXA, MEDIA, ALTA, CRITICA"),
     q: str = Query(None, description="Busca textual por endereço, BO ou tipo"),
     page: int = Query(1, ge=1, description="Número da página (inicia em 1)"),
-    page_size: int = Query(5, ge=1, le=50, description="Quantidade de registros por página")
+    page_size: int = Query(5, ge=1, le=100, description="Quantidade de registros por página")
 ):
     """
     Consulta os Boletins de Ocorrência da base histórica e telemetria urbana de SP.
@@ -225,6 +293,12 @@ async def listar_ocorrencias(
     summary="Resumo Estatístico de Ocorrências Urbanas",
     tags=["Segurança Pública (SSP-SP)"]
 )
+@app.get(
+    "/api/ocorrencias/resumo",
+    response_model=ResumoEstatistico,
+    summary="Resumo Estatístico de Ocorrências Urbanas",
+    tags=["Segurança Pública (SSP-SP)"]
+)
 async def resumo_estatistico_ocorrencias():
     """
     Retorna a contagem agregada de ocorrências por severidade,
@@ -248,6 +322,12 @@ async def resumo_estatistico_ocorrencias():
     summary="Disparar Incidente Simulado com Análise de IA",
     tags=["Simulador Urbano Preditivo"]
 )
+@app.post(
+    "/api/simulacao/disparar",
+    response_model=SimulacaoResult,
+    summary="Disparar Incidente Simulado com Análise de IA",
+    tags=["Simulador Urbano Preditivo"]
+)
 async def disparar_simulacao(req: CriarSimulacaoRequest):
     """
     Cria uma nova ocorrência simulada personalizada em São Paulo,
@@ -265,6 +345,11 @@ async def disparar_simulacao(req: CriarSimulacaoRequest):
 
 @app.post(
     "/api/v1/simulacao/cenario",
+    summary="Disparar Cenário Preditivo Pré-Configurado",
+    tags=["Simulador Urbano Preditivo"]
+)
+@app.post(
+    "/api/simulacao/cenario",
     summary="Disparar Cenário Preditivo Pré-Configurado",
     tags=["Simulador Urbano Preditivo"]
 )
@@ -295,6 +380,11 @@ async def disparar_cenario(req: SimulacaoCenarioRequest):
     summary="Limpar Ocorrências Simuladas",
     tags=["Simulador Urbano Preditivo"]
 )
+@app.delete(
+    "/api/simulacao/limpar",
+    summary="Limpar Ocorrências Simuladas",
+    tags=["Simulador Urbano Preditivo"]
+)
 async def limpar_simulacoes():
     """Remove todos os eventos gerados por simulação, restaurando os dados base."""
     try:
@@ -320,6 +410,12 @@ async def limpar_simulacoes():
     summary="Processar Mensagem do Usuário com IA & Ações",
     tags=["Assistente IA"]
 )
+@app.post(
+    "/api/chat",
+    response_model=ChatResponse,
+    summary="Processar Mensagem do Usuário com IA & Ações",
+    tags=["Assistente IA"]
+)
 async def chat_endpoint(req: ChatRequest):
     """
     Processa perguntas com IA (LLM/Groq/Gemini/OpenAI ou NLP Sentinel),
@@ -336,15 +432,33 @@ async def chat_endpoint(req: ChatRequest):
 
 
 # ----------------------------------------------------
-# ROTAS: HEALTHCHECK & STATUS DO SISTEMA
+# SUPORTE A ARQUIVOS ESTÁTICOS E PÁGINAS HTML DA RAIZ
 # ----------------------------------------------------
-@app.get("/health", tags=["Sistema"])
-async def health_check():
-    return {
-        "status": "ONLINE",
-        "system": "Sentinel IA Core Engine",
-        "version": "1.0.0"
-    }
+STATIC_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
+css_dir = os.path.join(STATIC_ROOT, "css")
+js_dir = os.path.join(STATIC_ROOT, "js")
+data_dir = os.path.join(STATIC_ROOT, "data")
+
+if os.path.exists(css_dir):
+    app.mount("/css", StaticFiles(directory=css_dir), name="css")
+if os.path.exists(js_dir):
+    app.mount("/js", StaticFiles(directory=js_dir), name="js")
+if os.path.exists(data_dir):
+    app.mount("/data", StaticFiles(directory=data_dir), name="data")
+
+@app.get("/", include_in_schema=False)
+async def serve_index():
+    index_path = os.path.join(STATIC_ROOT, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "Sentinel IA API Online"}
+
+@app.get("/{page_name}.html", include_in_schema=False)
+async def serve_html_pages(page_name: str):
+    page_path = os.path.join(STATIC_ROOT, f"{page_name}.html")
+    if os.path.exists(page_path):
+        return FileResponse(page_path)
+    raise HTTPException(status_code=404, detail=f"Página '{page_name}.html' não encontrada")
 
 
 if __name__ == "__main__":

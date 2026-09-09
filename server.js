@@ -1,10 +1,22 @@
-﻿const http = require('http');
+const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const url = require('url');
 
 const PORT = process.env.PORT || 8000;
 const DATA_FILE = path.join(__dirname, 'data', 'crimes.json');
+
+// Base de Ocorrências Padrão (Mock Resiliente SSP-SP)
+let MOCK_BOS = [
+  { id: 'BO-001', numero_bo: '98124/2026', data_hora: new Date(Date.now() - 25*60000).toISOString(), tipo_crime: 'Furto de Celular / Transeunte', bairro: 'Sé', logradouro: 'Praça da Sé, próx. Catedral', latitude: -23.55052, longitude: -46.63330, status: 'Em Investigação', gravidade: 'MEDIA' },
+  { id: 'BO-002', numero_bo: '98125/2026', data_hora: new Date(Date.now() - 70*60000).toISOString(), tipo_crime: 'Roubo de Veículo', bairro: 'Pinheiros', logradouro: 'Av. Brigadeiro Faria Lima, 2200', latitude: -23.56750, longitude: -46.69200, status: 'Registrado', gravidade: 'ALTA' },
+  { id: 'BO-003', numero_bo: '98126/2026', data_hora: new Date(Date.now() - 125*60000).toISOString(), tipo_crime: 'Furto de Veículo', bairro: 'Bela Vista', logradouro: 'Rua Treze de Maio, 450', latitude: -23.55800, longitude: -46.64500, status: 'Concluído', gravidade: 'MEDIA' },
+  { id: 'BO-004', numero_bo: '98127/2026', data_hora: new Date(Date.now() - 225*60000).toISOString(), tipo_crime: 'Alagamento / Ponto Intransitável', bairro: 'Lapa', logradouro: 'Marginal Tietê, próx. Ponte da Lapa', latitude: -23.51900, longitude: -46.69200, status: 'Defesa Civil Notificada', gravidade: 'ALTA' },
+  { id: 'BO-005', numero_bo: '98128/2026', data_hora: new Date(Date.now() - 300*60000).toISOString(), tipo_crime: 'Tentativa de Roubo a Estabelecimento Comercial', bairro: 'Moema', logradouro: 'Av. Ibirapuera, 1200', latitude: -23.59500, longitude: -46.66200, status: 'Flagrante Delito', gravidade: 'CRITICA' },
+  { id: 'BO-006', numero_bo: '98129/2026', data_hora: new Date(Date.now() - 380*60000).toISOString(), tipo_crime: 'Furto Simples de Equipamento', bairro: 'Tatuapé', logradouro: 'Rua Tuiuti, 1500', latitude: -23.54100, longitude: -46.57500, status: 'Registrado', gravidade: 'BAIXA' },
+  { id: 'BO-007', numero_bo: '98130/2026', data_hora: new Date(Date.now() - 480*60000).toISOString(), tipo_crime: 'Roubo de Carga', bairro: 'Brás', logradouro: 'Rua do Gasômetro, 300', latitude: -23.54300, longitude: -46.61800, status: 'Carga Recuperada', gravidade: 'CRITICA' },
+  { id: 'BO-008', numero_bo: '98131/2026', data_hora: new Date(Date.now() - 600*60000).toISOString(), tipo_crime: 'Aglomeração Não Autorizada / Perturbação', bairro: 'Consolação', logradouro: 'Rua Augusta, 1100', latitude: -23.55300, longitude: -46.65200, status: 'Controlado', gravidade: 'BAIXA' }
+];
 
 // Helper para ler data/crimes.json
 function getCrimes() {
@@ -28,8 +40,8 @@ function saveCrimes(crimes) {
     return true;
   } catch (err) {
     console.error('Erro ao salvar crimes.json:', err);
-    return false;
   }
+  return false;
 }
 
 // Cálculo de pontos de alagamento
@@ -70,6 +82,20 @@ function getPontosAlagamento(chuva_mm = 0) {
   });
 }
 
+function parseJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk.toString(); });
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch (e) {
+        reject(e);
+      }
+    });
+  });
+}
+
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = parsedUrl.pathname;
@@ -86,8 +112,19 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 1. Rota /api/clima (Open-Meteo)
-  if (pathname === '/api/clima' && req.method === 'GET') {
+  // 0. Rotas de Healthcheck
+  if (pathname === '/health' || pathname === '/api/health' || pathname === '/api/v1/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      status: "ONLINE",
+      system: "Sentinel IA Core Engine (Node.js Fallback)",
+      version: "1.0.0"
+    }));
+    return;
+  }
+
+  // 1. Rota /api/clima e /api/v1/clima (Open-Meteo)
+  if ((pathname === '/api/clima' || pathname === '/api/v1/clima') && req.method === 'GET') {
     const lat = parseFloat(query.lat) || -23.5505;
     const lon = parseFloat(query.lon) || -46.6333;
     const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code&hourly=precipitation_probability`;
@@ -159,8 +196,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 2. Rota /api/alagamentos
-  if (pathname === '/api/alagamentos' && req.method === 'GET') {
+  // 2. Rota /api/alagamentos e /api/v1/alagamentos
+  if ((pathname === '/api/alagamentos' || pathname === '/api/v1/alagamentos') && req.method === 'GET') {
     let chuva = 0;
     try {
       const resp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current=precipitation');
@@ -174,8 +211,8 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // 3. Rota /api/crimes (GET / POST)
-  if (pathname === '/api/crimes') {
+  // 3. Rota /api/crimes e /api/v1/crimes (GET / POST)
+  if (pathname === '/api/crimes' || pathname === '/api/v1/crimes') {
     if (req.method === 'GET') {
       const crimes = getCrimes();
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -184,36 +221,203 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (req.method === 'POST') {
-      let body = '';
-      req.on('data', chunk => { body += chunk.toString(); });
-      req.on('end', () => {
-        try {
-          const payload = JSON.parse(body);
-          const crimes = getCrimes();
-          const novoId = `CR-${Date.now().toString().slice(-6)}`;
-          const novoCrime = {
-            id: novoId,
-            latitude: parseFloat(payload.latitude) || -23.5505,
-            longitude: parseFloat(payload.longitude) || -46.6333,
-            categoria: payload.categoria ? payload.categoria.trim() : "Outros",
-            data_hora: payload.data_hora || new Date().toISOString(),
-            descricao: payload.descricao ? payload.descricao.trim() : "Sem descrição adicional"
-          };
-          crimes.unshift(novoCrime);
-          saveCrimes(crimes);
+      try {
+        const payload = await parseJsonBody(req);
+        const crimes = getCrimes();
+        const novoId = `CR-${Date.now().toString().slice(-6)}`;
+        const novoCrime = {
+          id: novoId,
+          latitude: parseFloat(payload.latitude) || -23.5505,
+          longitude: parseFloat(payload.longitude) || -46.6333,
+          categoria: payload.categoria ? payload.categoria.trim() : "Outros",
+          data_hora: payload.data_hora || new Date().toISOString(),
+          descricao: payload.descricao ? payload.descricao.trim() : "Sem descrição adicional"
+        };
+        crimes.unshift(novoCrime);
+        saveCrimes(crimes);
 
-          res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify(novoCrime));
-        } catch (err) {
-          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-          res.end(JSON.stringify({ error: "Payload JSON inválido" }));
-        }
-      });
+        res.writeHead(201, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(novoCrime));
+      } catch (err) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: "Payload JSON inválido" }));
+      }
       return;
     }
   }
 
-  // 4. Servir Arquivos Estáticos (Frontend)
+  // 4. Rota /api/ocorrencias e /api/v1/ocorrencias
+  if ((pathname === '/api/ocorrencias' || pathname === '/api/v1/ocorrencias') && req.method === 'GET') {
+    let filtradas = [...MOCK_BOS];
+    if (query.bairro) {
+      filtradas = filtradas.filter(b => b.bairro.toLowerCase().includes(query.bairro.toLowerCase()));
+    }
+    if (query.tipo_crime) {
+      filtradas = filtradas.filter(b => b.tipo_crime.toLowerCase().includes(query.tipo_crime.toLowerCase()));
+    }
+    if (query.gravidade) {
+      filtradas = filtradas.filter(b => b.gravidade.toUpperCase() === query.gravidade.toUpperCase());
+    }
+    if (query.q) {
+      const q = query.q.toLowerCase();
+      filtradas = filtradas.filter(b => 
+        b.logradouro.toLowerCase().includes(q) || 
+        b.tipo_crime.toLowerCase().includes(q) || 
+        b.numero_bo.toLowerCase().includes(q)
+      );
+    }
+
+    const page = parseInt(query.page) || 1;
+    const pageSize = parseInt(query.page_size) || 10;
+    const totalItens = filtradas.length;
+    const totalPaginas = Math.max(1, Math.ceil(totalItens / pageSize));
+    const offset = (page - 1) * pageSize;
+    const itensPagina = filtradas.slice(offset, offset + pageSize);
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      total: totalItens,
+      pagina: page,
+      tamanho_pagina: pageSize,
+      total_paginas: totalPaginas,
+      ocorrencias: itensPagina
+    }));
+    return;
+  }
+
+  // 5. Rota /api/ocorrencias/resumo e /api/v1/ocorrencias/resumo
+  if ((pathname === '/api/ocorrencias/resumo' || pathname === '/api/v1/ocorrencias/resumo') && req.method === 'GET') {
+    let crit = 0, alt = 0, med = 0, baix = 0;
+    MOCK_BOS.forEach(b => {
+      const g = (b.gravidade || '').toUpperCase();
+      if (g === 'CRITICA') crit++;
+      else if (g === 'ALTA') alt++;
+      else if (g === 'MEDIA') med++;
+      else baix++;
+    });
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      total_ocorrencias: MOCK_BOS.length,
+      criticas: crit,
+      altas: alt,
+      medias: med,
+      baixas: baix,
+      bairro_mais_afetado: "Sé",
+      tipo_mais_frequente: "Furto de Celular"
+    }));
+    return;
+  }
+
+  // 6. Rota /api/simulacao/disparar e /api/v1/simulacao/disparar
+  if ((pathname === '/api/simulacao/disparar' || pathname === '/api/v1/simulacao/disparar') && req.method === 'POST') {
+    try {
+      const payload = await parseJsonBody(req);
+      const novoId = `SIM-${Date.now().toString().slice(-5)}/2026`;
+      const novaBO = {
+        id: `BO-SIM-${Date.now()}`,
+        numero_bo: novoId,
+        data_hora: new Date().toISOString(),
+        tipo_crime: payload.tipo_crime || 'Alagamento Iminente',
+        bairro: payload.bairro || 'Lapa',
+        logradouro: payload.logradouro || 'Marginal Tietê',
+        latitude: parseFloat(payload.latitude) || -23.51900,
+        longitude: parseFloat(payload.longitude) || -46.69200,
+        status: 'Simulação Ativa',
+        gravidade: payload.gravidade || 'ALTA'
+      };
+      MOCK_BOS.unshift(novaBO);
+
+      const score = payload.gravidade === 'CRITICA' ? 90 : (payload.gravidade === 'ALTA' ? 75 : 50);
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        sucesso: true,
+        ocorrencia: novaBO,
+        score_risco_calculado: score,
+        nivel_alerta: payload.gravidade === 'CRITICA' ? 'CRÍTICO' : 'ALTO',
+        impacto_estimado: `Impacto severo estimado para o quadrante de ${novaBO.bairro}.`,
+        acoes_recomendadas: [
+          `Despachar equipes de contenção para ${novaBO.logradouro}.`,
+          `Sincronizar telemetria com Defesa Civil e CET.`
+        ],
+        afeta_aoi: 'AOI-ALPHA'
+      }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: "Erro ao processar simulação" }));
+    }
+    return;
+  }
+
+  // 7. Rota /api/simulacao/cenario e /api/v1/simulacao/cenario
+  if ((pathname === '/api/simulacao/cenario' || pathname === '/api/v1/simulacao/cenario') && req.method === 'POST') {
+    try {
+      const payload = await parseJsonBody(req);
+      const cenarioId = payload.cenario_id || 'tempestade_marginal';
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        cenario_id: cenarioId,
+        eventos_gerados: 3,
+        detalhes: [
+          { titulo: 'Alagamento Pista Expressa', bairro: 'Lapa', gravidade: 'ALTA' },
+          { titulo: 'Transbordamento de Galeria', bairro: 'Santana', gravidade: 'CRITICA' },
+          { titulo: 'Congestionamento Severo', bairro: 'Bom Retiro', gravidade: 'MEDIA' }
+        ]
+      }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: "Erro ao disparar cenário" }));
+    }
+    return;
+  }
+
+  // 8. Rota /api/simulacao/limpar e /api/v1/simulacao/limpar
+  if ((pathname === '/api/simulacao/limpar' || pathname === '/api/v1/simulacao/limpar') && req.method === 'DELETE') {
+    MOCK_BOS = MOCK_BOS.filter(b => !b.id.startsWith('BO-SIM-'));
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      status: "SUCESSO",
+      mensagem: "Simulações removidas com sucesso.",
+      total_ocorrencias_ativas: MOCK_BOS.length
+    }));
+    return;
+  }
+
+  // 9. Rota /api/chat e /api/v1/chat
+  if ((pathname === '/api/chat' || pathname === '/api/v1/chat') && req.method === 'POST') {
+    try {
+      const payload = await parseJsonBody(req);
+      const msg = (payload.message || '').toLowerCase();
+      let resposta = "Olá! Sou o assistente preditivo do Sentinel IA. Como posso ajudar com o monitoramento urbano de São Paulo?";
+      let actions = [];
+
+      if (msg.includes('mapa')) {
+        resposta = "Abrindo o mapa geoespacial interativo de São Paulo com telemetria ao vivo.";
+        actions.push({ type: 'navigate', target: 'mapa.html' });
+      } else if (msg.includes('alerta') || msg.includes('risco')) {
+        resposta = "Consultando a central de alertas preditivos. Atualmente monitoramos 4 Zonas de Interesse (AOIs) e pontos críticos de alagamento.";
+        actions.push({ type: 'navigate', target: 'alertas.html' });
+      } else if (msg.includes('simul')) {
+        resposta = "Iniciando o laboratório de simulação urbana com inteligência preditiva.";
+        actions.push({ type: 'trigger_scenario', scenario_id: 'tempestade_marginal' });
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        response: resposta,
+        actions: actions,
+        model_used: "Sentinel Local Tactical Assistant",
+        timestamp: new Date().toISOString()
+      }));
+    } catch (e) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ error: "Erro no assistente de IA" }));
+    }
+    return;
+  }
+
+  // 10. Servir Arquivos Estáticos (Frontend)
   let filePath = path.join(__dirname, pathname === '/' ? 'index.html' : pathname);
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {
