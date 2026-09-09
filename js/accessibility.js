@@ -21,7 +21,7 @@
   }
 
   let isHighContrast = localStorage.getItem(STORAGE_HIGH_CONTRAST) === 'true';
-  let isExplainMode = localStorage.getItem(STORAGE_EXPLAIN_MODE) === 'true';
+  let isExplainMode = localStorage.getItem(STORAGE_EXPLAIN_MODE) !== 'false'; // Padrão ATIVADO
   let isVoiceEnabled = localStorage.getItem(STORAGE_VOICE_MODE) === 'true';
 
   // Aplicar estilos ao carregar a página
@@ -294,9 +294,9 @@
       /* Estilos do Widget Flutuante de Acessibilidade */
       .access-widget {
         position: fixed;
-        bottom: 85px;
+        bottom: 25px;
         right: 25px;
-        z-index: 99999;
+        z-index: 999999;
         font-family: 'Inter', sans-serif;
       }
 
@@ -304,23 +304,23 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        background: rgba(8, 12, 24, 0.95);
-        color: #00e5ff;
-        border: 2px solid #00e5ff;
-        padding: 10px 16px;
-        border-radius: 999px;
-        cursor: pointer;
-        font-weight: 700;
-        font-size: 14px;
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.4);
-        transition: all 0.3s ease;
+        background: #000000 !important;
+        color: #00e5ff !important;
+        border: 2px solid #00e5ff !important;
+        padding: 12px 20px !important;
+        border-radius: 999px !important;
+        cursor: pointer !important;
+        font-weight: 800 !important;
+        font-size: 15px !important;
+        box-shadow: 0 0 25px rgba(0, 229, 255, 0.6), 0 0 10px #00e5ff !important;
+        transition: all 0.3s ease !important;
       }
 
       .access-main-btn:hover {
-        background: #00e5ff;
-        color: #000000;
-        box-shadow: 0 0 30px rgba(0, 229, 255, 0.8);
-        transform: scale(1.05);
+        background: #00e5ff !important;
+        color: #000000 !important;
+        box-shadow: 0 0 35px rgba(0, 229, 255, 0.9) !important;
+        transform: scale(1.08) !important;
       }
 
       .access-menu {
