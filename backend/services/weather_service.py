@@ -3,6 +3,7 @@ import time
 import httpx
 import certifi
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Dict, Any, Optional
 from schemas import WeatherResponse
 
@@ -142,16 +143,26 @@ async def get_sao_paulo_weather(force_refresh: bool = False) -> WeatherResponse:
                     w_code = int(raw.get("weather_code", 0))
 
                     # Probabilidade de chuva da hora atual
-                    hourly_probs = data_json.get("hourly", {}).get("precipitation_probability", [])
-                    prob_chuva = int(hourly_probs[0]) if hourly_probs else (80 if rain > 0 else 15)
+                    hourly = data_json.get("hourly", {})
+                    hourly_times = hourly.get("time", [])
+                    hourly_probs = hourly.get("precipitation_probability", [])
+                    now_local = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%dT%H:00")
+                    current_index = hourly_times.index(now_local) if now_local in hourly_times else 0
+                    prob_chuva = int(hourly_probs[current_index]) if current_index < len(hourly_probs) else (80 if rain > 0 else 15)
 
                     # Interpretação dos Weather Codes da OMM
                     if w_code == 0:
                         condicao = "Céu Limpo / Ensolarado"
                         icone = "sun"
-                    elif w_code in [1, 2, 3]:
+                    elif w_code == 1:
+                        condicao = "Predominantemente Ensolarado"
+                        icone = "cloud-sun"
+                    elif w_code == 2:
                         condicao = "Parcialmente Nublado"
                         icone = "cloud-sun"
+                    elif w_code == 3:
+                        condicao = "Nublado"
+                        icone = "cloud"
                     elif w_code in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
                         condicao = "Chuva / Pancadas de Chuva"
                         icone = "cloud-rain"
@@ -229,15 +240,25 @@ async def get_weather_by_coords(lat: float, lon: float) -> Dict[str, Any]:
                     rain = float(curr.get("precipitation", 0.0))
                     w_code = int(curr.get("weather_code", 0))
 
-                    hourly_probs = data_json.get("hourly", {}).get("precipitation_probability", [])
-                    prob_chuva = int(hourly_probs[0]) if hourly_probs else (75 if rain > 0 else 10)
+                    hourly = data_json.get("hourly", {})
+                    hourly_times = hourly.get("time", [])
+                    hourly_probs = hourly.get("precipitation_probability", [])
+                    now_local = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%dT%H:00")
+                    current_index = hourly_times.index(now_local) if now_local in hourly_times else 0
+                    prob_chuva = int(hourly_probs[current_index]) if current_index < len(hourly_probs) else (75 if rain > 0 else 10)
 
                     if w_code == 0:
                         condicao = "Céu Limpo"
                         icone = "sun"
-                    elif w_code in [1, 2, 3]:
+                    elif w_code == 1:
+                        condicao = "Predominantemente Ensolarado"
+                        icone = "cloud-sun"
+                    elif w_code == 2:
                         condicao = "Parcialmente Nublado"
                         icone = "cloud-sun"
+                    elif w_code == 3:
+                        condicao = "Nublado"
+                        icone = "cloud"
                     elif w_code in [51, 53, 55, 61, 63, 65, 80, 81, 82]:
                         condicao = "Chuva / Pancadas"
                         icone = "cloud-rain"

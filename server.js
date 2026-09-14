@@ -127,7 +127,7 @@ const server = http.createServer(async (req, res) => {
   if ((pathname === '/api/clima' || pathname === '/api/v1/clima') && req.method === 'GET') {
     const lat = parseFloat(query.lat) || -23.5505;
     const lon = parseFloat(query.lon) || -46.6333;
-    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code&hourly=precipitation_probability`;
+    const openMeteoUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=America%2FSao_Paulo&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code&hourly=precipitation_probability`;
 
     try {
       const response = await fetch(openMeteoUrl);
@@ -139,11 +139,15 @@ const server = http.createServer(async (req, res) => {
       const wind = curr.wind_speed_10m ?? 12.0;
       const w_code = curr.weather_code ?? 0;
       const hourlyProbs = data.hourly?.precipitation_probability || [];
-      const probChuva = hourlyProbs[0] ?? (rain > 0 ? 80 : 15);
+      const currentHour = new Date().toLocaleString('sv-SE', { timeZone: 'America/Sao_Paulo', hour12: false }).slice(0, 13).replace(' ', 'T') + ':00';
+      const currentIndex = data.hourly?.time?.indexOf(currentHour) ?? 0;
+      const probChuva = hourlyProbs[currentIndex >= 0 ? currentIndex : 0] ?? (rain > 0 ? 80 : 15);
 
       let condicao = "Céu Limpo";
       let icone = "sun";
-      if (w_code >= 1 && w_code <= 3) { condicao = "Parcialmente Nublado"; icone = "cloud-sun"; }
+      if (w_code === 1) { condicao = "Predominantemente Ensolarado"; icone = "cloud-sun"; }
+      else if (w_code === 2) { condicao = "Parcialmente Nublado"; icone = "cloud-sun"; }
+      else if (w_code === 3) { condicao = "Nublado"; icone = "cloud"; }
       else if (w_code >= 51 && w_code <= 82) { condicao = "Chuva / Pancadas"; icone = "cloud-rain"; }
       else if (w_code >= 95) { condicao = "Tempestade / Trovoadas"; icone = "zap"; }
       else if (w_code > 3) { condicao = "Nublado"; icone = "cloud"; }

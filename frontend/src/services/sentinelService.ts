@@ -70,7 +70,18 @@ export async function getClima(forceRefresh = false): Promise<WeatherData> {
     return data;
   } catch (error) {
     console.warn('⚠️ [Sentinel IA] Backend Clima inacessível. Usando fallback de dados resilientes:', error);
-    return FALLBACK_CLIMA;
+    try {
+      const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&timezone=America%2FSao_Paulo&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,wind_speed_10m,weather_code');
+      if (!response.ok) throw new Error(`Open-Meteo HTTP ${response.status}`);
+      const data = await response.json();
+      const current = data.current;
+      const code = current.weather_code;
+      const condition = code === 3 ? 'Nublado' : code === 2 ? 'Parcialmente Nublado' : code === 1 ? 'Predominantemente Ensolarado' : code >= 51 && code <= 82 ? 'Chuva / Pancadas' : code >= 95 ? 'Tempestade' : 'Céu Limpo';
+      return { ...FALLBACK_CLIMA, temperatura: current.temperature_2m, sensacao_termica: current.apparent_temperature, umidade: current.relative_humidity_2m, vento_kmh: current.wind_speed_10m, precipitacao_mm: current.precipitation, condicao: condition, icone: code === 3 ? 'cloud' : code >= 51 ? 'cloud-rain' : 'cloud-sun', fonte: 'Open-Meteo direto', atualizado_em: new Date().toLocaleTimeString('pt-BR') };
+    } catch (directError) {
+      console.warn('[Sentinel IA] Open-Meteo também indisponível; modo offline identificado.', directError);
+      return { ...FALLBACK_CLIMA, condicao: 'Dados meteorológicos indisponíveis', fonte: 'Modo offline — não é dado em tempo real' };
+    }
   }
 }
 
