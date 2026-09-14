@@ -311,7 +311,7 @@
     <!-- ========== MAIN CONTENT ========== -->
     <main class="dashboard-main">
       <!-- Topbar -->
-      <header class="dashboard-topbar">
+      <header class="dashboard-topbar with-feedback-btn">
         <div class="topbar-left">
           <button class="sidebar-toggle-btn" id="sidebarToggle">
             <i data-lucide="menu"></i>
@@ -322,14 +322,19 @@
           </div>
         </div>
         <div class="topbar-right" style="gap: 1rem;">
+          <!-- Widget de Temperatura ao Vivo -->
+          <div class="topbar-weather-chip" id="topbarWeatherChip" title="Temperatura em tempo real em São Paulo">
+            <i data-lucide="thermometer" style="width:16px;height:16px;color:var(--neon-cyan);"></i>
+            <span class="weather-temp-num" id="topbarTempText">--°C</span>
+            <span class="weather-cond-badge" id="topbarCondBadge">São Paulo</span>
+          </div>
+
           <!-- Busca de Bairros -->
           <div class="map-search-box">
             <i data-lucide="search" style="width:16px;height:16px;color:var(--text-tertiary)"></i>
             <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Buscar bairro ou região..." />
             <button class="map-search-btn" id="mapSearchBtn">Buscar</button>
           </div>
-
-
 
           <!-- Botão Gerar Relatório -->
           <button class="btn btn-primary btn-sm" id="btnGenerateReport" style="gap:0.4rem; font-weight:600;">
@@ -349,6 +354,17 @@
       <div class="map-page-wrapper">
         <!-- Canvas do Mapa (Leaflet) -->
         <div id="mainMap" style="width: 100%; height: 100%; position: absolute; inset: 0; z-index: 1;"></div>
+
+        <!-- HUD Flutuante de Temperatura (ao vivo no mapa) -->
+        <div class="map-weather-hud" id="mapWeatherHud" title="Telemetria Climática ao Vivo">
+          <div class="hud-icon-box">
+            <i data-lucide="cloud-sun" id="mapHudWeatherIcon" style="width:20px;height:20px;"></i>
+          </div>
+          <div>
+            <div class="hud-temp" id="mapHudTemp">--<span>°C</span></div>
+            <div class="hud-desc" id="mapHudDesc">São Paulo • Ao Vivo</div>
+          </div>
+        </div>
 
         <!-- Legenda Explicativa de 5 Cores (top-left do mapa) -->
         <div class="map-legend-panel">
@@ -428,6 +444,10 @@
             <div class="label">Alertas (Amarelo)</div>
           </div>
           <div class="map-info-item">
+            <div class="value" id="statTemperatura" style="color: var(--neon-cyan, #00e5ff);">--°C</div>
+            <div class="label">Temperatura SP (Ao Vivo)</div>
+          </div>
+          <div class="map-info-item">
             <div class="value" id="statCameras" style="color: var(--cyan);">1.847</div>
             <div class="label">Câmeras Ativas</div>
           </div>
@@ -451,6 +471,7 @@
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="js/api-service.js?v=2.0"></script>
   <script src="js/mapa.js?v=2.0"></script>
+  <script src="js/avaliacao.js"></script>
   <script src="js/ai-assistant.js?v=2.0"></script>
 </body>
 </html>

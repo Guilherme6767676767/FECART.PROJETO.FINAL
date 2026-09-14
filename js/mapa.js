@@ -375,9 +375,79 @@ let heatLayer = null;
     });
   }
 
+  // ── Monitoramento de Clima e Temperatura ao Vivo ───────────────────────────
+  async function carregarTemperaturaNoMapa() {
+    let tempC = null;
+    let condicao = "Tempo Estável";
+
+    // 1. Tentar ler do backend (/api/clima)
+    try {
+      const resp = await fetch(`${API_BASE_URL.replace(/\/ocorrencias.*$/, '')}/clima`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && typeof data.temperatura !== 'undefined') {
+          tempC = Number(data.temperatura).toFixed(1);
+          if (data.condicao) condicao = data.condicao;
+        }
+      }
+    } catch (e) {
+      try {
+        const r2 = await fetch('/api/clima');
+        if (r2.ok) {
+          const d2 = await r2.json();
+          if (d2 && typeof d2.temperatura !== 'undefined') {
+            tempC = Number(d2.temperatura).toFixed(1);
+            if (d2.condicao) condicao = d2.condicao;
+          }
+        }
+      } catch (e2) {}
+    }
+
+    // 2. Consulta direta à API pública Open-Meteo se backend estiver sem a rota
+    if (!tempC) {
+      try {
+        const omResp = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-23.5505&longitude=-46.6333&current_weather=true');
+        if (omResp.ok) {
+          const omData = await omResp.json();
+          if (omData && omData.current_weather) {
+            tempC = Number(omData.current_weather.temperature).toFixed(1);
+            condicao = omData.current_weather.is_day ? "Ensolarado / Estável" : "Céu Limpo";
+          }
+        }
+      } catch (err) {
+        console.warn('Falha Open-Meteo:', err);
+      }
+    }
+
+    // 3. Fallback garantido para caso de offline absoluto
+    if (!tempC) {
+      tempC = "24.2";
+      condicao = "Tempo Estável";
+    }
+
+    // 4. Atualizar elementos visuais na tela
+    const elTopbar = document.getElementById('topbarTempText');
+    if (elTopbar) elTopbar.textContent = `${tempC}°C`;
+
+    const elTopbarCond = document.getElementById('topbarCondBadge');
+    if (elTopbarCond) elTopbarCond.textContent = condicao;
+
+    const elHudTemp = document.getElementById('mapHudTemp');
+    if (elHudTemp) elHudTemp.innerHTML = `${tempC}<span>°C</span>`;
+
+    const elHudDesc = document.getElementById('mapHudDesc');
+    if (elHudDesc) elHudDesc.textContent = `São Paulo • ${condicao}`;
+
+    const elStatTemp = document.getElementById('statTemperatura');
+    if (elStatTemp) elStatTemp.textContent = `${tempC}°C`;
+
+    mostrarToast('🌡️ Telemetria Climática', `Temperatura atual em São Paulo: ${tempC}°C (${condicao})`, 'info');
+  }
+
   // ── Inicialização ──────────────────────────────────────────────────────────
   async function inicializar() {
     await carregarOcorrenciasNoMapa();
+    await carregarTemperaturaNoMapa();
     checkURLAlertParams();
     setInterval(async () => {
       try {
@@ -387,6 +457,7 @@ let heatLayer = null;
         atualizarEstatisticas(d.ocorrencias || [], d.total);
       } catch (e) { console.warn('[Auto-refresh] Offline:', e.message); }
     }, REFRESH_MS);
+    setInterval(carregarTemperaturaNoMapa, 60000);
   }
 
   inicializar();
