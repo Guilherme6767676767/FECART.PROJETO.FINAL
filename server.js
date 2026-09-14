@@ -285,6 +285,39 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // Feed de alertas com filtro por período (servidor Node usado pelo frontend)
+  if (pathname === '/api/alertas' || pathname === '/api/v1/alertas') {
+    const start = query.data_inicio ? new Date(query.data_inicio) : null;
+    const end = query.data_fim ? new Date(query.data_fim) : null;
+    if ((start && Number.isNaN(start.getTime())) || (end && Number.isNaN(end.getTime())) || (start && end && start > end)) {
+      res.writeHead(422, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ detail: 'Período inválido. Use datas ISO 8601.' }));
+      return;
+    }
+
+    const alertas = MOCK_BOS
+      .filter(item => {
+        const occurred = new Date(item.data_hora);
+        return (!start || occurred >= start) && (!end || occurred <= end);
+      })
+      .map(item => ({
+        id: item.id,
+        tipo: item.tipo_crime.toLowerCase().includes('acidente') ? 'acidente' : 'seguranca',
+        severidade: item.gravidade === 'CRITICA' ? 'critical' : item.gravidade === 'ALTA' ? 'high' : item.gravidade === 'BAIXA' ? 'low' : 'medium',
+        titulo: item.tipo_crime,
+        descricao: `${item.status} — ${item.logradouro}`,
+        latitude: item.latitude,
+        longitude: item.longitude,
+        local: item.bairro,
+        criado_em: item.data_hora,
+        fonte: 'Sentinel API'
+      }));
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ alertas, gerado_em: new Date().toISOString(), filtros: { data_inicio: query.data_inicio || null, data_fim: query.data_fim || null } }));
+    return;
+  }
+
   // 5. Rota /api/ocorrencias/resumo e /api/v1/ocorrencias/resumo
   if ((pathname === '/api/ocorrencias/resumo' || pathname === '/api/v1/ocorrencias/resumo') && req.method === 'GET') {
     let crit = 0, alt = 0, med = 0, baix = 0;
