@@ -769,6 +769,36 @@
   color: var(--cyan);
 }
 
+.alert-date-filter {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.alert-date-filter input {
+  color-scheme: dark;
+  color: var(--text-primary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+}
+
+.empty-state {
+  display: flex;
+  min-height: 220px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.empty-state h5 { color: var(--text-primary); font-size: 1rem; }
+.empty-state p { max-width: 32rem; font-size: 0.82rem; color: var(--text-tertiary); }
+
 .alert-detail-card {
   padding: var(--space-xl);
   display: grid;
@@ -869,6 +899,10 @@
   .sidebar-toggle-btn {
     display: block;
   }
+
+  .alerts-toolbar { align-items: stretch; }
+  .alert-date-filter { width: 100%; }
+  .alert-date-filter input { flex: 1; min-width: 120px; }
 
   .kpi-grid { grid-template-columns: 1fr; }
   

@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sidebarToggle) {
         sidebarToggle.addEventListener('click', () => {
             sidebar.classList.toggle('open');
+            sidebarToggle.setAttribute('aria-expanded', String(sidebar.classList.contains('open')));
         });
     }
 
@@ -130,6 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const alertListContainer = document.getElementById('alertList');
     const alertCountElement = document.getElementById('alertCount');
+    let regionChartInstance = null;
+    let severityChartInstance = null;
 
     // Função Global de Navegação para o Mapa
     window.viewAlertOnMap = function(lat, lng, locationName) {
@@ -177,6 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função para renderizar alertas
     function renderAlerts(filterType = 'all') {
+        if (!alertListContainer) return;
         alertListContainer.innerHTML = '';
         let count = 0;
 
@@ -210,9 +214,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         
+        if (count === 0) {
+            alertListContainer.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h5>Nenhum alerta encontrado</h5><p>Nenhum alerta corresponde aos filtros selecionados. Tente outro nível de severidade ou período.</p></div>';
+        }
         if (alertCountElement) alertCountElement.textContent = count;
         if (window.lucide) lucide.createIcons();
         renderTimeline();
+    }
+
+    function updateAlertCharts() {
+        if (!window.Chart) return;
+        const regions = {};
+        alertsData.forEach(alert => {
+            const region = alert.locationName || 'São Paulo';
+            regions[region] = (regions[region] || 0) + 1;
+        });
+        const labels = Object.keys(regions).slice(0, 8);
+        if (regionChartInstance) {
+            regionChartInstance.data.labels = labels.length ? labels : ['Sem dados'];
+            regionChartInstance.data.datasets[0].data = labels.length ? labels.map(label => regions[label]) : [0];
+            regionChartInstance.update();
+        }
+        const levels = ['critical', 'high', 'medium', 'low'];
+        if (severityChartInstance) {
+            severityChartInstance.data.datasets[0].data = levels.map(level => alertsData.filter(alert => alert.type === level).length);
+            severityChartInstance.update();
+        }
     }
 
     // Chamada Inicial
@@ -301,6 +328,7 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.classList.add('active');
             
             const filterType = btn.getAttribute('data-filter');
+            filterButtons.forEach(item => item.setAttribute('aria-pressed', String(item === btn)));
             renderAlerts(filterType);
         });
     });
@@ -322,7 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gráfico: Alertas por Região (Bar Horizontal)
     const ctxRegion = document.getElementById('regionChart');
     if (ctxRegion) {
-        new Chart(ctxRegion, {
+        regionChartInstance = new Chart(ctxRegion, {
             type: 'bar',
             data: {
                 labels: ['Centro', 'Zona Sul', 'Zona Leste', 'Zona Oeste', 'Zona Norte'],
@@ -350,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Gráfico: Distribuição por Severidade (Doughnut)
     const ctxSeverity = document.getElementById('severityChart');
     if (ctxSeverity) {
-        new Chart(ctxSeverity, {
+        severityChartInstance = new Chart(ctxSeverity, {
             type: 'doughnut',
             data: {
                 labels: ['Crítico', 'Alto', 'Médio', 'Baixo'],
@@ -375,5 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    updateAlertCharts();
     }
 });
