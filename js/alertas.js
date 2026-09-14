@@ -27,7 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // Feed único e consolidado pelo backend. Não usar mocks quando a fonte
         // estiver indisponível: isso confundia alertas históricos com eventos atuais.
         try {
-            const response = await fetch(`${API_BASE}/api/v1/alertas`, { cache: 'no-store' });
+            const params = new URLSearchParams();
+            const start = document.getElementById('alertStartDate')?.value;
+            const end = document.getElementById('alertEndDate')?.value;
+            if (start) params.set('data_inicio', `${start}T00:00:00-03:00`);
+            if (end) params.set('data_fim', `${end}T23:59:59-03:00`);
+            const response = await fetch(`${API_BASE}/api/v1/alertas${params.toString() ? `?${params}` : ''}`, { cache: 'no-store' });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const payload = await response.json();
             alertsData = (payload.alertas || []).map(alerta => ({
@@ -212,6 +217,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Chamada Inicial
     carregarAlertasReais();
+
+    document.getElementById('applyAlertDateFilter')?.addEventListener('click', carregarAlertasReais);
 
     // Função Global para Reconhecer Alerta (Acknowledge)
     window.acknowledgeAlert = function(id) {

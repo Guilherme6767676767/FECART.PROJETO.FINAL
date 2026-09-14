@@ -14,6 +14,7 @@ Endpoints:
 - `GET /api/v1/acidentes?limit=5000`
 - `GET /api/v1/transito/geojson?lat=-23.5505&lon=-46.6333`
 - `GET /api/v1/riscos-criminalidade`
+- `GET /api/v1/alertas?data_inicio=2026-09-01T00:00:00-03:00&data_fim=2026-09-14T23:59:59-03:00`
 
 Todos devolvem `FeatureCollection` GeoJSON com coordenadas WGS84 no formato
 `[longitude, latitude]`.
@@ -35,6 +36,12 @@ por município/unidade, o retorno não deve ser tratado como ponto individual.
 Cada fonte tem timeout, retry para 429/5xx, cache TTL e erro HTTP 503
 normalizado. Em múltiplas réplicas, o `TTLCache` pode ser substituído por Redis
 usando `REDIS_URL`.
+
+O endpoint de alertas aceita `data_inicio` e `data_fim` em ISO 8601. Acidentes
+usam a data existente no registro GeoSampa; clima e trânsito são dados atuais e
+só aparecem em períodos que incluem o momento da consulta. Estatísticas SSP
+agregadas sem data diária são omitidas quando um período é solicitado, para não
+apresentar um total mensal como se fosse uma ocorrência daquele dia.
 
 O trânsito usa o TomTom Traffic Flow, que retorna velocidade atual, velocidade
 em fluxo livre, tempo de viagem, confiança, fechamento da via e geometria do

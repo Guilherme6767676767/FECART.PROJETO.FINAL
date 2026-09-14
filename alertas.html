@@ -97,6 +97,13 @@
                         <button class="filter-btn" data-filter="medium" style="color: var(--blue);">Médio</button>
                         <button class="filter-btn" data-filter="low" style="color: var(--green);">Baixo</button>
                     </div>
+                    <div class="alert-date-filter" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+                        <label for="alertStartDate">De:</label>
+                        <input id="alertStartDate" type="date" aria-label="Data inicial dos alertas">
+                        <label for="alertEndDate">Até:</label>
+                        <input id="alertEndDate" type="date" aria-label="Data final dos alertas">
+                        <button id="applyAlertDateFilter" class="filter-btn" type="button">Consultar período</button>
+                    </div>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
                         Total exibido: <strong class="text-primary" id="alertCount">12</strong> alertas ativos
                     </div>

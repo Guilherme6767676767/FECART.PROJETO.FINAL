@@ -183,7 +183,7 @@ class LiveDataService:
         self.cache[key] = result
         return result
 
-    async def alerts(self) -> list[dict[str, Any]]:
+    async def alerts(self, start: datetime | None = None, end: datetime | None = None) -> list[dict[str, Any]]:
         """Consolida sinais reais em alertas prontos para o frontend."""
         results = await asyncio.gather(
             self.weather(), self.traffic(), self.accidents(100), self.crime_risk(100000),
@@ -193,12 +193,25 @@ class LiveDataService:
         alerts: list[dict[str, Any]] = []
         now = datetime.now(timezone.utc).isoformat()
 
-        if isinstance(weather, dict) and weather.get("features"):
+        def in_period(value: str | None) -> bool:
+            if not start and not end:
+                return True
+            if not value:
+                return False
+            try:
+                moment = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                if moment.tzinfo is None:
+                    moment = moment.replace(tzinfo=timezone.utc)
+                return (not start or moment >= start) and (not end or moment <= end)
+            except ValueError:
+                return False
+
+        if isinstance(weather, dict) and weather.get("features") and in_period(now):
             p = weather["features"][0]["properties"]
             if p.get("alerta_tempestade") or (p.get("probabilidade_chuva_percentual") or 0) >= 70:
                 alerts.append({"id": "weather-sp", "tipo": "clima", "severidade": "high" if p.get("alerta_tempestade") else "medium", "titulo": "Alerta meteorológico em São Paulo", "descricao": f"Chuva: {p.get('probabilidade_chuva_percentual') or 0}% | Tempestade: {p.get('probabilidade_tempestade_percentual') or 0}%", "latitude": SP_LAT, "longitude": SP_LON, "criado_em": now, "fonte": "open-meteo"})
 
-        if isinstance(traffic, dict):
+        if isinstance(traffic, dict) and in_period(now):
             for feature in traffic.get("features", []):
                 p = feature.get("properties", {}); idx = p.get("indice_congestionamento")
                 if idx is not None and idx >= 0.45:
@@ -209,15 +222,34 @@ class LiveDataService:
         if isinstance(accidents, dict):
             for index, feature in enumerate(accidents.get("features", [])):
                 coords = feature.get("geometry", {}).get("coordinates", [])
-                if len(coords) >= 2:
-                    alerts.append({"id": f"accident-{index}", "tipo": "acidente", "severidade": "high", "titulo": "Acidente de trânsito registrado", "descricao": "Ocorrência georreferenciada no GeoSampa/INFOCRIM", "longitude": coords[0], "latitude": coords[1], "criado_em": now, "fonte": "geosampa-infocrim", "dados": feature.get("properties", {})})
+                props = feature.get("properties", {})
+                occurred_at = self._event_datetime(props) or now
+                if len(coords) >= 2 and in_period(occurred_at):
+                    alerts.append({"id": f"accident-{index}", "tipo": "acidente", "severidade": "high", "titulo": "Acidente de trânsito registrado", "descricao": "Ocorrência georreferenciada no GeoSampa/INFOCRIM", "longitude": coords[0], "latitude": coords[1], "criado_em": occurred_at, "fonte": "geosampa-infocrim", "dados": props})
 
-        if isinstance(crime, dict):
+        if isinstance(crime, dict) and not (start or end):
             for feature in crime.get("features", []):
                 p = feature.get("properties", {})
                 if p.get("faixa_risco") in {"Alto", "Médio"}:
                     alerts.append({"id": f"crime-{p.get('distrito') or p.get('nome') or len(alerts)}", "tipo": "seguranca", "severidade": "high" if p.get("faixa_risco") == "Alto" else "medium", "titulo": f"Área de risco: {p.get('faixa_risco')}", "descricao": f"Roubos: {p.get('roubos', 0)} | Furtos: {p.get('furtos', 0)}", "criado_em": now, "fonte": "ssp-sp"})
         return alerts
+
+    @staticmethod
+    def _event_datetime(properties: dict[str, Any]) -> str | None:
+        """Localiza data/hora em schemas diferentes dos arquivos GeoSampa."""
+        names = ("data_hora", "datahora", "data_ocorrencia", "data do acidente", "dt_ocorrencia", "data")
+        normalized = {re.sub(r"[^a-z0-9]", "", str(k).lower()): v for k, v in properties.items()}
+        for name in names:
+            value = normalized.get(re.sub(r"[^a-z0-9]", "", name))
+            if value not in (None, ""):
+                raw = str(value).strip()
+                try:
+                    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", raw):
+                        return f"{raw}T00:00:00+00:00"
+                    return datetime.fromisoformat(raw.replace("Z", "+00:00")).isoformat()
+                except ValueError:
+                    continue
+        return None
 
     @staticmethod
     def _risk_band(value: int, values: list[int]) -> str:
