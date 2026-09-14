@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .routers.coleta import router as coleta_router
 from .routers.health import router as health_router
+from .routers.geodata import router as geodata_router
 
 app = FastAPI(title="Sentinel IA Data Collection")
 
@@ -19,6 +20,7 @@ app.add_middleware(
 # Include routers
 app.include_router(coleta_router)
 app.include_router(health_router)
+app.include_router(geodata_router)
 
 # Mount legacy backend app if available
 try:

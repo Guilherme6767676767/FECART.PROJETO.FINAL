@@ -24,6 +24,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? ''
                 : 'http://localhost:8000'
         );
+        // Feed único e consolidado pelo backend. Não usar mocks quando a fonte
+        // estiver indisponível: isso confundia alertas históricos com eventos atuais.
+        try {
+            const response = await fetch(`${API_BASE}/api/v1/alertas`, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const payload = await response.json();
+            alertsData = (payload.alertas || []).map(alerta => ({
+                id: alerta.id,
+                type: alerta.severidade || 'medium',
+                title: alerta.titulo,
+                desc: `[${alerta.fonte}] ${alerta.descricao}`,
+                time: alerta.criado_em ? new Date(alerta.criado_em).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : 'Agora',
+                icon: alerta.tipo === 'clima' ? 'cloud-rain' : alerta.tipo === 'transito' ? 'car' : alerta.tipo === 'acidente' ? 'alert-triangle' : 'shield-alert',
+                lat: alerta.latitude,
+                lng: alerta.longitude,
+                locationName: alerta.local || 'São Paulo'
+            }));
+            renderAlerts('all');
+        } catch (error) {
+            console.warn('Feed de alertas indisponível:', error);
+            alertsData = [];
+            renderAlerts('all');
+        }
+        return;
         try {
             let apiAlerts = [];
             

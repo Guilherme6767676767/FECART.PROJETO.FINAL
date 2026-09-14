@@ -515,6 +515,29 @@ async function initAlertFeed() {
   const feed = document.getElementById('alertFeed');
   if (!feed) return;
 
+  // Fonte única de alertas reais. O backend consolida clima, trânsito,
+  // acidentes e criminalidade; não gerar eventos artificiais no feed.
+  try {
+    const base = window.SENTINEL_BACKEND_URL || (window.location.port === '8000' ? '' : 'http://localhost:8000');
+    const response = await fetch(`${base}/api/v1/alertas`, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const payload = await response.json();
+    feed.innerHTML = '';
+    (payload.alertas || []).slice(0, 10).forEach(alerta => {
+      feed.appendChild(createAlertElement({
+        icon: alerta.tipo === 'clima' ? 'cloud-rain' : alerta.tipo === 'transito' ? 'car' : alerta.tipo === 'acidente' ? 'alert-triangle' : 'shield-alert',
+        severity: alerta.severidade || 'medium', title: alerta.titulo,
+        desc: `[${alerta.fonte}] ${alerta.descricao}`, area: alerta.local || 'São Paulo',
+        lat: alerta.latitude, lng: alerta.longitude
+      }, alerta.criado_em ? new Date(alerta.criado_em).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : 'Agora'));
+    });
+    return;
+  } catch (err) {
+    console.warn('Feed real de alertas indisponível:', err);
+    feed.innerHTML = '<div class="alert-item"><div class="alert-item-content"><h5>Feed indisponível</h5><p>Não foi possível consultar as fontes reais de alertas.</p></div></div>';
+    return;
+  }
+
   // Tentar buscar ocorrências reais salvas no banco Supabase
   if (window.SentinelAPI && window.SentinelAPI.supabaseEngine) {
     try {

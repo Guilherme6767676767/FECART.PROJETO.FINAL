@@ -17,6 +17,11 @@ class Settings(BaseSettings):
 
     # Logging level
     LOG_LEVEL: str = "INFO"
+    EXTERNAL_TIMEOUT_SECONDS: float = 15.0
+    STORM_ALERT_THRESHOLD: int = 50
+    GEOSAMPA_ACCIDENTS_URL: str | None = None
+    SSP_CRIME_DATA_URL: str | None = None
+    SSP_DISTRICTS_GEOJSON_URL: str | None = None
 
     class Config:
         env_file = ".env"
