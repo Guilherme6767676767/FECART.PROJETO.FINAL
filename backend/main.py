@@ -2,7 +2,7 @@ import os
 import sys
 import math
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from fastapi import FastAPI, Query, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +13,9 @@ from dotenv import load_dotenv
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
 if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
+PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # Carregar variáveis de ambiente
 load_dotenv(os.path.join(BACKEND_DIR, ".env"))
@@ -44,6 +47,7 @@ from services.weather_service import (
     obter_pontos_alagamento
 )
 from services.chat_service import processar_mensagem_chat
+from app.services.live_data import live_data_service
 
 # Inicialização do FastAPI
 app = FastAPI(
@@ -311,6 +315,24 @@ async def resumo_estatistico_ocorrencias():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Erro ao calcular estatísticas: {str(e)}"
         )
+
+
+@app.get(
+    "/api/v1/alertas",
+    summary="Feed consolidado de alertas com filtro por período",
+    tags=["Alertas em tempo real"]
+)
+async def alertas_reais(
+    data_inicio: datetime | None = Query(None, description="ISO 8601, ex.: 2026-09-01T00:00:00-03:00"),
+    data_fim: datetime | None = Query(None, description="ISO 8601, ex.: 2026-09-14T23:59:59-03:00")
+):
+    if data_inicio and data_fim and data_inicio > data_fim:
+        raise HTTPException(status_code=422, detail="data_inicio deve ser anterior a data_fim")
+    return {
+        "alertas": await live_data_service.alerts(data_inicio, data_fim),
+        "gerado_em": datetime.now(timezone.utc).isoformat(),
+        "filtros": {"data_inicio": data_inicio, "data_fim": data_fim}
+    }
 
 
 # ----------------------------------------------------

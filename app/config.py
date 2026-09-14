@@ -13,7 +13,9 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default="redis://localhost:6379/0")
 
     # CORS origins for frontend development
-    CORS_ORIGINS: List[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"])
+    # Aceita lista separada por vírgula no .env; evita falha quando o ambiente
+    # fornece CORS_ORIGINS como texto em vez de JSON.
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
     # Logging level
     LOG_LEVEL: str = "INFO"
