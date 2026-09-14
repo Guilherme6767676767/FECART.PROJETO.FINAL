@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    lucide.createIcons();
+    if (window.lucide) lucide.createIcons();
 
     // Toggle Sidebar
     const sidebar = document.getElementById('sidebar');
@@ -306,6 +306,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Gráficos Chart.js
+    if (!window.Chart) {
+        console.warn('Chart.js indisponível; alertas continuam funcionando sem os gráficos.');
+    }
+    if (window.Chart) {
     Chart.defaults.color = '#8b9dc3';
     Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
@@ -370,5 +374,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+    }
     }
 });
