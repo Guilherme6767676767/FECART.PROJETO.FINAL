@@ -7,7 +7,6 @@ from fastapi import FastAPI, Query, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from dotenv import load_dotenv
 
 # Garantir que o diretório 'backend' esteja no sys.path
 BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -16,9 +15,6 @@ if BACKEND_DIR not in sys.path:
 PROJECT_ROOT = os.path.abspath(os.path.join(BACKEND_DIR, ".."))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-
-# Carregar variáveis de ambiente
-load_dotenv(os.path.join(BACKEND_DIR, ".env"))
 
 from schemas import (
     WeatherResponse,
@@ -47,7 +43,7 @@ from services.weather_service import (
     obter_pontos_alagamento
 )
 from services.chat_service import processar_mensagem_chat
-from app.services.live_data import live_data_service
+from services.live_data import live_data_service
 
 # Inicialização do FastAPI
 app = FastAPI(
