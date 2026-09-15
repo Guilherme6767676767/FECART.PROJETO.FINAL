@@ -90,19 +90,36 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar as Dependências
+### 3. Instalar as Dependências do Backend
 ```bash
-pip install -r requirements.txt
+pip install -r backend/requirements.txt
 ```
 
-### 4. Iniciar o Servidor
+O projeto funciona sem chaves de API. O clima usa Open-Meteo e os demais
+serviços pagos permanecem desativados até que sejam configurados no `.env`.
+
+### 4. Iniciar o Backend FastAPI
 ```bash
-python app.py
+uvicorn backend.main:app --reload --port 8000
 ```
 
-O servidor criará e inicializará automaticamente o banco `alagamentos.db`.  
-Abra seu navegador em:  
-👉 **`http://127.0.0.1:5000`**
+Abra a documentação interativa em **`http://127.0.0.1:8000/docs`**.
+
+### 5. Iniciar o Frontend React
+Em outro terminal:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abra **`http://localhost:5173`**. O frontend já aponta, por padrão, para
+`http://localhost:8000/api/v1`. Para usar outra URL, crie `frontend/.env` com:
+
+```env
+VITE_API_BASE_URL=http://localhost:8000/api/v1
+```
 
 ---
 
