@@ -459,6 +459,12 @@
             <button class="map-search-btn" id="mapSearchBtn">Buscar</button>
           </div>
 
+          <!-- Botão Rota Inteligente IA (FECART) -->
+          <button class="btn btn-primary btn-sm" id="btnOpenSmartRoute" style="gap:0.4rem; font-weight:700; background: linear-gradient(135deg, #00e5ff 0%, #0077b6 100%); border:none; color:#050508;">
+            <i data-lucide="navigation" style="width:16px;height:16px;"></i>
+            Rota IA (Waze)
+          </button>
+
           <!-- Botão Gerar Relatório -->
           <button class="btn btn-primary btn-sm" id="btnGenerateReport" style="gap:0.4rem; font-weight:600;">
             <i data-lucide="file-text" style="width:16px;height:16px"></i>
@@ -588,9 +594,51 @@
         </div>
       </div>
 
-      <!-- Container de Notificações Toast em Tempo Real -->
-      <div class="sentinel-toast-container" id="toastContainer"></div>
-    </main>
+        <!-- Painel Flutuante de Rota Inteligente (Waze IA / FECART) -->
+        <div id="smartRoutePanel" style="display:none; position:absolute; top:70px; left:20px; width:340px; background:rgba(6, 10, 20, 0.94); border:1px solid rgba(0, 229, 255, 0.35); border-radius:14px; padding:16px; z-index:750; backdrop-filter:blur(16px); box-shadow:0 12px 40px rgba(0,0,0,0.8);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
+            <div style="font-weight:700; font-size:0.9rem; color:#00e5ff; display:flex; align-items:center; gap:6px;">
+              <i data-lucide="navigation" style="width:16px;height:16px;"></i>
+              Navegação Segura (IA)
+            </div>
+            <button id="btnCloseSmartRoute" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:16px;">✕</button>
+          </div>
+          
+          <div style="display:flex; flex-direction:column; gap:8px; font-size:0.8rem;">
+            <div style="background:rgba(255,255,255,0.04); padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+              <div style="color:#10b981; font-weight:600;">🟢 Ponto de Partida</div>
+              <div id="txtSmartOrigem" style="color:#cbd5e1; font-size:0.75rem;">FECAP Liberdade (-23.5574, -46.6346)</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04); padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06);">
+              <div style="color:#ef4444; font-weight:600;">🔴 Ponto de Destino</div>
+              <div id="txtSmartDestino" style="color:#cbd5e1; font-size:0.75rem;">Clique no mapa para marcar</div>
+            </div>
+            
+            <button id="btnExecuteSmartRoute" class="btn btn-primary btn-sm" style="margin-top:6px; width:100%; justify-content:center; background:linear-gradient(135deg, #00e5ff 0%, #0077b6 100%); border:none; color:#050508; font-weight:700;">
+              Calcular Rota Adaptativa
+            </button>
+
+            <!-- Comparativo de Rotas -->
+            <div id="smartRouteMetrics" style="display:none; margin-top:8px; background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.3); border-radius:8px; padding:10px;">
+              <div style="color:#10b981; font-weight:700; font-size:0.75rem; margin-bottom:4px;">🛡️ OTIMIZAÇÃO CONCLUÍDA</div>
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem; margin-bottom:2px;">
+                <span>🟢 Rota Segura IA:</span>
+                <b id="valSmartDist" style="color:#00e5ff;">1.8 km (~4 min)</b>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                <span>🔴 GPS Comum:</span>
+                <b id="valSmartDistStd" style="color:#ef4444;">1.7 km (~4 min)</b>
+              </div>
+              <div id="valSmartFeedback" style="font-size:0.7rem; color:#94a3b8; margin-top:6px; border-top:1px solid rgba(255,255,255,0.08); padding-top:4px;">
+                Áreas de alto alagamento e risco criminal foram desviadas pela IA.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Container de Notificações Toast em Tempo Real -->
+        <div class="sentinel-toast-container" id="toastContainer"></div>
+      </main>
   </div>
 
   <!-- Scripts -->
@@ -638,6 +686,34 @@
           if (layerBtn) layerBtn.classList.remove('active');
         }
       });
+
+      // Integração Rota Inteligente IA (Waze / FECART)
+      var btnOpenRoute = document.getElementById('btnOpenSmartRoute');
+      var smartPanel = document.getElementById('smartRoutePanel');
+      var btnCloseRoute = document.getElementById('btnCloseSmartRoute');
+      var btnExecute = document.getElementById('btnExecuteSmartRoute');
+
+      if (btnOpenRoute && smartPanel) {
+        btnOpenRoute.addEventListener('click', function() {
+          smartPanel.style.display = smartPanel.style.display === 'none' ? 'block' : 'none';
+          if (window.sentinelEnableRoutePicking) {
+            window.sentinelEnableRoutePicking(smartPanel.style.display === 'block');
+          }
+        });
+      }
+
+      if (btnCloseRoute && smartPanel) {
+        btnCloseRoute.addEventListener('click', function() {
+          smartPanel.style.display = 'none';
+          if (window.sentinelEnableRoutePicking) window.sentinelEnableRoutePicking(false);
+        });
+      }
+
+      if (btnExecute && window.sentinelExecuteSmartRoute) {
+        btnExecute.addEventListener('click', function() {
+          window.sentinelExecuteSmartRoute();
+        });
+      }
     });
   </script>
 </body>
