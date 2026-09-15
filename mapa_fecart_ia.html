@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html>
+<head>
+    
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap-glyphicons.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.2.0/css/all.min.css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Leaflet.awesome-markers/2.0.2/leaflet.awesome-markers.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/python-visualization/folium/folium/templates/leaflet.awesome.rotate.min.css"/>
+    
+            <meta name="viewport" content="width=device-width,
+                initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+            <style>
+                #map_25d82dbb60c411462d6098f660557230 {
+                    position: relative;
+                    width: 100.0%;
+                    height: 100.0%;
+                    left: 0.0%;
+                    top: 0.0%;
+                }
+                .leaflet-container { font-size: 1rem; }
+            </style>
+
+            <style>html, body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            </style>
+
+            <style>#map {
+                position:absolute;
+                top:0;
+                bottom:0;
+                right:0;
+                left:0;
+                }
+            </style>
+
+            <script>
+                L_NO_TOUCH = false;
+                L_DISABLE_3D = false;
+            </script>
+
+        
+    <script src="https://cdn.jsdelivr.net/gh/python-visualization/folium@main/folium/templates/leaflet_heat.min.js"></script>
+</head>
+<body>
+    
+    
+    <div style="
+        position: fixed;
+        bottom: 25px;
+        left: 25px;
+        width: 320px;
+        background: rgba(15, 23, 42, 0.9);
+        color: #f8fafc;
+        border: 1px solid rgba(0, 229, 255, 0.4);
+        border-radius: 12px;
+        padding: 16px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 13px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+    ">
+        <div style="font-weight: bold; font-size: 14px; color: #00e5ff; margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 4px;">
+            🚦 FECART - Navegação Adaptativa
+        </div>
+        <div style="margin-bottom: 6px;">
+            <span style="display:inline-block; width:12px; height:12px; background:#10b981; border-radius:50%; margin-right:6px;"></span>
+            <b>Rota IA Segura:</b> 0.65 km (~1.5 min)<br>
+            <small style="color: #94a3b8; margin-left: 20px;">Risco Enchente: 60% | Crime: 85%</small>
+        </div>
+        <div style="margin-bottom: 8px;">
+            <span style="display:inline-block; width:12px; height:12px; background:#ef4444; border-radius:50%; margin-right:6px;"></span>
+            <b>Rota GPS Comum:</b> 0.8 km (~1.9 min)<br>
+            <small style="color: #94a3b8; margin-left: 20px;">Risco Enchente: 60% | Crime: 85%</small>
+        </div>
+        <div style="background: rgba(0, 229, 255, 0.08); border-radius: 6px; padding: 6px; font-size: 11px; color: #38bdf8;">
+            💡 O motor de IA priorizou a segurança desviando de áreas críticas sem grande acréscimo de percurso.
+        </div>
+    </div>
+    
+    
+            <div class="folium-map" id="map_25d82dbb60c411462d6098f660557230" ></div>
+        
+</body>
+<script>
+    
+    
+            var map_25d82dbb60c411462d6098f660557230 = L.map(
+                "map_25d82dbb60c411462d6098f660557230",
+                {
+                    center: [-23.5574, -46.6346],
+                    crs: L.CRS.EPSG3857,
+                    ...{
+  "zoom": 16,
+  "zoomControl": true,
+  "preferCanvas": false,
+}
+
+                }
+            );
+            L.control.scale().addTo(map_25d82dbb60c411462d6098f660557230);
+
+            
+
+        
+    
+            var tile_layer_fd5227b484c61aa4131d7a6ac49594d5 = L.tileLayer(
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                {
+  "minZoom": 0,
+  "maxZoom": 19,
+  "maxNativeZoom": 19,
+  "noWrap": false,
+  "attribution": "\u0026copy; \u003ca href=\"https://www.openstreetmap.org/copyright\"\u003eOpenStreetMap\u003c/a\u003e contributors",
+  "subdomains": "abc",
+  "detectRetina": false,
+  "tms": false,
+  "opacity": 1,
+}
+
+            );
+        
+    
+            tile_layer_fd5227b484c61aa4131d7a6ac49594d5.addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var marker_42bbb4ce7812e1ca2d3cd0a0e5457eac = L.marker(
+                [-23.5574, -46.6346],
+                {
+}
+            ).addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var icon_6a035a066def4b2685831bf35cd23f67 = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "green",
+  "iconColor": "white",
+  "icon": "graduation-cap",
+  "prefix": "fa",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_e3248a9e325b4a5c2afccc06ea47fd4f = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_419f4bb116dbddf3c77f9ba7b40c7f51 = $(`<div id="html_419f4bb116dbddf3c77f9ba7b40c7f51" style="width: 100.0%; height: 100.0%;"><b>Campus FECAP Liberdade</b><br>Largo São Francisco / Av. Liberdade</div>`)[0];
+                popup_e3248a9e325b4a5c2afccc06ea47fd4f.setContent(html_419f4bb116dbddf3c77f9ba7b40c7f51);
+            
+        
+
+        marker_42bbb4ce7812e1ca2d3cd0a0e5457eac.bindPopup(popup_e3248a9e325b4a5c2afccc06ea47fd4f)
+        ;
+
+        
+    
+    
+            marker_42bbb4ce7812e1ca2d3cd0a0e5457eac.bindTooltip(
+                `<div>
+                     <b>Origem:</b> FECAP Liberdade
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_42bbb4ce7812e1ca2d3cd0a0e5457eac.setIcon(icon_6a035a066def4b2685831bf35cd23f67);
+            
+    
+            var marker_e13a3742d2b4fb4cfa5618d40741b869 = L.marker(
+                [-23.5617, -46.6388],
+                {
+}
+            ).addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var icon_5f4250d5aad1fa2c58affbbf0c1d046a = L.AwesomeMarkers.icon(
+                {
+  "markerColor": "red",
+  "iconColor": "white",
+  "icon": "flag",
+  "prefix": "glyphicon",
+  "extraClasses": "fa-rotate-0",
+}
+            );
+        
+    
+        var popup_93cf93a0a88daca6b2fa455998a82ff4 = L.popup({
+  "maxWidth": "100%",
+});
+
+        
+            
+                var html_439b7db9849b78008ce12cd330aa1498 = $(`<div id="html_439b7db9849b78008ce12cd330aa1498" style="width: 100.0%; height: 100.0%;"><b>Estação São Joaquim</b><br>Destino Selecionado</div>`)[0];
+                popup_93cf93a0a88daca6b2fa455998a82ff4.setContent(html_439b7db9849b78008ce12cd330aa1498);
+            
+        
+
+        marker_e13a3742d2b4fb4cfa5618d40741b869.bindPopup(popup_93cf93a0a88daca6b2fa455998a82ff4)
+        ;
+
+        
+    
+    
+            marker_e13a3742d2b4fb4cfa5618d40741b869.bindTooltip(
+                `<div>
+                     <b>Destino:</b> Metrô São Joaquim
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+                marker_e13a3742d2b4fb4cfa5618d40741b869.setIcon(icon_5f4250d5aad1fa2c58affbbf0c1d046a);
+            
+    
+            var heat_map_11fd5b08f66323d10061016f0f1c437e = L.heatLayer(
+                [[-23.56095, -46.6379, 0.85]],
+                {
+  "minOpacity": 0.3,
+  "maxZoom": 18,
+  "radius": 15,
+  "blur": 12,
+  "gradient": {
+  0.2: "#ffffb2",
+  0.5: "#fd8d3c",
+  0.8: "#f03b20",
+  1.0: "#bd0026",
+},
+}
+            );
+        
+    
+            heat_map_11fd5b08f66323d10061016f0f1c437e.addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var feature_group_49d562a0d6cd8a0626edf1680e322bf7 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_25bc660f3ea7b9f57ed2087fd23ba6e7 = L.circle(
+                [-23.56095, -46.6379],
+                {"bubblingMouseEvents": true, "color": "#00e5ff", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#00e5ff", "fillOpacity": 0.6, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 18, "stroke": true, "weight": 3}
+            ).addTo(feature_group_49d562a0d6cd8a0626edf1680e322bf7);
+        
+    
+            circle_25bc660f3ea7b9f57ed2087fd23ba6e7.bindTooltip(
+                `<div>
+                     🌊 Ponto Crítico de Alagamento (60%)
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_49d562a0d6cd8a0626edf1680e322bf7.addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var feature_group_7eb24445b4ff76b8797584aa45e17f2c = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var circle_marker_d1bf1ac8a618770805032de860a46f93 = L.circleMarker(
+                [-23.5583, -46.6352],
+                {"bubblingMouseEvents": true, "color": "#f59e0b", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f59e0b", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 3, "stroke": true, "weight": 3}
+            ).addTo(feature_group_7eb24445b4ff76b8797584aa45e17f2c);
+        
+    
+            circle_marker_d1bf1ac8a618770805032de860a46f93.bindTooltip(
+                `<div>
+                     Semáforo Monitorado
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var circle_marker_fa7f065fd54e4181be5fb3da007d2ea9 = L.circleMarker(
+                [-23.5617, -46.6388],
+                {"bubblingMouseEvents": true, "color": "#f59e0b", "dashArray": null, "dashOffset": null, "fill": true, "fillColor": "#f59e0b", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "opacity": 1.0, "radius": 3, "stroke": true, "weight": 3}
+            ).addTo(feature_group_7eb24445b4ff76b8797584aa45e17f2c);
+        
+    
+            circle_marker_fa7f065fd54e4181be5fb3da007d2ea9.bindTooltip(
+                `<div>
+                     Semáforo Monitorado
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            var feature_group_02da4df5de83d4809b2d494ab7b39c4c = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var poly_line_99cca718733c3c6a79f9d1d98bba37b5 = L.polyline(
+                [[-23.5574, -46.6346], [-23.558, -46.6375], [-23.5602, -46.637], [-23.5617, -46.6388]],
+                {"bubblingMouseEvents": true, "color": "#ef4444", "dashArray": "8, 8", "dashOffset": null, "fill": false, "fillColor": "#ef4444", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.8, "smoothFactor": 1.0, "stroke": true, "weight": 4}
+            ).addTo(feature_group_02da4df5de83d4809b2d494ab7b39c4c);
+        
+    
+            poly_line_99cca718733c3c6a79f9d1d98bba37b5.bindTooltip(
+                `<div>
+                     Rota Convencional: 0.8 km | Alagamento Máx: 60%
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_02da4df5de83d4809b2d494ab7b39c4c.addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var feature_group_dafbcb5d92fa8221f23f44452ebb4761 = L.featureGroup(
+                {
+}
+            );
+        
+    
+            var poly_line_1b02b14d25e680e224ca41e07759fac5 = L.polyline(
+                [[-23.5574, -46.6346], [-23.5583, -46.6352], [-23.5591, -46.636], [-23.5602, -46.637], [-23.5617, -46.6388]],
+                {"bubblingMouseEvents": true, "color": "#10b981", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "#10b981", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 0.95, "smoothFactor": 1.0, "stroke": true, "weight": 6}
+            ).addTo(feature_group_dafbcb5d92fa8221f23f44452ebb4761);
+        
+    
+            poly_line_1b02b14d25e680e224ca41e07759fac5.bindTooltip(
+                `<div>
+                     Rota IA Otimizada: 0.65 km | Alagamento Máx: 60%
+                 </div>`,
+                {
+  "sticky": true,
+}
+            );
+        
+    
+            feature_group_dafbcb5d92fa8221f23f44452ebb4761.addTo(map_25d82dbb60c411462d6098f660557230);
+        
+    
+            var layer_control_456b70dcb5c5ee947c820510af3200f7_layers = {
+                base_layers : {
+                    "openstreetmap" : tile_layer_fd5227b484c61aa4131d7a6ac49594d5,
+                },
+                overlays :  {
+                    "\ud83d\udd25 Mapa de Calor (\u00cdndice Criminal)" : heat_map_11fd5b08f66323d10061016f0f1c437e,
+                    "\u26a0\ufe0f Alertas de Alagamento \u0026 Risco" : feature_group_49d562a0d6cd8a0626edf1680e322bf7,
+                    "\ud83d\udea6 Sem\u00e1foros da Malha" : feature_group_7eb24445b4ff76b8797584aa45e17f2c,
+                    "\ud83d\udd34 Rota Convencional (GPS Comum)" : feature_group_02da4df5de83d4809b2d494ab7b39c4c,
+                    "\ud83d\udfe2 Rota Segura IA (Ponderada)" : feature_group_dafbcb5d92fa8221f23f44452ebb4761,
+                },
+            };
+            let layer_control_456b70dcb5c5ee947c820510af3200f7 = L.control.layers(
+                layer_control_456b70dcb5c5ee947c820510af3200f7_layers.base_layers,
+                layer_control_456b70dcb5c5ee947c820510af3200f7_layers.overlays,
+                {
+  "position": "topright",
+  "collapsed": false,
+  "autoZIndex": true,
+}
+            ).addTo(map_25d82dbb60c411462d6098f660557230);
+
+        
+</script>
+</html>

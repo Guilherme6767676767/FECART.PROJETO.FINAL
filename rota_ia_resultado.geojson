@@ -1,0 +1,93 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -46.6346,
+            -23.5574
+          ],
+          [
+            -46.6352,
+            -23.5583
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Av. da Liberdade (Eixo Central)",
+        "distance_m": 117.3,
+        "flood_risk": 0,
+        "crime_risk": 25
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -46.6352,
+            -23.5583
+          ],
+          [
+            -46.636,
+            -23.5591
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Av. da Liberdade (Eixo Central)",
+        "distance_m": 120.7,
+        "flood_risk": 0,
+        "crime_risk": 5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -46.636,
+            -23.5591
+          ],
+          [
+            -46.637,
+            -23.5602
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Av. da Liberdade (Eixo Central)",
+        "distance_m": 159.2,
+        "flood_risk": 0,
+        "crime_risk": 5
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -46.637,
+            -23.5602
+          ],
+          [
+            -46.6388,
+            -23.5617
+          ]
+        ]
+      },
+      "properties": {
+        "name": "Rota Alternativa (Vias Secundárias)",
+        "distance_m": 248.0,
+        "flood_risk": 60,
+        "crime_risk": 85
+      }
+    }
+  ]
+}
