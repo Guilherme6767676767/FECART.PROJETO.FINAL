@@ -18,41 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // Motor de Carregamento Dinâmico de Alertas via API Real
+    // Fonte compartilhada das 50 ocorrências fornecidas pelo usuário.
     async function carregarAlertasReais() {
-        const API_BASE = window.SENTINEL_BACKEND_URL || (
-            window.location.port === '8000' || window.location.origin.includes('vercel.app')
-                ? ''
-                : 'http://localhost:8000'
-        );
-        // Feed único e consolidado pelo backend. Não usar mocks quando a fonte
-        // estiver indisponível: isso confundia alertas históricos com eventos atuais.
-        try {
-            const params = new URLSearchParams();
-            const start = document.getElementById('alertStartDate')?.value;
-            const end = document.getElementById('alertEndDate')?.value;
-            if (start) params.set('data_inicio', `${start}T00:00:00-03:00`);
-            if (end) params.set('data_fim', `${end}T23:59:59-03:00`);
-            const response = await fetch(`${API_BASE}/api/v1/alertas${params.toString() ? `?${params}` : ''}`, { cache: 'no-store' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const payload = await response.json();
-            alertsData = (payload.alertas || []).map(alerta => ({
-                id: alerta.id,
-                type: alerta.severidade || 'medium',
-                title: alerta.titulo,
-                desc: `[${alerta.fonte}] ${alerta.descricao}`,
-                time: alerta.criado_em ? new Date(alerta.criado_em).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}) : 'Agora',
-                icon: alerta.tipo === 'clima' ? 'cloud-rain' : alerta.tipo === 'transito' ? 'car' : alerta.tipo === 'acidente' ? 'alert-triangle' : 'shield-alert',
-                lat: alerta.latitude,
-                lng: alerta.longitude,
-                locationName: alerta.local || 'São Paulo'
+        const fonte = window.SENTINEL_REAL_ALERTS || [];
+        const start = document.getElementById('alertStartDate')?.value || '';
+        const end = document.getElementById('alertEndDate')?.value || '';
+        alertsData = fonte
+            .filter(item => (!start || item.data >= start) && (!end || item.data <= end))
+            .slice()
+            .sort((a, b) => a.prioridade - b.prioridade || `${b.data} ${b.hora}`.localeCompare(`${a.data} ${a.hora}`))
+            .map(item => ({
+                ...item,
+                real: true,
+                type: item.severidade,
+                title: item.natureza,
+                desc: `${item.municipio} • ${item.bairro}`,
+                time: `${item.data} ${item.hora}`,
+                icon: item.severidade === 'critical' ? 'alert-octagon' : item.severidade === 'high' ? 'shield-alert' : item.severidade === 'medium' ? 'alert-triangle' : 'file-warning',
+                locationName: `${item.bairro}, ${item.municipio}`
             }));
-            renderAlerts('all');
-        } catch (error) {
-            console.warn('Feed de alertas indisponível:', error);
-            alertsData = [];
-            renderAlerts('all');
-        }
+        renderAlerts('all');
         return;
         try {
             let apiAlerts = [];
@@ -151,6 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
         window.location.href = `mapa.html?lat=${lat}&lng=${lng}&search=${encodeURIComponent(locationName)}`;
     };
 
+    window.viewRealAlertOnMap = function(id) {
+        if (window.event) window.event.stopPropagation();
+        window.location.href = `mapa.html?realId=${encodeURIComponent(id)}`;
+    };
+
     // Função para renderizar a timeline lateral ("Últimas 24 Horas") de forma dinâmica com dados da API
     function renderTimeline() {
         const timelineList = document.getElementById('timelineList');
@@ -172,9 +162,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         alertsData.forEach(alert => {
             const itemClass = alert.type === 'critical' ? 'critical' : (alert.type === 'high' ? 'warning' : '');
-            const timeFormatted = alert.time === 'Tempo Real' || alert.time === 'Agora' || alert.time === 'Recente'
+            const timeFormatted = alert.real ? alert.time : (alert.time === 'Tempo Real' || alert.time === 'Agora' || alert.time === 'Recente'
                 ? `Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`
-                : `Hoje, ${alert.time}`;
+                : `Hoje, ${alert.time}`);
 
             const itemHTML = `
                 <div class="timeline-item ${itemClass}">
@@ -202,17 +192,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const iconClass = `alert-item-icon ${alert.type}`;
                 
                 const alertHTML = `
-                    <div class="alert-item" id="alert-item-${alert.id}">
+                    <div class="alert-item ${alert.real && alert.type === 'critical' ? 'real-alert-critical' : ''}" id="alert-item-${alert.id}">
                         <div class="${iconClass}">
                             <i data-lucide="${alert.icon}"></i>
                         </div>
                         <div class="alert-item-content">
-                            <h5>${alert.title}</h5>
-                            <p>${alert.desc}</p>
+                            <h5>${alert.title}${alert.real && alert.type === 'critical' ? '<span class="real-alert-badge">MAIOR GRAVIDADE</span>' : ''}</h5>
+                            <p>${alert.real ? `${alert.data} • ${alert.hora}<br>${alert.municipio} • ${alert.bairro}` : alert.desc}</p>
                         </div>
                         <div class="alert-item-time">${alert.time}</div>
                         <div class="alert-item-actions">
-                            <button class="btn-view-map" onclick="viewAlertOnMap(${alert.lat}, ${alert.lng}, '${alert.locationName}')">
+                            <button class="btn-view-map" onclick="${alert.real ? `viewRealAlertOnMap('${alert.id}')` : `viewAlertOnMap(${alert.lat}, ${alert.lng}, '${alert.locationName}')`}">
                                 <i data-lucide="map-pin" style="width:14px;height:14px"></i> Visualizar no Mapa
                             </button>
                             <button class="btn-acknowledge" onclick="acknowledgeAlert('${alert.id}')">
