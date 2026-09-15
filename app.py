@@ -16,6 +16,20 @@ import requests
 import networkx as nx
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
+from collections import defaultdict
+import json
+import os
+
+try:
+    from backend.crime_intelligence import (
+        CRIMES_SSP, calculate_crime_risk_index, get_detailed_crime_simulation,
+        get_total_crimes_by_year, get_crimes_by_category
+    )
+except ImportError:
+    from crime_intelligence import (
+        CRIMES_SSP, calculate_crime_risk_index, get_detailed_crime_simulation,
+        get_total_crimes_by_year, get_crimes_by_category
+    )
 
 # Forçar stdout UTF-8 no Windows
 if sys.platform.startswith('win'):
@@ -196,6 +210,10 @@ def dados_regiao():
     qtd_semaforos = len(semaforos) if semaforos else random.randint(6, 18)
     qtd_obras = len(obras_bloqueios) if obras_bloqueios else random.randint(1, 4)
 
+    # Diagnóstico criminológico baseado nos dados oficiais da SSP-SP (PDF)
+    diag_ssp = get_detailed_crime_simulation("São Paulo / Centro", lat, lon, "ROUBO DE VEÍCULO")
+    score_criminal = diag_ssp.get("score_risco_ssp", random.randint(40, 75))
+
     # Simulação de pontos críticos no raio
     alertas_criticos = []
     for _ in range(random.randint(2, 5)):
@@ -207,13 +225,12 @@ def dados_regiao():
             "lat": lat + offset_lat,
             "lon": lon + offset_lon,
             "intensidade": random.randint(50, 95),
-            "descricao": "Risco de Enchente Severa" if tipo == "alagamento" else ("Área de Risco Criminal Elevado" if tipo == "criminalidade" else "Bloqueio Viário / Obras")
+            "descricao": "Risco de Enchente Severa" if tipo == "alagamento" else ("Área de Risco Criminal Elevado (SSP-SP)" if tipo == "criminalidade" else "Bloqueio Viário / Obras")
         })
 
-    # Cálculo do Score de Risco da Região (0 a 100)
-    score_alagamento = random.randint(20, 65)
-    score_criminal = random.randint(30, 75)
-    score_geral = int((score_alagamento * 0.5) + (score_criminal * 0.4) + (qtd_obras * 2.5))
+    # Cálculo do Score de Risco Geral da Região (0 a 100) ponderado
+    score_alagamento = random.randint(20, 60)
+    score_geral = int((score_alagamento * 0.45) + (score_criminal * 0.45) + (qtd_obras * 2.5))
     score_geral = min(100, max(10, score_geral))
 
     return jsonify({
@@ -224,8 +241,60 @@ def dados_regiao():
         "score_criminal": score_criminal,
         "total_semaforos": qtd_semaforos,
         "total_bloqueios": qtd_obras,
+        "ssp_base": {
+            "total_registros_base": len(CRIMES_SSP),
+            "nivel_seguranca": diag_ssp.get("classificacao"),
+            "tempo_resposta_pm": f"{diag_ssp.get('tempo_resposta_tatico_min')} min"
+        },
         "incidentes": alertas_criticos
     })
+
+
+# ==========================================
+# ENDPOINTS OFICIAIS DA API DE CRIMINALIDADE (SSP-SP)
+# Especificados no documento técnico (PDF páginas 2-4)
+# ==========================================
+@app.route("/crimes", methods=["GET"])
+def listar_crimes():
+    """Lista todos os registros da SSP-SP, com filtros opcionais por ano e tipo de crime."""
+    ano = request.args.get("ano")
+    tipo = request.args.get("tipo")
+    resultado = CRIMES_SSP
+    if ano:
+        resultado = [r for r in resultado if str(r.get("ano")) == str(ano)]
+    if tipo:
+        tipo_lower = tipo.lower()
+        resultado = [r for r in resultado if tipo_lower in r.get("tipo_crime", "").lower()]
+    return jsonify({
+        "total_registros": len(resultado),
+        "dados": resultado
+    })
+
+@app.route("/crimes/resumo", methods=["GET"])
+def resumo_crimes():
+    """Retorna o total de cada tipo de crime, por ano."""
+    totais = defaultdict(lambda: defaultdict(int))
+    for r in CRIMES_SSP:
+        totais[r["ano"]][r["tipo_crime"]] += r.get("quantidade", 0)
+    saida = {}
+    for ano, tipos in totais.items():
+        saida[ano] = [
+            {"tipo_crime": tipo, "total": qtd}
+            for tipo, qtd in sorted(tipos.items())
+        ]
+    return jsonify(saida)
+
+@app.route("/crimes/tipos", methods=["GET"])
+def tipos_crimes_disponiveis():
+    """Lista todos os tipos de crime existentes na base SSP-SP."""
+    tipos = sorted(set(r["tipo_crime"] for r in CRIMES_SSP))
+    return jsonify(tipos)
+
+@app.route("/crimes/anos", methods=["GET"])
+def anos_crimes_disponiveis():
+    """Lista todos os anos existentes na base SSP-SP (2023-2026)."""
+    anos = sorted(set(r["ano"] for r in CRIMES_SSP))
+    return jsonify(anos)
 
 
 @app.route('/api/calcular-rota', methods=['GET'])
@@ -302,8 +371,13 @@ def calcular_rota():
                         continue
 
                     # Índices de risco normalizados [0.0 a 1.0]
+                    # Risco criminal calibrado com base na pressão estatística da base SSP-SP
+                    ssp_baseline = calculate_crime_risk_index() # Ex: ~0.55
                     risco_alagamento = random.choices([0.0, 0.2, 0.6, 1.0], weights=[0.65, 0.20, 0.10, 0.05])[0]
-                    risco_criminal = random.choices([0.05, 0.25, 0.65, 0.90], weights=[0.60, 0.25, 0.10, 0.05])[0]
+                    risco_criminal = random.choices(
+                        [round(ssp_baseline * 0.4, 2), round(ssp_baseline * 0.8, 2), round(min(1.0, ssp_baseline * 1.3), 2), 0.95],
+                        weights=[0.55, 0.25, 0.15, 0.05]
+                    )[0]
                     penalidade_transito = 0.5 if (u in traffic_signals or v in traffic_signals) else 0.0
 
                     # Custo Convencional: pura distância física

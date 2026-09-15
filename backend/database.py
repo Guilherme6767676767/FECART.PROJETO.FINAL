@@ -188,16 +188,20 @@ def obter_estatisticas_resumo() -> Dict[str, Any]:
 # ==========================================
 # GESTÃO DE SIMULAÇÃO URBANA
 # ==========================================
+# CÁLCULO DE IMPACTO PREDITIVO COM BASE EM DADOS REAIS DA SSP-SP
+# ==========================================
+try:
+    from backend.crime_intelligence import get_detailed_crime_simulation
+except ImportError:
+    from crime_intelligence import get_detailed_crime_simulation
+
 def calcular_impacto_ia(tipo: str, gravidade: str, bairro: str, lat: float, lng: float) -> Dict[str, Any]:
-    """Calcula predições da IA sobre o incidente simulado."""
+    """Calcula predições da IA sobre o incidente simulado com base estatística da SSP-SP."""
     gravidade_upper = gravidade.upper()
     
-    score_base = {
-        "CRITICA": random.randint(85, 98),
-        "ALTA": random.randint(68, 84),
-        "MEDIA": random.randint(45, 65),
-        "BAIXA": random.randint(20, 40)
-    }.get(gravidade_upper, 50)
+    # Simulação calibrada pelos dados históricos da SSP-SP
+    diag_ssp = get_detailed_crime_simulation(bairro, lat, lng, tipo)
+    score_base = diag_ssp.get("score_risco_ssp", 55)
 
     # Identificar se cai em uma AOI conhecida
     afeta_aoi = None
