@@ -115,9 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (apiAlerts.length > 0) {
                 alertsData = apiAlerts;
             } else {
+                // Fallback alerts baseados no painel de ocorrências criminais (exemplo de categorias e descrições)
                 alertsData = [
-                    { id: 'st-1', type: 'low', title: 'Monitoramento Pluviométrico Operacional', desc: '[Open-Meteo API] Sem ocorrências de alagamento registradas nas últimas horas (Precipitação: 0.0mm).', time: getRandomPastTime(), icon: 'shield-check', lat: -23.5505, lng: -46.6333, locationName: 'São Paulo' },
-                    { id: 'st-2', type: 'medium', title: 'Ronda e Sensores IoT Ativos', desc: '[Sentinel Core] Todos os conectores de telemetria operando dentro dos parâmetros de segurança.', time: 'Agora', icon: 'wifi', lat: -23.5675, lng: -46.6920, locationName: 'Pinheiros' }
+                    { id: 'cr-1', type: 'critical', title: 'Robo à mão armada', desc: '[Polícia Civil] Ocorrência de roubo à mão armada em região central. Suspeito ainda não identificado.', time: getRandomPastTime(), icon: 'alert-octagon', lat: -23.5405, lng: -46.6300, locationName: 'Centro' },
+                    { id: 'cr-2', type: 'high', title: 'Furto em comércio', desc: '[Polícia Militar] Furto registrado em loja de eletrônicos na zona sul.', time: getRandomPastTime(), icon: 'alert-triangle', lat: -23.5600, lng: -46.6500, locationName: 'Zona Sul' },
+                    { id: 'cr-3', type: 'medium', title: 'Assalto a pedestre', desc: '[PM] Assalto a pedestre próximo à estação de metrô.', time: getRandomPastTime(), icon: 'shield-alert', lat: -23.5500, lng: -46.6200, locationName: 'Zona Leste' },
+                    { id: 'cr-4', type: 'low', title: 'Vandalismo de pichação', desc: '[Guarda Municipal] Atividade de pichação detectada em parede pública.', time: getRandomPastTime(), icon: 'pen-tool', lat: -23.5605, lng: -46.6400, locationName: 'Zona Oeste' }
                 ];
             }
         } catch (err) {
