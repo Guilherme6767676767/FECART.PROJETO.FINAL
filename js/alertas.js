@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 alertsData = apiAlerts;
             } else {
                 alertsData = [
-                    { id: 'st-1', type: 'low', title: 'Monitoramento Pluviométrico Operacional', desc: '[Open-Meteo API] Sem ocorrências de alagamento registradas nas últimas horas (Precipitação: 0.0mm).', time: 'Agora', icon: 'shield-check', lat: -23.5505, lng: -46.6333, locationName: 'São Paulo' },
+                    { id: 'st-1', type: 'low', title: 'Monitoramento Pluviométrico Operacional', desc: '[Open-Meteo API] Sem ocorrências de alagamento registradas nas últimas horas (Precipitação: 0.0mm).', time: getRandomPastTime(), icon: 'shield-check', lat: -23.5505, lng: -46.6333, locationName: 'São Paulo' },
                     { id: 'st-2', type: 'medium', title: 'Ronda e Sensores IoT Ativos', desc: '[Sentinel Core] Todos os conectores de telemetria operando dentro dos parâmetros de segurança.', time: 'Agora', icon: 'wifi', lat: -23.5675, lng: -46.6920, locationName: 'Pinheiros' }
                 ];
             }
@@ -128,6 +128,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let alertsData = [];
+
+    // Utility to generate a realistic past timestamp for simulated alerts
+    function getRandomPastTime() {
+        // Random offset up to 2 hours ago
+        const offsetMs = Math.floor(Math.random() * 2 * 60 * 60 * 1000);
+        const date = new Date(Date.now() - offsetMs);
+        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
 
     const alertListContainer = document.getElementById('alertList');
     const alertCountElement = document.getElementById('alertCount');
