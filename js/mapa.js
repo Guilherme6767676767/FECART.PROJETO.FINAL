@@ -43,6 +43,8 @@
   // New layer groups for crimes and flood‑risk points
   const crimeLayer = L.layerGroup().addTo(map);
   const floodLayer = L.layerGroup().addTo(map);
+  const realAlertLayer = L.layerGroup().addTo(map);
+  const realAlertMarkers = new Map();
 
   // ── Relógio ────────────────────────────────────────────────────────────────
   function updateClock() {
@@ -79,6 +81,47 @@
 
   function getGravityConfig(g) {
     return gravityConfig[String(g).toUpperCase()] || gravityConfig.MEDIA;
+  }
+
+  const realAlertColors = { critical: '#ff1744', high: '#f59e0b', medium: '#3b82f6', low: '#10b981' };
+  const realAlertRank = { critical: 0, high: 1, medium: 2, low: 3 };
+
+  function criarMarcadorAlertaReal(grupo) {
+    const principal = grupo.slice().sort((a, b) => realAlertRank[a.severidade] - realAlertRank[b.severidade])[0];
+    const cor = realAlertColors[principal.severidade] || realAlertColors.low;
+    const icon = grupo.length > 1
+      ? L.divIcon({ className: 'custom-map-icon', html: `<div class="sentinel-real-cluster" style="background:${cor}">${grupo.length}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] })
+      : L.divIcon({ className: 'custom-map-icon', html: `<div class="sentinel-real-marker ${principal.severidade}" style="--marker-color:${cor}"><span></span></div>`, iconSize: [24, 24], iconAnchor: [12, 20] });
+    const marker = L.marker([principal.lat, principal.lng], { icon }).addTo(realAlertLayer);
+    marker.bindPopup(window.SENTINEL_REAL_ALERTS_API.popupHtml(grupo), { maxWidth: 320, className: 'dark-popup' });
+    grupo.forEach(item => realAlertMarkers.set(item.id, marker));
+    return marker;
+  }
+
+  async function carregarAlertasReaisNoMapa() {
+    const api = window.SENTINEL_REAL_ALERTS_API;
+    if (!api || !window.SENTINEL_REAL_ALERTS?.length) return;
+    try {
+      const ocorrencias = await api.geocodificarTodos((feito, total) => {
+        const el = document.getElementById('mapLoadingOverlay');
+        if (el) el.lastChild.textContent = ` Geocodificando alertas ${feito}/${total}...`;
+      });
+      const grupos = new Map();
+      ocorrencias.filter(item => Number.isFinite(item.lat) && Number.isFinite(item.lng)).forEach(item => {
+        const chave = `${item.lat.toFixed(6)},${item.lng.toFixed(6)}`;
+        if (!grupos.has(chave)) grupos.set(chave, []);
+        grupos.get(chave).push(item);
+      });
+      grupos.forEach(grupo => criarMarcadorAlertaReal(grupo));
+      const alvo = new URLSearchParams(window.location.search).get('realId');
+      if (alvo && realAlertMarkers.has(alvo)) {
+        const marker = realAlertMarkers.get(alvo);
+        map.flyTo(marker.getLatLng(), 15, { animate: true, duration: 1.2 });
+        setTimeout(() => marker.openPopup(), 500);
+      }
+    } catch (error) {
+      console.warn('[Alertas] Não foi possível localizar as ocorrências:', error);
+    }
   }
 
   function formatarDataHora(iso) {
@@ -444,6 +487,9 @@ let heatLayer = null;
   // ── Inicialização ──────────────────────────────────────────────────────────
   async function inicializar() {
     await carregarOcorrenciasNoMapa();
+    mostrarLoading(true);
+    await carregarAlertasReaisNoMapa();
+    mostrarLoading(false);
     await carregarTemperaturaNoMapa();
     checkURLAlertParams();
     setInterval(async () => {
