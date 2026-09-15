@@ -294,7 +294,7 @@
       /* Estilos do Widget Flutuante de Acessibilidade */
       .access-widget {
         position: fixed;
-        bottom: 25px;
+        bottom: 100px;
         right: 25px;
         z-index: 999999;
         font-family: 'Inter', sans-serif;
@@ -483,7 +483,7 @@
 
       @media (max-width: 768px) {
         .access-widget {
-          bottom: 75px;
+          bottom: 150px;
           right: 15px;
         }
         .access-btn-label {
