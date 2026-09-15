@@ -216,11 +216,10 @@ let heatLayer = null;
       atualizarHeatmap(bos);
       atualizarEstatisticas(bos, dados.total);
       mostrarLoading(false);
-      mostrarToast('✅ Mapa Atualizado', `${bos.length} BOs carregados da API FastAPI`, 'safe');
+      // Sincronização silenciosa e transparente
     } catch (err) {
       mostrarLoading(false);
       console.warn('[Sentinel] Backend offline, usando fallback:', err.message);
-      mostrarToast('⚠️ Backend Offline', 'Exibindo dados locais de demonstração.', 'warning');
       carregarFallbackEstatico();
     }
   }
@@ -440,8 +439,6 @@ let heatLayer = null;
 
     const elStatTemp = document.getElementById('statTemperatura');
     if (elStatTemp) elStatTemp.textContent = `${tempC}°C`;
-
-    mostrarToast('🌡️ Telemetria Climática', `Temperatura atual em São Paulo: ${tempC}°C (${condicao})`, 'info');
   }
 
   // ── Inicialização ──────────────────────────────────────────────────────────

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAlertFeed();
   initActivityTable();
   initSidebarToggle();
+  syncDashboardWithLiveAPIs();
 });
 
 
@@ -835,3 +836,72 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+/* ============================================
+   Sincronização do Dashboard com APIs Vivas (SSP-SP & Telemetria)
+   ============================================ */
+async function syncDashboardWithLiveAPIs() {
+  const API_BASE = window.SENTINEL_BACKEND_URL || (
+    window.location.port === '8000' || window.location.origin.includes('vercel.app') ? '' : 'http://localhost:8000'
+  );
+
+  try {
+    // 1. Sincronizar com a API de Resumo de Ocorrências
+    const res = await fetch(`${API_BASE}/api/v1/ocorrencias/resumo`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data.total_ocorrencias !== 'undefined') {
+        const kpiOcorrencias = document.querySelector('.kpi-card.cyan .kpi-value');
+        if (kpiOcorrencias) {
+          kpiOcorrencias.setAttribute('data-target', data.total_ocorrencias);
+          kpiOcorrencias.textContent = data.total_ocorrencias;
+        }
+
+        const kpiZonas = document.querySelector('.kpi-card.purple .kpi-value');
+        if (kpiZonas && typeof data.criticas !== 'undefined') {
+          const zonasCriticas = Math.max(1, data.criticas);
+          kpiZonas.setAttribute('data-target', zonasCriticas);
+          kpiZonas.textContent = `${zonasCriticas} Setores`;
+        }
+      }
+    }
+  } catch (e) {
+    // Silencioso - mantém os valores padrões sem poluir a interface
+  }
+
+  // 2. Sincronizar com a API de Criminalidade SSP-SP (crimes_data.json)
+  try {
+    const resSSP = await fetch('data/crimes_data.json');
+    if (resSSP.ok) {
+      const crimes = await resSSP.json();
+      if (Array.isArray(crimes) && crimes.length > 0) {
+        // Calcular distribuição real para o gráfico de Rosca (Doughnut)
+        let totalRouboVeic = 0;
+        let totalAcidentes = 0;
+        let totalHomicidios = 0;
+        let totalCarga = 0;
+        let totalOutros = 0;
+
+        crimes.forEach(c => {
+          const tipo = (c.tipo_crime || '').toUpperCase();
+          const qtd = c.quantidade || 0;
+          if (tipo.includes('VEÍCULO')) totalRouboVeic += qtd;
+          else if (tipo.includes('ACIDENTE')) totalAcidentes += qtd;
+          else if (tipo.includes('HOMICÍDIO') || tipo.includes('LATROCÍNIO')) totalHomicidios += qtd;
+          else if (tipo.includes('CARGA')) totalCarga += qtd;
+          else totalOutros += qtd;
+        });
+
+        const doughnutChart = Chart.getChart('typeDoughnutChart');
+        if (doughnutChart) {
+          doughnutChart.data.labels = ['Roubo Veículos', 'Acidentes Trânsito', 'Crimes Contra a Vida', 'Roubo Cargas', 'Outras Ocorrências'];
+          doughnutChart.data.datasets[0].data = [totalRouboVeic, totalAcidentes, totalHomicidios, totalCarga, totalOutros];
+          doughnutChart.update();
+        }
+      }
+    }
+  } catch (err) {
+    // Modo resiliente automático
+  }
+}
+
