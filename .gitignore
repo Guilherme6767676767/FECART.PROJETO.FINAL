@@ -45,3 +45,8 @@ rota_ia_resultado.geojson
 rota_resultado.json
 .DS_Store
 Thumbs.db
+
+# Banco SQLite local
+*.db
+*.sqlite3
+instance/

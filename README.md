@@ -1,78 +1,77 @@
-# 🚦 FECART IA - Sistema de Mobilidade Urbana Inteligente & Navegação Adaptativa
+# 🚦 FECART Waze IA — Monitoramento de Alagamentos & Roteamento Adaptativo (SP)
 
 > **Projeto Acadêmico - FECART 2026**  
 > **Instituição:** FECAP - Fundação Escola de Comércio Álvares Penteado  
 > **Curso:** Bacharelado em Inteligência Artificial (1º Ano)  
-> **Foco:** Navegação Urbana Consciente de Risco (São Paulo - Região Central / Liberdade)
+> **Tema:** Mobilidade Urbana Preditiva, Prevenção de Riscos e Otimização em Grafos
 
 ---
 
-## 📌 Visão Geral do Projeto
+## 📌 1. Visão Geral do Projeto
 
-Os sistemas convencionais de navegação por GPS (como Google Maps e Waze padrão) são desenhados para otimizar exclusivamente **tempo** e **distância métrica**. Em megacidades como São Paulo, essa abordagem frequentemente direciona motoristas e pedestres para:
-- Vias sujeitas a alagamentos rápidos e intransponíveis (bacias do Tamanduateí/Glicério).
-- Zonas de risco criminal acentuado ou ruas ermas durante a noite.
-- Gargalos estruturais causados por obras e semáforos com sincronia defeituosa.
+Em dias de chuvas intensas em São Paulo, vias expressas e artérias centrais sofrem com **bolsões de alagamento críticos** e intransponíveis. Aplicativos tradicionais de navegação costumam orientar veículos apenas pela distância mínima ou tempo teórico, gerando prejuízos graves e retenções severas.
 
-Este projeto propõe uma **Arquitetura de Navegação Adaptativa Multicritério** baseada em Inteligência Artificial sobre Grafos, que ingere dados geográficos reais em tempo real (OpenStreetMap) e calcula rotas com o melhor equilíbrio entre tempo e **segurança viária**.
+O **FECART Waze IA** é uma solução de mobilidade inteligente e adaptativa que:
+1. **Dispensa chaves pagas de API**, consumindo dados abertos da malha do **OpenStreetMap (Overpass API)** e geocodificação via **Nominatim**.
+2. **Persiste relatos em tempo real** através de um banco de dados relacional local **SQLite** (`alagamentos.db`) via `Flask-SQLAlchemy`.
+3. **Mapeia riscos em camadas interativas:** Mapa de Calor (**Heatmap**) e polígonos de alerta (**Zonas de Risco**) graduados por severidade (*Leve*, *Moderado*, *Grave*).
+4. **Calcula rotas ótimas com IA em Grafos (`networkx`)**, penalizando dinamicamente trechos com proximidade a pontos alagados ou gargalos semafóricos.
 
 ---
 
-## 🏛️ Arquitetura da Solução
-
-O sistema foi estruturado seguindo o padrão de **Camadas Desacopladas (Clean Multi-Tier Architecture)**:
+## 🏛️ 2. Arquitetura da Solução
 
 ```
 [ Usuário / Navegador Web ]
            │
            ▼
-[ Frontend Dashboard (Leaflet.js + Glassmorphism UI) ]
-           │  (REST JSON)
+[ Frontend Dashboard (Leaflet.js + Leaflet.heat + CSS Glassmorphism) ]
+           │  (Requisições REST JSON)
            ▼
 [ Servidor Backend Flask (app.py) ]
-    ├── 1. Ingestão OpenStreetMap (Overpass API + Nominatim)
-    ├── 2. Modelagem do Grafo Viário (NetworkX)
-    ├── 3. Matriz de Fusão de Riscos (Segurança + Pluviometria)
-    └── 4. Motor de IA (Dijkstra com Função de Custo Ponderada)
+    ├── 1. Banco de Dados Local SQLite (alagamentos.db via SQLAlchemy)
+    ├── 2. Geocoding com User-Agent (Nominatim OpenStreetMap)
+    ├── 3. Ingestão de Infraestrutura e Gargalos (Overpass API)
+    └── 4. Motor de IA em Grafos Ponderados (NetworkX Dijkstra / A*)
 ```
 
 ---
 
-## 🔬 Fundamentação Teórica e Algoritmo de IA
+## 🔬 3. Justificativa Acadêmica do Algoritmo de IA
 
-### 1. Modelagem em Grafo Ponderado
-A malha viária é representada como um grafo direcionado $G = (V, E)$, onde:
-- $V$ (Vértices/Nós): Cruzamentos, entroncamentos e semáforos obtidos via OpenStreetMap.
-- $E$ (Arestas): Segmentos de ruas com fluxo de tráfego.
+### A. Modelagem da Malha Viária em Grafos
+A infraestrutura urbana é modelada como um grafo direcionado $G = (V, E)$, onde:
+- $V$ (Vértices): Cruzamentos, interseções e semáforos monitorados.
+- $E$ (Arestas): Segmentos viários transitáveis com fluxo de veículos.
 
-### 2. A Função de Custo Dinâmica Ponderada
-Em vez de utilizar simplesmente a distância euclidiana como peso da aresta, nossa heurística aplica uma penalização multifatorial:
+### B. Função de Custo e Penalização Multifatorial
+O algoritmo ajusta o peso de cada aresta $(u, v)$ aplicando a seguinte fórmula matemática de custo:
 
-$$\text{Custo}(u, v) = \text{Distância} \times \left(1 + 2.0 \cdot R_{\text{alagamento}} + 1.5 \cdot R_{\text{crime}} + 1.0 \cdot P_{\text{trânsito}}\right)$$
+$$\text{Peso Aresta} = \text{Distância} \times \left(1 + 3.0 \cdot \text{Penalidade Alagamento} + 1.5 \cdot \text{Gargalo OSM}\right)$$
 
-* **$R_{\text{alagamento}} \in [0.0, 1.0]$:** Índice de risco de inundação da via (inspirado no monitoramento do CGE-SP).
-* **$R_{\text{crime}} \in [0.0, 1.0]$:** Índice criminal relativo do segmento (inspirado em dados abertos da SSP-SP).
-* **$P_{\text{trânsito}}$:** Penalidade de retenção semafórica e gargalos.
+* **$\text{Penalidade Alagamento}$:** Calculada a partir da proximidade euclidiana ($< 150\text{m}$) aos pontos cadastrados no banco SQLite, variando de $0.8$ (Leve), $1.8$ (Moderado) a $3.0$ (Grave).
+* **$\text{Gargalo OSM}$:** Penalização de atrito atribuída se a via cruzar semáforos ou trechos em obras reportados no OpenStreetMap.
 
-### 3. Justificativa Acadêmica do Algoritmo (Dijkstra vs. A*)
-- O algoritmo de **Dijkstra** foi selecionado para garantir a **otimalidade global estrita** sobre custos compostos não puramente métricos.
-- Embora o algoritmo **A\*** utilize heurísticas para acelerar a busca, no cenário urbano onde riscos climáticos e criminais multiplicam virtualmente o peso da via, formular uma heurística euclidiana que seja simultaneamente admissível ($h(n) \le h^*(n)$) e consistente torna-se matematicamente desafiador sem subestimar zonas perigosas.
+### C. Escolha do Algoritmo (Dijkstra vs A*)
+- O algoritmo de **Dijkstra com Custo Dinâmico** assegura a **otimalidade global estrita** sem risco de convergir para um mínimo local.
+- Garante que atalhos aparentemente mais curtos que cortam fundos de vale alagados recebam uma resistência matemática virtual proibitiva, forçando o desvio seguro sem aumentar drasticamente o percurso.
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ 4. Tecnologias Empregadas
 
-| Componente | Tecnologia | Finalidade |
+| Módulo | Tecnologia | Função |
 | :--- | :--- | :--- |
-| **Backend** | Python 3.10+ / Flask | Servidor REST e lógica de aplicação |
-| **Grafos & IA** | NetworkX | Estrutura de dados e algoritmos de menor caminho |
-| **Dados Geográficos** | OpenStreetMap (Overpass & Nominatim) | Malha viária e geocoding aberto (Sem API Key) |
-| **Frontend** | HTML5, CSS3 Moderno, JavaScript ES6 | Dashboard estilo Waze com interface escura |
-| **Mapas Interativos** | Leaflet.js | Renderização vetorial e marcadores de incidentes |
+| **Backend & Servidor** | Python 3.10+ / Flask | Servidor REST e lógica de rotas |
+| **Banco de Dados** | SQLite 3 / Flask-SQLAlchemy | Armazenamento persistente de alagamentos |
+| **Grafos e IA** | NetworkX | Estrutura de dados e algoritmos de menor caminho |
+| **Dados Geográficos** | OpenStreetMap (Overpass & Nominatim) | Geocodificação e malha viária 100% livre de custos |
+| **Frontend Dashboard** | HTML5, CSS3 Moderno, JavaScript ES6 | Interface estilo Waze com tema escuro e responsivo |
+| **Visualização Cartográfica** | Leaflet.js & Leaflet.heat | Círculos de zonas, mapa de calor e renderização vetorial |
 
 ---
 
-## 🚀 Como Executar o Projeto Localmente
+## 🚀 5. Como Executar o Projeto Localmente
 
 ### 1. Clonar o Repositório
 ```bash
@@ -80,7 +79,7 @@ git clone https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL.git
 cd FECART.PROJETO.FINAL
 ```
 
-### 2. Criar e Ativar Ambiente Virtual (Recomendado)
+### 2. Criar e Ativar o Ambiente Virtual (Recomendado)
 ```bash
 # Windows
 python -m venv venv
@@ -91,33 +90,31 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar Dependências
+### 3. Instalar as Dependências
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4. Iniciar a Aplicação
+### 4. Iniciar o Servidor
 ```bash
 python app.py
 ```
 
-Após iniciar, abra seu navegador em:  
+O servidor criará e inicializará automaticamente o banco `alagamentos.db`.  
+Abra seu navegador em:  
 👉 **`http://127.0.0.1:5000`**
 
 ---
 
-## 📱 Funcionalidades do Dashboard
+## 📱 6. Guia de Uso do Dashboard
 
-1. **Pesquisa Dinâmica de Bairros:** Busca rápida com auto-complete integrado ao OpenStreetMap Nominatim.
-2. **Seleção Direta no Mapa:** Clique para definir o ponto de **Origem (Verde)** e **Destino (Vermelho)**.
-3. **Comparativo Visual Duplo:**
-   - 🔴 **Linha Vermelha Tracejada:** Rota GPS Convencional (ignora riscos).
-   - 🟢 **Linha Ciano/Verde Contínua:** Rota Otimizada pela IA (desvia de pontos críticos).
-4. **Painel de Métricas em Tempo Real:** Exibe o score de risco do bairro ativo, semáforos identificados e a porcentagem de risco evitado.
+1. **Pesquisa Dinâmica de Bairros:** Digite qualquer bairro (ex: *Moema*, *Liberdade*, *Tatuapé*) para voar até a região e atualizar as métricas automaticamente.
+2. **Definir Rota:** Clique em dois pontos no mapa para estabelecer a **Origem (Verde)** e o **Destino (Vermelho)**. A IA traçará a rota em ciano e comparará com a rota tradicional em vermelho tracejado.
+3. **Reportar Alagamento:** Clique em qualquer rua e selecione a opção de reportar alagamento. Escolha a severidade (*Leve*, *Moderado*, *Grave*). O relato é salvo no banco SQLite e a IA recalcula o trajeto imediatamente desviando do novo obstáculo.
+4. **Controle de Camadas:** Use os botões na barra lateral para ligar/desligar as **Zonas de Alagamento** e o **Heatmap de Risco**.
 
 ---
 
-## 👨‍💻 Integrantes do Projeto
-
-* Alunos do 1º Ano do Bacharelado em Inteligência Artificial - **FECAP**
-* Projeto desenvolvido para a Feira de Ciências e Arte (**FECART 2026**)
+## 👨‍💻 7. Integrantes do Projeto
+* Alunos do 1º Ano do Bacharelado em Inteligência Artificial — **FECAP**
+* Feira de Ciência e Arte (**FECART 2026**)

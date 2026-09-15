@@ -1,35 +1,27 @@
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-PROJETO FINAL FECART 2026 - FECAP (1º ANO INTELIGÊNCIA ARTIFICIAL)
-SISTEMA INTELIGENTE DE MOBILIDADE URBANA E NAVEGAÇÃO ADAPTATIVA (SP)
+FECART 2026 - FECAP (1º ANO INTELIGÊNCIA ARTIFICIAL)
+WAZE DE ALAGAMENTOS E SEGURANÇA URBANA - SÃO PAULO
 =============================================================================
-Servidor Backend Flask com integração OpenStreetMap (Overpass API / Nominatim),
-modelagem de Grafos Ponderados (NetworkX) e Motor Heurístico de IA (Dijkstra/A*).
+Servidor Backend Full-Stack:
+  - Framework: Flask + Flask-CORS
+  - Banco de Dados Local: SQLite via Flask-SQLAlchemy (alagamentos.db)
+  - Integrações Públicas sem Chave: Nominatim (Geocoding) e Overpass API (OSM)
+  - Motor de IA em Grafos: NetworkX (Algoritmo A* / Dijkstra Ponderado)
 """
 
 import sys
+import os
 import math
 import random
 import urllib3
 import requests
+from datetime import datetime
 import networkx as nx
 from flask import Flask, render_template, request, jsonify
 from flask_cors import CORS
-from collections import defaultdict
-import json
-import os
-
-try:
-    from backend.crime_intelligence import (
-        CRIMES_SSP, calculate_crime_risk_index, get_detailed_crime_simulation,
-        get_total_crimes_by_year, get_crimes_by_category
-    )
-except ImportError:
-    from crime_intelligence import (
-        CRIMES_SSP, calculate_crime_risk_index, get_detailed_crime_simulation,
-        get_total_crimes_by_year, get_crimes_by_category
-    )
+from flask_sqlalchemy import SQLAlchemy
 
 # Forçar stdout UTF-8 no Windows
 if sys.platform.startswith('win'):
@@ -38,17 +30,68 @@ if sys.platform.startswith('win'):
     except AttributeError:
         pass
 
-# Desativa avisos de certificados auto-assinados de redes corporativas/acadêmicas
+# Desativar avisos de certificados em redes corporativas/escolares
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# ==========================================
+# CONFIGURAÇÃO DO FLASK E BANCO DE DADOS SQLITE
+# ==========================================
 app = Flask(__name__)
 CORS(app)
+
+DB_PATH = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'alagamentos.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# ==========================================
+# MODELO SQLITE: RelatorioAlagamento
+# ==========================================
+class RelatorioAlagamento(db.Model):
+    __tablename__ = 'relatorios_alagamento'
+
+    id = db.Column(db.Integer, primary_key=True)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    descricao = db.Column(db.String(255), nullable=False)
+    nivel = db.Column(db.String(50), nullable=False) # "Leve", "Moderado", "Grave"
+    data_hora = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "latitude": self.latitude,
+            "longitude": self.longitude,
+            "descricao": self.descricao,
+            "nivel": self.nivel,
+            "data_hora": self.data_hora.strftime("%d/%m/%Y %H:%M:%S") if self.data_hora else None
+        }
+
+# ==========================================
+# INICIALIZAÇÃO DO BANCO & DADOS SEMENTE
+# ==========================================
+with app.app_context():
+    db.create_all()
+    # Povoar com pontos históricos conhecidos de alagamento em SP caso vazio
+    if RelatorioAlagamento.query.count() == 0:
+        pontos_iniciais = [
+            RelatorioAlagamento(latitude=-23.5505, longitude=-46.6333, descricao="Praça da Sé - Bolsão próximo à Catedral", nivel="Moderado"),
+            RelatorioAlagamento(latitude=-23.5580, longitude=-46.6375, descricao="Galvão Bueno x Glória - Ponto crítico de escoamento", nivel="Grave"),
+            RelatorioAlagamento(latitude=-23.5435, longitude=-46.6375, descricao="Vale do Anhangabaú - Acúmulo pluvial fundo de vale", nivel="Grave"),
+            RelatorioAlagamento(latitude=-23.5180, longitude=-46.6260, descricao="Marginal Tietê - Ponte das Bandeiras", nivel="Grave"),
+            RelatorioAlagamento(latitude=-23.5650, longitude=-46.7080, descricao="Marginal Pinheiros - Ponte Cidade Universitária", nivel="Moderado"),
+            RelatorioAlagamento(latitude=-23.5820, longitude=-46.6530, descricao="Av. 23 de Maio - Acesso Túnel Ayrton Senna", nivel="Leve")
+        ]
+        db.session.bulk_save_objects(pontos_iniciais)
+        db.session.commit()
+        print(f"✅ Banco de dados inicializado com {len(pontos_iniciais)} registros de alagamento em SP!")
 
 # ==========================================
 # UTILITÁRIOS GEOGRÁFICOS
 # ==========================================
 def haversine(lat1, lon1, lat2, lon2):
-    """Calcula a distância geodésica em metros entre duas coordenadas geográficas."""
+    """Calcula a distância geodésica em metros usando a fórmula de Haversine."""
     R = 6371000.0  # Raio da Terra em metros
     phi_1 = math.radians(lat1)
     phi_2 = math.radians(lat2)
@@ -59,54 +102,52 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-# ==========================================
-# CACHE RESILIENTE / FALLBACK LOCAL
-# ==========================================
-def get_synthetic_region_data(lat, lon):
-    """
-    Gera malha sintética e incidentes para garantir 100% de disponibilidade
-    mesmo se os servidores públicos do OSM/Overpass estiverem instáveis.
-    """
-    delta = 0.008
+def get_synthetic_grid(orig_lat, orig_lon, dest_lat, dest_lon):
+    """Gera uma malha rodoviária sintética de fallback resiliente cobrindo a região."""
+    mid_lat = (orig_lat + dest_lat) / 2.0
+    mid_lon = (orig_lon + dest_lon) / 2.0
+    d_lat = abs(dest_lat - orig_lat) or 0.008
+    d_lon = abs(dest_lon - orig_lon) or 0.008
+    
     nodes = [
-        {"id": 1, "lat": lat, "lon": lon, "tags": {}},
-        {"id": 2, "lat": lat + delta * 0.4, "lon": lon - delta * 0.3, "tags": {"highway": "traffic_signals"}},
-        {"id": 3, "lat": lat + delta * 0.8, "lon": lon + delta * 0.1, "tags": {}},
-        {"id": 4, "lat": lat - delta * 0.5, "lon": lon + delta * 0.6, "tags": {}},
-        {"id": 5, "lat": lat + delta * 0.2, "lon": lon + delta * 0.9, "tags": {"highway": "traffic_signals"}},
-        {"id": 6, "lat": lat + delta, "lon": lon + delta, "tags": {}}
+        {"id": 1, "lat": orig_lat, "lon": orig_lon, "tags": {}},
+        {"id": 2, "lat": orig_lat + (dest_lat - orig_lat)*0.3, "lon": orig_lon + (dest_lon - orig_lon)*0.2, "tags": {"highway": "traffic_signals"}},
+        {"id": 3, "lat": mid_lat, "lon": mid_lon, "tags": {}},
+        {"id": 4, "lat": orig_lat + (dest_lat - orig_lat)*0.4 + d_lat*0.3, "lon": orig_lon + (dest_lon - orig_lon)*0.4 - d_lon*0.3, "tags": {}},
+        {"id": 5, "lat": orig_lat + (dest_lat - orig_lat)*0.7 + d_lat*0.3, "lon": orig_lon + (dest_lon - orig_lon)*0.7 - d_lon*0.3, "tags": {}},
+        {"id": 6, "lat": dest_lat, "lon": dest_lon, "tags": {"highway": "traffic_signals"}}
     ]
     ways = [
-        {"id": 101, "nodes": [1, 2, 3, 6], "tags": {"name": "Corredor Principal"}},
-        {"id": 102, "nodes": [1, 4, 5, 6], "tags": {"name": "Rota Periférica"}}
+        {"id": 101, "nodes": [1, 2, 3, 6], "tags": {"name": "Corredor Principal Direto"}},
+        {"id": 102, "nodes": [1, 4, 5, 6], "tags": {"name": "Via Alternativa Segura (Desvio)"}}
     ]
     elements = [{'type': 'node', **n} for n in nodes] + [{'type': 'way', **w} for w in ways]
     return {'elements': elements}
 
 # ==========================================
-# ROTAS E ENDPOINTS REST
+# ROTAS E ENDPOINTS DA API REST
 # ==========================================
 
 @app.route('/')
 def home():
-    """Renderiza o Dashboard interativo Frontend Leaflet.js."""
+    """Renderiza a interface do Dashboard Waze de Alagamentos e Segurança."""
     return render_template('index.html')
 
 
 @app.route('/api/buscar-bairro', methods=['GET'])
 def buscar_bairro():
     """
-    Endpoint 1: Geocoding aberto via OpenStreetMap Nominatim.
-    Busca bairros, logradouros e locais em São Paulo sem chave de API.
+    Endpoint 1: Geocodificação aberta via OpenStreetMap Nominatim.
+    Utiliza User-Agent obrigatório para evitar HTTP 403.
     """
     query = request.args.get('q', '').strip()
     if not query:
-        return jsonify({"success": False, "error": "Parâmetro 'q' é obrigatório."}), 400
+        return jsonify({"success": False, "error": "Parâmetro 'q' obrigatório"}), 400
 
-    headers = {'User-Agent': 'FECART-Mobilidade-IA-App/1.0 (contato.fecap@fecap.br)'}
+    headers = {'User-Agent': 'FECAP_Waze_IA_Project/1.0 (contato.ia@fecap.br)'}
     nominatim_url = "https://nominatim.openstreetmap.org/search"
     params = {
-        'q': f"{query}, São Paulo, SP, Brasil",
+        'q': f"{query}, São Paulo, Brasil" if "brasil" not in query.lower() else query,
         'format': 'json',
         'limit': 5,
         'addressdetails': 1
@@ -127,50 +168,102 @@ def buscar_bairro():
                     })
                 return jsonify({"success": True, "results": results})
     except Exception as e:
-        print(f"Erro no Nominatim: {e}")
+        print(f"Aviso Nominatim: {e}")
 
-    # Fallback predeterminado para bairros clássicos de SP
-    locais_sp = {
-        "liberdade": (-23.5574, -46.6346, "Liberdade / Campus FECAP"),
-        "fecap": (-23.5574, -46.6346, "FECAP Liberdade"),
+    # Fallback local para os bairros mais emblemáticos de SP
+    locais_conhecidos = {
+        "liberdade": (-23.5574, -46.6346, "Liberdade / FECAP"),
+        "fecap": (-23.5574, -46.6346, "Campus FECAP Liberdade"),
         "paulista": (-23.5614, -46.6559, "Avenida Paulista"),
         "se": (-23.5505, -46.6333, "Praça da Sé"),
         "pinheiros": (-23.5670, -46.7020, "Pinheiros"),
-        "vila madalena": (-23.5550, -46.6900, "Vila Madalena"),
-        "sao joaquim": (-23.5617, -46.6388, "Metrô São Joaquim")
+        "moema": (-23.5950, -46.6620, "Moema"),
+        "tatuape": (-23.5410, -46.5750, "Tatuapé"),
+        "lapa": (-23.5190, -46.6920, "Lapa")
     }
-    
-    q_lower = query.lower()
-    for key, (lat, lon, label) in locais_sp.items():
-        if key in q_lower:
+    q_norm = query.lower()
+    for k, (lt, ln, desc) in locais_conhecidos.items():
+        if k in q_norm:
             return jsonify({
                 "success": True,
-                "results": [{"name": f"{label}, São Paulo, SP", "lat": lat, "lon": lon, "type": "fallback"}]
+                "results": [{"name": f"{desc}, São Paulo, SP", "lat": lt, "lon": ln, "type": "fallback"}]
             })
 
-    # Padrão: Centro Histórico / Liberdade
+    # Padrão: Centro de SP (Liberdade)
     return jsonify({
         "success": True,
         "results": [{"name": f"{query} (Aproximado - São Paulo, SP)", "lat": -23.5574, "lon": -46.6346, "type": "default"}]
     })
 
 
+@app.route('/api/relatar-alagamento', methods=['POST'])
+def relatar_alagamento():
+    """
+    Endpoint 2: Registra um novo relato de alagamento enviado pelo usuário
+    e persiste diretamente no banco SQLite (alagamentos.db).
+    """
+    data = request.get_json(force=True, silent=True)
+    if not data:
+        return jsonify({"success": False, "error": "JSON inválido"}), 400
+
+    try:
+        lat = float(data.get('latitude'))
+        lon = float(data.get('longitude'))
+        descricao = str(data.get('descricao', 'Acúmulo de água registrado por usuário')).strip()
+        nivel = str(data.get('nivel', 'Moderado')).capitalize()
+
+        if nivel not in ["Leve", "Moderado", "Grave"]:
+            nivel = "Moderado"
+
+        novo_relato = RelatorioAlagamento(
+            latitude=lat,
+            longitude=lon,
+            descricao=descricao,
+            nivel=nivel
+        )
+        db.session.add(novo_relato)
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "mensagem": "Relato de alagamento salvo com sucesso no banco SQLite!",
+            "relato": novo_relato.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route('/api/relatorios-alagamento', methods=['GET'])
+def listar_relatorios_alagamento():
+    """
+    Endpoint 3: Retorna a lista completa de relatos salvos no SQLite em formato JSON.
+    """
+    relatos = RelatorioAlagamento.query.order_by(RelatorioAlagamento.id.desc()).all()
+    return jsonify({
+        "success": True,
+        "total": len(relatos),
+        "relatorios": [r.to_dict() for r in relatos]
+    })
+
+
 @app.route('/api/dados-regiao', methods=['GET'])
 def dados_regiao():
     """
-    Endpoint 2: Consulta Overpass API para semáforos, bloqueios e obras
-    na região visível do mapa e calcula o Score de Risco Geral.
+    Endpoint 4: Consulta a Overpass API (OSM) para mapear semáforos, obras e barreiras,
+    recupera do SQLite os alagamentos cadastrados e calcula o Score de Risco da Região.
     """
     try:
         lat = float(request.args.get('lat', -23.5574))
         lon = float(request.args.get('lon', -46.6346))
-        raio = float(request.args.get('raio', 1200)) # metros
+        raio_m = float(request.args.get('raio', 1200))
     except ValueError:
-        return jsonify({"success": False, "error": "Coordenadas inválidas."}), 400
+        return jsonify({"success": False, "error": "Coordenadas inválidas"}), 400
 
-    # Conversão de metros para graus aproximados
-    deg_lat = raio / 111111.0
-    deg_lon = raio / (111111.0 * math.cos(math.radians(lat)))
+    # Bounding Box em graus
+    deg_lat = raio_m / 111111.0
+    deg_lon = raio_m / (111111.0 * math.cos(math.radians(lat)))
     bbox = (lat - deg_lat, lon - deg_lon, lat + deg_lat, lon + deg_lon)
 
     overpass_url = "https://overpass-api.de/api/interpreter"
@@ -186,144 +279,83 @@ def dados_regiao():
     out skel qt;
     """
 
-    elements = []
+    semaforos = []
+    gargalos_osm = []
     try:
         res = requests.get(overpass_url, params={'data': query}, timeout=10, verify=False)
         if res.status_code == 200:
-            elements = res.json().get('elements', [])
+            for el in res.json().get('elements', []):
+                if el.get('type') == 'node' and el.get('tags', {}).get('highway') == 'traffic_signals':
+                    semaforos.append({"lat": el['lat'], "lon": el['lon']})
+                elif el.get('type') == 'way':
+                    gargalos_osm.append({"id": el['id'], "tipo": el.get('tags', {}).get('highway', 'bloqueio')})
     except Exception:
         pass
 
-    # Se não houver retorno da API, gera incidentes locais simulados realistas
-    semaforos = []
-    obras_bloqueios = []
-    
-    for el in elements:
-        if el.get('type') == 'node' and el.get('tags', {}).get('highway') == 'traffic_signals':
-            semaforos.append({"lat": el['lat'], "lon": el['lon']})
-        elif el.get('type') == 'way':
-            # Marca ponto representativo da obra
-            obras_bloqueios.append({"id": el['id'], "tipo": el.get('tags', {}).get('highway', 'bloqueio')})
+    # Garantir densidade realista caso rede esteja offline
+    total_semaforos = len(semaforos) if semaforos else random.randint(8, 16)
+    total_obras = len(gargalos_osm) if gargalos_osm else random.randint(1, 4)
 
-    # Simular riscos climáticos (alagamento CGE) e de segurança (SSP-SP)
-    random.seed(int((lat + lon) * 10000))
-    qtd_semaforos = len(semaforos) if semaforos else random.randint(6, 18)
-    qtd_obras = len(obras_bloqueios) if obras_bloqueios else random.randint(1, 4)
+    # Consultar alagamentos cadastrados no SQLite dentro da Bounding Box ativa
+    alagamentos_db = RelatorioAlagamento.query.filter(
+        RelatorioAlagamento.latitude >= bbox[0],
+        RelatorioAlagamento.latitude <= bbox[2],
+        RelatorioAlagamento.longitude >= bbox[1],
+        RelatorioAlagamento.longitude <= bbox[3]
+    ).all()
 
-    # Diagnóstico criminológico baseado nos dados oficiais da SSP-SP (PDF)
-    diag_ssp = get_detailed_crime_simulation("São Paulo / Centro", lat, lon, "ROUBO DE VEÍCULO")
-    score_criminal = diag_ssp.get("score_risco_ssp", random.randint(40, 75))
+    # Cálculo da densidade de perigo e Score de Risco da Região (0 a 100)
+    peso_alagamentos = 0
+    for a in alagamentos_db:
+        if a.nivel == "Grave": peso_alagamentos += 25
+        elif a.nivel == "Moderado": peso_alagamentos += 15
+        else: peso_alagamentos += 8
 
-    # Simulação de pontos críticos no raio
-    alertas_criticos = []
-    for _ in range(random.randint(2, 5)):
-        offset_lat = random.uniform(-deg_lat * 0.7, deg_lat * 0.7)
-        offset_lon = random.uniform(-deg_lon * 0.7, deg_lon * 0.7)
-        tipo = random.choice(["alagamento", "criminalidade", "obra"])
-        alertas_criticos.append({
-            "tipo": tipo,
-            "lat": lat + offset_lat,
-            "lon": lon + offset_lon,
-            "intensidade": random.randint(50, 95),
-            "descricao": "Risco de Enchente Severa" if tipo == "alagamento" else ("Área de Risco Criminal Elevado (SSP-SP)" if tipo == "criminalidade" else "Bloqueio Viário / Obras")
-        })
+    densidade_gargalos = (total_obras * 6) + (total_semaforos * 1.5)
+    score_bruto = int(peso_alagamentos + densidade_gargalos + 15)
+    score_risco = min(100, max(15, score_bruto))
 
-    # Cálculo do Score de Risco Geral da Região (0 a 100) ponderado
-    score_alagamento = random.randint(20, 60)
-    score_geral = int((score_alagamento * 0.45) + (score_criminal * 0.45) + (qtd_obras * 2.5))
-    score_geral = min(100, max(10, score_geral))
+    # Classificação textual
+    classificacao = "Baixo Risco"
+    if score_risco >= 70: classificacao = "Alto Risco"
+    elif score_risco >= 40: classificacao = "Médio Risco"
 
     return jsonify({
         "success": True,
         "coordenadas_centro": {"lat": lat, "lon": lon},
-        "score_risco_geral": score_geral,
-        "score_alagamento": score_alagamento,
-        "score_criminal": score_criminal,
-        "total_semaforos": qtd_semaforos,
-        "total_bloqueios": qtd_obras,
-        "ssp_base": {
-            "total_registros_base": len(CRIMES_SSP),
-            "nivel_seguranca": diag_ssp.get("classificacao"),
-            "tempo_resposta_pm": f"{diag_ssp.get('tempo_resposta_tatico_min')} min"
-        },
-        "incidentes": alertas_criticos
+        "score_risco": score_risco,
+        "classificacao_risco": classificacao,
+        "total_semaforos": total_semaforos,
+        "total_gargalos_obras": total_obras,
+        "total_alagamentos_ativos": len(alagamentos_db),
+        "alagamentos": [a.to_dict() for a in alagamentos_db]
     })
-
-
-# ==========================================
-# ENDPOINTS OFICIAIS DA API DE CRIMINALIDADE (SSP-SP)
-# Especificados no documento técnico (PDF páginas 2-4)
-# ==========================================
-@app.route("/crimes", methods=["GET"])
-def listar_crimes():
-    """Lista todos os registros da SSP-SP, com filtros opcionais por ano e tipo de crime."""
-    ano = request.args.get("ano")
-    tipo = request.args.get("tipo")
-    resultado = CRIMES_SSP
-    if ano:
-        resultado = [r for r in resultado if str(r.get("ano")) == str(ano)]
-    if tipo:
-        tipo_lower = tipo.lower()
-        resultado = [r for r in resultado if tipo_lower in r.get("tipo_crime", "").lower()]
-    return jsonify({
-        "total_registros": len(resultado),
-        "dados": resultado
-    })
-
-@app.route("/crimes/resumo", methods=["GET"])
-def resumo_crimes():
-    """Retorna o total de cada tipo de crime, por ano."""
-    totais = defaultdict(lambda: defaultdict(int))
-    for r in CRIMES_SSP:
-        totais[r["ano"]][r["tipo_crime"]] += r.get("quantidade", 0)
-    saida = {}
-    for ano, tipos in totais.items():
-        saida[ano] = [
-            {"tipo_crime": tipo, "total": qtd}
-            for tipo, qtd in sorted(tipos.items())
-        ]
-    return jsonify(saida)
-
-@app.route("/crimes/tipos", methods=["GET"])
-def tipos_crimes_disponiveis():
-    """Lista todos os tipos de crime existentes na base SSP-SP."""
-    tipos = sorted(set(r["tipo_crime"] for r in CRIMES_SSP))
-    return jsonify(tipos)
-
-@app.route("/crimes/anos", methods=["GET"])
-def anos_crimes_disponiveis():
-    """Lista todos os anos existentes na base SSP-SP (2023-2026)."""
-    anos = sorted(set(r["ano"] for r in CRIMES_SSP))
-    return jsonify(anos)
 
 
 @app.route('/api/calcular-rota', methods=['GET'])
 def calcular_rota():
     """
-    Endpoint 3: Algoritmo de Inteligência Artificial para Otimização de Trajetos.
-    Monta o Grafo de Navegação com NetworkX e calcula a Rota de Menor Risco
-    utilizando a fórmula:
-      Custo = Distancia * (1 + 2.0*Risco_Alagamento + 1.5*Risco_Criminal + 1.0*Penalidade_Transito)
+    Endpoint 5: Algoritmo de Inteligência Artificial para Roteamento Seguro em Grafos.
+    Ajusta os pesos aplicando a fórmula:
+      Peso_Aresta = Distancia * (1 + (Penalidade_Alagamento_SQLite * 3.0) + (Gargalo_OSM * 1.5))
+    Encontra o caminho ótimo via Dijkstra/A* contornando os perigos.
     """
     try:
-        orig_lat = float(request.args.get('orig_lat'))
-        orig_lon = float(request.args.get('orig_lon'))
-        dest_lat = float(request.args.get('dest_lat'))
-        dest_lon = float(request.args.get('dest_lon'))
+        lat1 = float(request.args.get('lat1', request.args.get('orig_lat')))
+        lon1 = float(request.args.get('lon1', request.args.get('orig_lon')))
+        lat2 = float(request.args.get('lat2', request.args.get('dest_lat')))
+        lon2 = float(request.args.get('lon2', request.args.get('dest_lon')))
     except (TypeError, ValueError):
-        return jsonify({"success": False, "error": "orig_lat, orig_lon, dest_lat e dest_lon são obrigatórios."}), 400
+        return jsonify({"success": False, "error": "Coordenadas lat1, lon1, lat2, lon2 são obrigatórias"}), 400
 
-    # Determinar Bounding Box cobrindo os dois pontos com margem de segurança
-    min_lat = min(orig_lat, dest_lat) - 0.012
-    max_lat = max(orig_lat, dest_lat) + 0.012
-    min_lon = min(orig_lon, dest_lon) - 0.012
-    max_lon = max(orig_lon, dest_lon) + 0.012
+    min_lat, max_lat = min(lat1, lat2) - 0.012, max(lat1, lat2) + 0.012
+    min_lon, max_lon = min(lon1, lon2) - 0.012, max(lon1, lon2) + 0.012
     bbox = (min_lat, min_lon, max_lat, max_lon)
 
     # Ingestão de vias pela Overpass API
     overpass_url = "https://overpass-api.de/api/interpreter"
     query = f"""
-    [out:json][timeout:15];
+    [out:json][timeout:14];
     (
       way["highway"]["highway"!~"footway|pedestrian|path|steps"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
       node["highway"="traffic_signals"]({bbox[0]},{bbox[1]},{bbox[2]},{bbox[3]});
@@ -332,10 +364,9 @@ def calcular_rota():
     >;
     out skel qt;
     """
-
     osm_data = None
     try:
-        res = requests.get(overpass_url, params={'data': query}, timeout=12, verify=False)
+        res = requests.get(overpass_url, params={'data': query}, timeout=10, verify=False)
         if res.status_code == 200:
             candidate = res.json()
             if candidate.get('elements') and len(candidate['elements']) > 15:
@@ -344,7 +375,10 @@ def calcular_rota():
         pass
 
     if not osm_data:
-        osm_data = get_synthetic_region_data((orig_lat + dest_lat)/2.0, (orig_lon + dest_lon)/2.0)
+        osm_data = get_synthetic_grid(lat1, lon1, lat2, lon2)
+
+    # Consultar todos os alagamentos cadastrados no SQLite
+    alagamentos_ativos = RelatorioAlagamento.query.all()
 
     # Construção do Grafo Ponderado com NetworkX
     G = nx.Graph()
@@ -357,8 +391,6 @@ def calcular_rota():
             if el.get('tags', {}).get('highway') == 'traffic_signals':
                 traffic_signals.add(el['id'])
 
-    # Inserção de Arestas com Pesos de IA
-    random.seed(42) # Reprodutibilidade científica
     for el in osm_data['elements']:
         if el['type'] == 'way':
             w_nodes = el.get('nodes', [])
@@ -370,52 +402,55 @@ def calcular_rota():
                     if dist < 0.5:
                         continue
 
-                    # Índices de risco normalizados [0.0 a 1.0]
-                    # Risco criminal calibrado com base na pressão estatística da base SSP-SP
-                    ssp_baseline = calculate_crime_risk_index() # Ex: ~0.55
-                    risco_alagamento = random.choices([0.0, 0.2, 0.6, 1.0], weights=[0.65, 0.20, 0.10, 0.05])[0]
-                    risco_criminal = random.choices(
-                        [round(ssp_baseline * 0.4, 2), round(ssp_baseline * 0.8, 2), round(min(1.0, ssp_baseline * 1.3), 2), 0.95],
-                        weights=[0.55, 0.25, 0.15, 0.05]
-                    )[0]
-                    penalidade_transito = 0.5 if (u in traffic_signals or v in traffic_signals) else 0.0
+                    mid_edge_lat = (nodes[u][0] + nodes[v][0]) / 2.0
+                    mid_edge_lon = (nodes[u][1] + nodes[v][1]) / 2.0
 
-                    # Custo Convencional: pura distância física
+                    # Penalidade por alagamento do SQLite (proximidade < 150 metros)
+                    penalidade_alagamento = 0.0
+                    for alag in alagamentos_ativos:
+                        d_alag = haversine(mid_edge_lat, mid_edge_lon, alag.latitude, alag.longitude)
+                        if d_alag < 150:
+                            fator = 3.0 if alag.nivel == "Grave" else (1.8 if alag.nivel == "Moderado" else 0.8)
+                            penalidade_alagamento = max(penalidade_alagamento, fator)
+
+                    # Gargalo do OSM (presença de semáforos)
+                    gargalo_osm = 0.6 if (u in traffic_signals or v in traffic_signals) else 0.0
+
+                    # Custo Convencional: apenas a distância física pura
                     custo_convencional = dist
 
                     # FÓRMULA OFICIAL DE IA PONDERADA:
-                    # Custo = Distancia * (1 + 2.0 * Risco_Alagamento + 1.5 * Risco_Criminal + 1.0 * Penalidade_Transito)
-                    custo_ia = dist * (1.0 + (2.0 * risco_alagamento) + (1.5 * risco_criminal) + (1.0 * penalidade_transito))
+                    # Peso_Aresta = Distancia * (1 + (Penalidade_Alagamento_SQLite * 3.0) + (Gargalo_OSM * 1.5))
+                    peso_ia = dist * (1.0 + (penalidade_alagamento * 3.0) + (gargalo_osm * 1.5))
 
                     G.add_edge(
                         u, v,
                         name=w_name,
                         distance=dist,
                         weight_std=custo_convencional,
-                        weight_ai=custo_ia,
-                        alagamento=risco_alagamento,
-                        criminal=risco_criminal
+                        weight_ai=peso_ia,
+                        penalidade_alagamento=penalidade_alagamento
                     )
 
-    # Associação dos pontos GPS aos nós mais próximos do grafo
-    def get_nearest(lat, lon):
+    # Localizar nós mais próximos das coordenadas GPS
+    def get_nearest_node(lat, lon):
         best_d = float('inf')
-        best_n = None
+        best_node = None
         for n_id, coords in nodes.items():
             if n_id in G:
                 d = haversine(lat, lon, coords[0], coords[1])
                 if d < best_d:
                     best_d = d
-                    best_n = n_id
-        return best_n
+                    best_node = n_id
+        return best_node
 
-    start_node = get_nearest(orig_lat, orig_lon)
-    end_node = get_nearest(dest_lat, dest_lon)
+    start_node = get_nearest_node(lat1, lon1)
+    end_node = get_nearest_node(lat2, lon2)
 
     if not start_node or not end_node:
-        return jsonify({"success": False, "error": "Nenhum nó viário conectável encontrado na região."}), 404
+        return jsonify({"success": False, "error": "Nenhum nó viário conectável encontrado."}), 404
 
-    # Algoritmo de Busca Heurística (Dijkstra / A*)
+    # Executar Algoritmo Dijkstra / A*
     try:
         path_std = nx.shortest_path(G, source=start_node, target=end_node, weight='weight_std')
     except nx.NetworkXNoPath:
@@ -426,43 +461,39 @@ def calcular_rota():
     except nx.NetworkXNoPath:
         path_ai = path_std
 
-    def format_path(path):
+    def format_route(path):
         coords = []
         total_dist = 0
-        total_alag = 0
-        total_crime = 0
-        edges_count = 0
-
+        total_alag_evitados = 0
         for i in range(len(path) - 1):
             u, v = path[i], path[i+1]
             coords.append([nodes[u][0], nodes[u][1]])
             data = G.get_edge_data(u, v) or {}
             total_dist += data.get('distance', 0)
-            total_alag = max(total_alag, data.get('alagamento', 0))
-            total_crime = max(total_crime, data.get('criminal', 0))
-            edges_count += 1
-
+            if data.get('penalidade_alagamento', 0) > 0:
+                total_alag_evitados += 1
         coords.append([nodes[path[-1]][0], nodes[path[-1]][1]])
-        tempo_min = round((total_dist / 6.94) / 60.0, 1) # ~25 km/h velocidade urbana média
-        return {
-            "coordinates": coords,
-            "distancia_km": round(total_dist / 1000.0, 2),
-            "tempo_estimado_min": max(1.0, tempo_min),
-            "risco_alagamento_max": int(total_alag * 100),
-            "risco_criminal_max": int(total_crime * 100)
-        }
+        tempo_min = round((total_dist / 6.94) / 60.0, 1) # ~25 km/h média SP
+        return coords, round(total_dist / 1000.0, 2), max(1.0, tempo_min), total_alag_evitados
 
-    rota_ia = format_path(path_ai)
-    rota_convencional = format_path(path_std)
+    coords_ai, dist_ai, tempo_ai, alag_ai = format_route(path_ai)
+    coords_std, dist_std, tempo_std, alag_std = format_route(path_std)
 
     return jsonify({
         "success": True,
-        "rota_ia": rota_ia,
-        "rota_convencional": rota_convencional,
+        "status": "Rota Otimizada com IA",
+        "coordenadas_rota": coords_ai,
+        "distancia_km": dist_ai,
+        "tempo_min": tempo_ai,
+        "rota_convencional": {
+            "coordenadas": coords_std,
+            "distancia_km": dist_std,
+            "tempo_min": tempo_std,
+            "alagamentos_no_percurso": alag_std
+        },
         "comparativo": {
-            "seguranca_ganho_pct": max(0, rota_convencional['risco_criminal_max'] - rota_ia['risco_criminal_max']),
-            "alagamento_evitado_pct": max(0, rota_convencional['risco_alagamento_max'] - rota_ia['risco_alagamento_max']),
-            "diferenca_distancia_km": round(rota_ia['distancia_km'] - rota_convencional['distancia_km'], 2)
+            "alagamentos_evitados": max(0, alag_std - alag_ai),
+            "diferenca_distancia_km": round(dist_ai - dist_std, 2)
         }
     })
 
@@ -470,8 +501,9 @@ def calcular_rota():
 # INICIALIZAÇÃO DO SERVIDOR
 # ==========================================
 if __name__ == '__main__':
-    print("=" * 65)
-    print("  SERVIDOR FLASK INICIADO - MOBILIDADE INTELIGENTE FECART/FECAP  ")
-    print("  Acesse a aplicação em: http://127.0.0.1:5000                   ")
-    print("=" * 65)
+    print("=" * 68)
+    print("  SERVIDOR FLASK INICIADO - FECART WAZE IA (ALAGAMENTOS & SEGURANÇA)")
+    print("  Banco de Dados SQLite: alagamentos.db")
+    print("  Acesse a aplicação em: http://127.0.0.1:5000")
+    print("=" * 68)
     app.run(host='0.0.0.0', port=5000, debug=True)
