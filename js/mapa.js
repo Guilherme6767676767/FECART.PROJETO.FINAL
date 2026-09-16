@@ -335,10 +335,39 @@ let heatLayer = null;
   function invalidarMapa() { setTimeout(() => map.invalidateSize(), 250); }
 
   // ── Busca ──────────────────────────────────────────────────────────────────
-  function performSearch() {
+  let searchMarker = null;
+
+  function escapeSearchHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+
+  async function buscarEnderecoNominatim(query) {
+    const queries = [
+      `${query}, SP, Brasil`,
+      `${query}, São Paulo, SP, Brasil`,
+      query
+    ];
+    for (const fullQuery of queries) {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(fullQuery)}`;
+        const response = await fetch(url, { headers: { 'Accept-Language': 'pt-BR' } });
+        if (!response.ok) continue;
+        const results = await response.json();
+        if (results[0] && Number.isFinite(Number(results[0].lat)) && Number.isFinite(Number(results[0].lon))) {
+          return results[0];
+        }
+      } catch (error) {
+        console.warn('[Busca Geoespacial] Nominatim indisponível:', error);
+      }
+    }
+    return null;
+  }
+
+  async function performSearch() {
     const input = document.getElementById('mapSearchInput');
     if (!input) return;
-    const q = input.value.trim().toLowerCase();
+    const originalQuery = input.value.trim();
+    const q = originalQuery.toLowerCase();
     if (!q) return;
     const found = allApiMarkers.find(({bo}) =>
       (bo.bairro && bo.bairro.toLowerCase().includes(q)) ||
@@ -349,9 +378,30 @@ let heatLayer = null;
       map.flyTo([found.bo.latitude, found.bo.longitude], 15, { animate: true, duration: 1.5 });
       found.marker.openPopup();
       mostrarToast(`📍 ${found.bo.bairro}`, `Ocorrência: ${found.bo.tipo_crime}`, 'info');
-    } else {
-      mostrarToast('Busca Geoespacial', `Nenhum resultado para "${q}".`, 'warning');
+      return;
     }
+
+    mostrarToast('Busca Geoespacial', `Localizando "${originalQuery}"...`, 'info');
+    const result = await buscarEnderecoNominatim(originalQuery);
+    if (!result) {
+      mostrarToast('Busca Geoespacial', `Nenhum endereço encontrado para "${originalQuery}".`, 'warning');
+      return;
+    }
+
+    const lat = Number(result.lat);
+    const lng = Number(result.lon);
+    if (searchMarker) map.removeLayer(searchMarker);
+    const icon = L.divIcon({
+      className: 'custom-map-icon',
+      html: '<div class="sentinel-search-marker"><span></span></div>',
+      iconSize: [30, 30],
+      iconAnchor: [15, 30]
+    });
+    searchMarker = L.marker([lat, lng], { icon }).addTo(map);
+    searchMarker.bindPopup(`<div class="real-alert-popup"><strong>Endereço localizado</strong><div class="real-alert-popup-item"><span>${escapeSearchHtml(result.display_name || originalQuery)}</span><br><small>Fonte: OpenStreetMap / Nominatim</small></div></div>`, { maxWidth: 340, className: 'dark-popup' });
+    map.flyTo([lat, lng], 17, { animate: true, duration: 1.5 });
+    setTimeout(() => searchMarker?.openPopup(), 600);
+    mostrarToast('Endereço localizado', result.display_name || originalQuery, 'info');
   }
 
   const btnSearch = document.getElementById('mapSearchBtn');

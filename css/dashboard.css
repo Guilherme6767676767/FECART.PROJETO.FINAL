@@ -1558,6 +1558,17 @@
   border: 2px solid rgba(255,255,255,.9);
 }
 .sentinel-real-marker.critical > span { box-shadow: 0 0 0 5px rgba(255,23,68,.18), 0 0 14px #ff1744; }
+.sentinel-search-marker { filter: drop-shadow(0 0 7px #00e5ff); }
+.sentinel-search-marker > span {
+  display:block;
+  width:22px;
+  height:22px;
+  border-radius:50% 50% 50% 0;
+  transform:rotate(-45deg);
+  background:#00e5ff;
+  border:3px solid #fff;
+  box-shadow:0 0 0 5px rgba(0,229,255,.2);
+}
 .sentinel-real-cluster {
   display:flex;
   align-items:center;
