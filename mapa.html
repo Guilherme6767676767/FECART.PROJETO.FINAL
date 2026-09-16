@@ -471,6 +471,10 @@
             Relatório ao Vivo
           </button>
 
+          <button class="btn btn-secondary btn-sm map-help-button" id="btnMapHelp" type="button" aria-label="Abrir ajuda do mapa" aria-controls="mapInfoModal" aria-expanded="false">
+            <span aria-hidden="true">?</span> Ajuda
+          </button>
+
           <div class="live-indicator">
             <div class="live-dot"></div>
             Ao vivo
@@ -581,6 +585,26 @@
         </div>
       </div>
 
+      <!-- Modal informativo padronizado do mapa: fechado após a primeira leitura. -->
+      <div class="map-info-modal-backdrop" id="mapInfoModal" hidden aria-hidden="true">
+        <section class="map-info-modal" role="dialog" aria-modal="true" aria-labelledby="mapInfoModalTitle">
+          <header class="map-info-modal-header">
+            <div>
+              <span class="map-info-modal-eyebrow">SENTINEL IA • MAPA</span>
+              <h3 id="mapInfoModalTitle">Como usar o mapa</h3>
+            </div>
+            <button class="map-info-modal-close" id="btnCloseMapHelp" type="button" aria-label="Fechar ajuda">×</button>
+          </header>
+          <div class="map-info-modal-body">
+            <div class="map-info-modal-section"><strong>Buscar um endereço</strong><p>Digite rua, número, bairro ou região. A busca consulta OpenStreetMap/Nominatim e posiciona um marcador ciano no resultado.</p></div>
+            <div class="map-info-modal-section"><strong>Interpretar os pinos</strong><p>Os pinos representam as 43 ocorrências consolidadas. As cores seguem a gravidade: vermelho para ALTA, amarelo para MÉDIA e verde para BAIXA.</p></div>
+            <div class="map-info-modal-section"><strong>Ver detalhes</strong><p>Clique em qualquer pino para consultar Data do Fato, Cidade, Tipo de Ocorrência, Local, Nível de Gravidade e Fonte.</p></div>
+            <div class="map-info-modal-section"><strong>Sincronização</strong><p>As coordenadas já consultadas ficam salvas no cache local do navegador. Por isso, as próximas aberturas carregam os pinos sem repetir a geocodificação.</p></div>
+          </div>
+          <footer class="map-info-modal-footer"><button class="btn btn-primary btn-sm" id="btnCloseMapHelpFooter" type="button">Entendi</button></footer>
+        </section>
+      </div>
+
         <!-- Painel Flutuante de Rota Inteligente (Waze IA / FECART) -->
         <div id="smartRoutePanel" style="display:none; position:absolute; top:70px; left:20px; width:340px; background:rgba(6, 10, 20, 0.94); border:1px solid rgba(0, 229, 255, 0.35); border-radius:14px; padding:16px; z-index:750; backdrop-filter:blur(16px); box-shadow:0 12px 40px rgba(0,0,0,0.8);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:8px;">
@@ -637,6 +661,7 @@
   <script src="js/api-service.js?v=2.0"></script>
   <script src="js/ocorrencias-consolidadas.js?v=2"></script>
   <script src="js/mapa.js?v=2.0"></script>
+  <script src="js/mapa-informativo.js?v=1"></script>
   <script src="js/avaliacao.js"></script>
   <script src="js/ai-assistant.js?v=2.0"></script>
 
