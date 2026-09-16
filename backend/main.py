@@ -48,10 +48,6 @@ from services.security_service import (
     insert_occurrence,
     get_aggregated_stats,
 )
-    get_sao_paulo_weather,
-    get_weather_by_coords,
-    obter_pontos_alagamento
-)
 from services.chat_service import processar_mensagem_chat
 from services.live_data import live_data_service
 

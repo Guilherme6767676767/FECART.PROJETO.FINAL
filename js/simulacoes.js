@@ -22,6 +22,77 @@
   let activeSimulations = [];
   let impactChart = null;
 
+  // A aba pode ser aberta pelo servidor FastAPI ou como arquivo estático.
+  // Nesse segundo caso mantemos o modo local, mas nunca fingimos que a API está online.
+  const API_BASE_URL = window.SENTINEL_API_URL || (
+    window.location.port === '8000' ? '/api/v1' : 'http://localhost:8000/api/v1'
+  );
+  let apiOnline = false;
+
+  function setSimulationStatus(message, tone) {
+    const status = document.getElementById('simFormStatus');
+    if (status) {
+      status.textContent = message || '';
+      status.style.color = tone === 'error' ? '#fb7185' : (tone === 'success' ? '#34d399' : 'var(--text-tertiary)');
+    }
+  }
+
+  function setApiStatus(online) {
+    apiOnline = online;
+    const badge = document.getElementById('apiStatusBadge');
+    if (!badge) return;
+    badge.className = `badge ${online ? 'badge-green' : 'badge-yellow'}`;
+    badge.innerHTML = `<span class="status-dot ${online ? 'online' : ''}" style="width:6px;height:6px;"></span>${online ? 'API Live: 200 OK' : 'Modo local: API offline'}`;
+  }
+
+  async function requestSimulationApi(path, options = {}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        signal: controller.signal
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.detail || `API respondeu HTTP ${response.status}`);
+      return body;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  async function checkSimulationApi() {
+    try {
+      await requestSimulationApi('/health');
+      setApiStatus(true);
+    } catch (error) {
+      setApiStatus(false);
+      console.warn('API de simulação indisponível; usando modo local:', error.message);
+    }
+  }
+
+  function normalizeApiSimulation(result) {
+    const occurrence = result && result.ocorrencia ? result.ocorrencia : result;
+    if (!occurrence) return null;
+    return {
+      id: occurrence.id || `SIM-${Date.now()}`,
+      title: occurrence.titulo || occurrence.tipo_crime || occurrence.type || 'Ocorrência simulada',
+      type: occurrence.tipo_crime || occurrence.type || 'Ocorrência simulada',
+      district: occurrence.bairro || occurrence.district || 'Não informado',
+      address: occurrence.logradouro || occurrence.address || 'Não informado',
+      severity: String(occurrence.gravidade || occurrence.severity || 'ALTA').toUpperCase(),
+      lat: Number(occurrence.latitude ?? occurrence.lat),
+      lng: Number(occurrence.longitude ?? occurrence.lng),
+      timestamp: occurrence.data_hora ? new Date(occurrence.data_hora).toLocaleTimeString('pt-BR') : new Date().toLocaleTimeString('pt-BR'),
+      apiResult: result
+    };
+  }
+
+  function isValidCoordinate(lat, lng) {
+    return Number.isFinite(lat) && Number.isFinite(lng) && lat >= -25 && lat <= -19 && lng >= -54 && lng <= -44;
+  }
+
   // Coordenadas padrão por bairro
   const DISTRICT_COORDS = {
     'Sé': { lat: -23.55052, lng: -46.63330, address: 'Praça da Sé, próx. Catedral' },
@@ -53,6 +124,7 @@
     initWeatherTelemetry();
     initControls();
     initImpactChart();
+    checkSimulationApi();
   });
 
   // 1. Relógio ao Vivo
@@ -229,7 +301,7 @@
   };
 
   // 4. Submissão do Formulário de Incidente Customizado
-  window.handleCustomSimSubmit = function (e) {
+  window.handleCustomSimSubmit = async function (e) {
     e.preventDefault();
 
     const title = document.getElementById('simTitle').value;
@@ -240,25 +312,51 @@
     const lat = parseFloat(document.getElementById('simLat').value);
     const lng = parseFloat(document.getElementById('simLng').value);
 
-    const simEvent = {
-      id: 'SIM-' + Math.floor(1000 + Math.random() * 9000),
-      title: title || category,
-      type: category,
-      district: district,
-      address: address,
-      severity: severity,
-      lat: lat,
-      lng: lng,
-      timestamp: new Date().toLocaleTimeString('pt-BR')
+    if (!isValidCoordinate(lat, lng)) {
+      setSimulationStatus('Informe coordenadas válidas dentro do estado de São Paulo.', 'error');
+      return;
+    }
+
+    const submitButton = e.target.querySelector('button[type="submit"]');
+    if (submitButton) submitButton.disabled = true;
+    setSimulationStatus(apiOnline ? 'Enviando ocorrência para a API...' : 'API offline: criando simulação local...', 'info');
+
+    const payload = {
+      titulo: title || category,
+      tipo_crime: category,
+      bairro: district,
+      logradouro: address,
+      latitude: lat,
+      longitude: lng,
+      gravidade: severity
     };
 
+    let simEvent;
+    try {
+      const result = await requestSimulationApi('/simulacao/disparar', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      apiOnline = true;
+      setApiStatus(true);
+      simEvent = normalizeApiSimulation(result);
+      setSimulationStatus('Simulação registrada e analisada pela API.', 'success');
+      calculateAndRenderAiDiagnosis(simEvent, result);
+    } catch (error) {
+      setApiStatus(false);
+      simEvent = { id: 'LOCAL-' + Date.now(), title: payload.titulo, type: category, district, address, severity, lat, lng, timestamp: new Date().toLocaleTimeString('pt-BR') };
+      setSimulationStatus(`Modo local ativo: ${error.name === 'AbortError' ? 'tempo limite da API.' : error.message}`, 'error');
+      calculateAndRenderAiDiagnosis(simEvent);
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
+
     addSimulatedEventToMap(simEvent);
-    calculateAndRenderAiDiagnosis(simEvent);
     updateAnimatedImpactChart(simEvent);
   };
 
   // 5. Disparo de Cenários Prontos em 1 Clique
-  window.triggerScenario = function (scenarioId) {
+  window.triggerScenario = async function (scenarioId) {
     const scenarios = {
       'tempestade_marginal': [
         { title: 'Alagamento Crítico — Transbordamento de Pista', type: 'Alagamento Iminente', district: 'Lapa', address: 'Marginal Tietê, próx. Ponte da Lapa', severity: 'CRITICA', lat: -23.5195, lng: -46.6930 },
@@ -278,23 +376,25 @@
     };
 
     const list = scenarios[scenarioId] || scenarios['tempestade_marginal'];
-    list.forEach(item => {
-      const simEvent = {
-        id: 'SIM-' + Math.floor(1000 + Math.random() * 9000),
-        title: item.title,
-        type: item.type,
-        district: item.district,
-        address: item.address,
-        severity: item.severity,
-        lat: item.lat,
-        lng: item.lng,
-        timestamp: new Date().toLocaleTimeString('pt-BR')
-      };
-      addSimulatedEventToMap(simEvent);
-    });
-
-    calculateAndRenderAiDiagnosis(list[0]);
-    updateAnimatedImpactChart(list[0]);
+    let events = [];
+    try {
+      const result = await requestSimulationApi('/simulacao/cenario', {
+        method: 'POST',
+        body: JSON.stringify({ cenario_id: scenarioId })
+      });
+      setApiStatus(true);
+      events = (result.detalhes || []).map(normalizeApiSimulation).filter(Boolean);
+      setSimulationStatus(`Cenário sincronizado: ${events.length} ocorrência(s) registrada(s).`, 'success');
+    } catch (error) {
+      setApiStatus(false);
+      events = list.map(item => ({ ...item, id: 'LOCAL-' + Date.now() + '-' + Math.random().toString(16).slice(2), timestamp: new Date().toLocaleTimeString('pt-BR') }));
+      setSimulationStatus(`Cenário em modo local: ${error.message}`, 'error');
+    }
+    events.forEach(addSimulatedEventToMap);
+    if (events[0]) {
+      calculateAndRenderAiDiagnosis(events[0], events[0].apiResult);
+      updateAnimatedImpactChart(events[0]);
+    }
   };
 
   // Adicionar Evento Simulado no Mapa com Animação Radar
@@ -346,27 +446,29 @@
   }
 
   // 6. Cálculo do Diagnóstico de IA
-  function calculateAndRenderAiDiagnosis(simEvent) {
+  function calculateAndRenderAiDiagnosis(simEvent, apiResult) {
     const termScore = document.getElementById('aiDiagScore');
     const termContent = document.getElementById('aiDiagContent');
 
-    const score = simEvent.severity === 'CRITICA' ? Math.floor(88 + Math.random() * 10) : Math.floor(70 + Math.random() * 15);
+    const score = Number.isFinite(apiResult?.score_risco_calculado)
+      ? apiResult.score_risco_calculado
+      : (simEvent.severity === 'CRITICA' ? 92 : (simEvent.severity === 'ALTA' ? 82 : 68));
     if (termScore) termScore.textContent = `Score: ${score}/100`;
 
-    let recommendations = [];
-    if (simEvent.type.includes('Alagamento') || simEvent.title.includes('Tempestade')) {
+    let recommendations = apiResult?.acoes_recomendadas || [];
+    if (!recommendations.length && (simEvent.type.includes('Alagamento') || simEvent.title.includes('Tempestade'))) {
       recommendations = [
         'Desvio de tráfego automático para rotas secundárias ativado via Waze/CET',
         'Acionamento de bombas de sucção e alerta de nível 3 para Defesa Civil',
         'Notificação de rota intransitável enviada a condutores na região'
       ];
-    } else if (simEvent.type.includes('Arrastão') || simEvent.type.includes('Roubo')) {
+    } else if (!recommendations.length && (simEvent.type.includes('Arrastão') || simEvent.type.includes('Roubo'))) {
       recommendations = [
         'Cerco eletrônico por leitura OCR de placas ativado nas saídas radiais',
         'Despacho prioritário para 2 viaturas de patrulhamento da PM/GCM',
         'Cálculo de probabilidade de rota de fuga traçado por grafo de IA'
       ];
-    } else {
+    } else if (!recommendations.length) {
       recommendations = [
         'Reprogramação remota dos semáforos adjacentes para onda verde de escoamento',
         'Envio de agentes de trânsito para operação manual do cruzamento',
@@ -571,7 +673,18 @@
     }
 
     if (btnClearSims) {
-      btnClearSims.addEventListener('click', () => {
+      btnClearSims.addEventListener('click', async () => {
+        btnClearSims.disabled = true;
+        setSimulationStatus('Limpando simulações no backend...', 'info');
+        let apiMessage = 'Simulações locais limpas.';
+        try {
+          await requestSimulationApi('/simulacao/limpar', { method: 'DELETE' });
+          setApiStatus(true);
+          apiMessage = 'Simulações removidas do backend e do mapa.';
+        } catch (error) {
+          setApiStatus(false);
+          apiMessage = `Mapa limpo localmente; API indisponível (${error.message}).`;
+        }
         activeSimulations = [];
         simGroup.clearLayers();
         if (clickMarker) {
@@ -583,8 +696,10 @@
 
         const termContent = document.getElementById('aiDiagContent');
         if (termContent) {
-          termContent.innerHTML = '<p style="margin: 2px 0; color: #94a3b8;">> Simulações limpas com sucesso. Sistema pronto.</p>';
+          termContent.innerHTML = `<p style="margin: 2px 0; color: #94a3b8;">&gt; ${apiMessage}</p>`;
         }
+        setSimulationStatus(apiMessage, 'success');
+        btnClearSims.disabled = false;
       });
     }
 
