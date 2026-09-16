@@ -113,6 +113,15 @@
         grupos.get(chave).push(item);
       });
       grupos.forEach(grupo => criarMarcadorAlertaReal(grupo));
+      const estatisticas = {
+        total: ocorrencias.length,
+        altas: ocorrencias.filter(item => item.severidade === 'critical').length,
+        medias: ocorrencias.filter(item => item.severidade === 'medium').length
+      };
+      const atualizarNumero = (id, valor) => { const el = document.getElementById(id); if (el) el.textContent = valor; };
+      atualizarNumero('statOcorrencias', estatisticas.total);
+      atualizarNumero('statZonas', estatisticas.altas);
+      atualizarNumero('statAlertasMedios', estatisticas.medias);
       const alvo = new URLSearchParams(window.location.search).get('realId');
       if (alvo && realAlertMarkers.has(alvo)) {
         const marker = realAlertMarkers.get(alvo);
@@ -230,16 +239,6 @@ let heatLayer = null;
   ['layerCritical','layerWarning','layerClimate','layerInfra','layerSafe'].forEach(id => {
     const cb = document.getElementById(id);
     if (cb) cb.addEventListener('change', aplicarFiltros);
-  });
-
-  const cbZones = document.getElementById('layerZones');
-  if (cbZones) cbZones.addEventListener('change', function() {
-    if (this.checked) map.addLayer(staticLayerGroup); else map.removeLayer(staticLayerGroup);
-  });
-
-  const cbHeatmap = document.getElementById('layerHeatmap');
-  if (cbHeatmap) cbHeatmap.addEventListener('change', function() {
-    if (heatLayer) { if (this.checked) map.addLayer(heatLayer); else map.removeLayer(heatLayer); }
   });
 
   // ── API ────────────────────────────────────────────────────────────────────

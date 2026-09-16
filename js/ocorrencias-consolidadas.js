@@ -68,10 +68,17 @@
       const consulta = consultas[i];
       if (!cache[consulta]) {
         try {
-          const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(consulta)}`;
-          const response = await fetch(url, {headers:{'Accept-Language':'pt-BR'}});
-          const results = response.ok ? await response.json() : [];
-          if (results[0]) cache[consulta] = {lat:Number(results[0].lat), lng:Number(results[0].lon), displayName:results[0].display_name};
+          const item = ocorrencias.find(entry => entry.consulta_geocodificacao === consulta);
+          const queries = [consulta, `${item?.municipio || ''}, SP, Brasil`];
+          for (const query of queries) {
+            const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&addressdetails=1&q=${encodeURIComponent(query)}`;
+            const response = await fetch(url, {headers:{'Accept-Language':'pt-BR'}});
+            const results = response.ok ? await response.json() : [];
+            if (results[0]) {
+              cache[consulta] = {lat:Number(results[0].lat), lng:Number(results[0].lon), displayName:results[0].display_name, precisao:query === consulta ? 'local' : 'municipio'};
+              break;
+            }
+          }
         } catch (error) { console.warn('[Ocorrências] Falha ao geocodificar', consulta, error); }
         try { localStorage.setItem(cacheKey, JSON.stringify(cache)); } catch (_) {}
         await new Promise(resolve => setTimeout(resolve, 1100));
