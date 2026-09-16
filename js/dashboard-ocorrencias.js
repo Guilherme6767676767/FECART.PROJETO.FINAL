@@ -34,10 +34,19 @@
   }
 
   function atualizarKpi() {
+    const altas = base.filter(item => item.severidade === 'critical');
+    const risco = base.length ? Math.round((altas.length / base.length) * 100) : 0;
+    const cidadesAlta = new Set(altas.map(item => item.municipio)).size;
+    const riscoKpi = document.querySelector('.kpi-card.red .kpi-value');
+    if (riscoKpi) { riscoKpi.dataset.target = risco; riscoKpi.textContent = `${risco}/100`; }
     const kpi = document.querySelector('.kpi-card.cyan .kpi-value');
     if (kpi) { kpi.dataset.target = base.length; kpi.textContent = base.length; }
     const label = document.querySelector('.kpi-card.cyan .kpi-label');
     if (label) label.textContent = 'Ocorrências no período';
+    const zonasKpi = document.querySelector('.kpi-card.purple .kpi-value');
+    if (zonasKpi) { zonasKpi.dataset.target = cidadesAlta; zonasKpi.textContent = `${cidadesAlta} Cidades`; }
+    const segurancaKpi = document.querySelector('.kpi-card.green .kpi-value');
+    if (segurancaKpi) { segurancaKpi.dataset.target = 100 - risco; segurancaKpi.textContent = `${100 - risco}%`; }
   }
 
   function atualizarGraficos() {

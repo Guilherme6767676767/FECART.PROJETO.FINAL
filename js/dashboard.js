@@ -841,6 +841,11 @@ document.addEventListener('DOMContentLoaded', () => {
    Sincronização do Dashboard com APIs Vivas (SSP-SP & Telemetria)
    ============================================ */
 async function syncDashboardWithLiveAPIs() {
+  // Quando a base consolidada do Dashboard está carregada, não deixar o
+  // resumo legado do backend (que usa outra base) sobrescrever seus números.
+  if (Array.isArray(window.SENTINEL_REAL_ALERTS) && window.SENTINEL_REAL_ALERTS.length > 0) {
+    return;
+  }
   const API_BASE = window.SENTINEL_BACKEND_URL || (
     window.location.port === '8000' || window.location.origin.includes('vercel.app') ? '' : 'http://localhost:8000'
   );
@@ -904,4 +909,3 @@ async function syncDashboardWithLiveAPIs() {
     // Modo resiliente automático
   }
 }
-
