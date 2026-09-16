@@ -32,10 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 real: true,
                 type: item.severidade,
                 title: item.natureza,
-                desc: `${item.municipio} • ${item.bairro}`,
+                desc: `${item.municipio} • ${item.local}`,
                 time: `${item.data} ${item.hora}`,
                 icon: item.severidade === 'critical' ? 'alert-octagon' : item.severidade === 'high' ? 'shield-alert' : item.severidade === 'medium' ? 'alert-triangle' : 'file-warning',
-                locationName: `${item.bairro}, ${item.municipio}`
+                locationName: `${item.local}, ${item.municipio}`
             }));
         renderAlerts('all');
         return;
@@ -198,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="alert-item-content">
                             <h5>${alert.title}${alert.real && alert.type === 'critical' ? '<span class="real-alert-badge">MAIOR GRAVIDADE</span>' : ''}</h5>
-                            <p>${alert.real ? `${alert.data} • ${alert.hora}<br>${alert.municipio} • ${alert.bairro}` : alert.desc}</p>
+                            <p>${alert.real ? `${alert.data}${alert.hora ? ` • ${alert.hora}` : ''}<br>${alert.municipio}<br>${alert.local}<br><small>Fonte: ${alert.fonte}</small>` : alert.desc}</p>
                         </div>
                         <div class="alert-item-time">${alert.time}</div>
                         <div class="alert-item-actions">
