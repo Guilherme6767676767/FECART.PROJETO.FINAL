@@ -40,6 +40,16 @@ from database import (
 from services.weather_service import (
     get_sao_paulo_weather,
     get_weather_by_coords,
+    obter_pontos_alagamento,
+)
+# Security alerts service imports
+from services.security_service import (
+    get_recent_alerts,
+    insert_occurrence,
+    get_aggregated_stats,
+)
+    get_sao_paulo_weather,
+    get_weather_by_coords,
     obter_pontos_alagamento
 )
 from services.chat_service import processar_mensagem_chat
@@ -329,7 +339,46 @@ async def alertas_reais(
         "gerado_em": datetime.now(timezone.utc).isoformat(),
         "filtros": {"data_inicio": data_inicio, "data_fim": data_fim}
     }
+# ----------------------------------------------------
+# ROTAS: SEGURANÇA PÚBLICA (ALERTA DINÂMICO)
+# ----------------------------------------------------
+@app.get(
+    "/api/v1/seguranca/alerts",
+    summary="Retornar alertas de ocorrências recentes (FIFO)",
+    tags=["Segurança Pública"]
+)
+async def seguranca_alerts(limit: int = 10):
+    try:
+        alerts = get_recent_alerts(limit)
+        return {"alerts": alerts}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post(
+    "/api/v1/seguranca/ocorrencia",
+    summary="Inserir nova ocorrência de segurança",
+    tags=["Segurança Pública"]
+)
+async def seguranca_inserir(payload: dict):
+    try:
+        occ = insert_occurrence(payload)
+        return occ
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get(
+    "/api/v1/seguranca/stats",
+    summary="Estatísticas agregadas de ocorrências",
+    tags=["Segurança Pública"]
+)
+async def seguranca_stats():
+    try:
+        stats = get_aggregated_stats()
+        return {"stats": stats}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ----------------------------------------------------
 # ROTAS: SIMULAÇÃO PREDITIVA E CENÁRIOS URBANOS
