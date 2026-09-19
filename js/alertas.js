@@ -1,51 +1,7 @@
-/* Fonte única de alertas: Alertas, Mapa e Simulações consomem estes dados. */
-(function () {
-  'use strict';
-
-  const alertas = [
-    { id:'ALT-001', titulo:'Risco de alagamento', tipo:'Clima', gravidade:'crítico', bairro:'Brás', endereco:'Av. Rangel Pestana, próximo ao Largo da Concórdia', latitude:-23.5480, longitude:-46.6050, descricao:'Chuva intensa elevou o nível da água nas vias próximas.' },
-    { id:'ALT-002', titulo:'Acidente com bloqueio parcial', tipo:'Trânsito', gravidade:'médio', bairro:'Pinheiros', endereco:'Av. Faria Lima, 1800', latitude:-23.5660, longitude:-46.6921, descricao:'Uma faixa está bloqueada e o fluxo segue mais lento.' },
-    { id:'ALT-003', titulo:'Movimentação atípica', tipo:'Segurança', gravidade:'crítico', bairro:'Sé', endereco:'Praça da Sé, 1', latitude:-23.5505, longitude:-46.6333, descricao:'Ocorrência em acompanhamento pelas equipes responsáveis.' },
-    { id:'ALT-004', titulo:'Lentidão por obra', tipo:'Trânsito', gravidade:'baixo', bairro:'Santo Amaro', endereco:'Av. Santo Amaro, 5200', latitude:-23.6380, longitude:-46.7040, descricao:'Obra sinalizada reduz temporariamente o espaço na via.' },
-    { id:'ALT-005', titulo:'Ponto de atenção em via', tipo:'Segurança', gravidade:'médio', bairro:'Mooca', endereco:'Rua da Mooca, 1500', latitude:-23.5587, longitude:-46.5960, descricao:'Equipe de campo foi orientada a reforçar o monitoramento.' },
-    { id:'ALT-006', titulo:'Acúmulo de água', tipo:'Clima', gravidade:'médio', bairro:'Campo Belo', endereco:'Av. Vereador José Diniz, 3100', latitude:-23.6242, longitude:-46.6747, descricao:'Há acúmulo de água; motoristas devem reduzir a velocidade.' },
-    { id:'ALT-007', titulo:'Intervenção em cruzamento', tipo:'Trânsito', gravidade:'baixo', bairro:'Barra Funda', endereco:'Av. Marquês de São Vicente, 1200', latitude:-23.5265, longitude:-46.6690, descricao:'Sinalização temporária instalada no cruzamento.' },
-    { id:'ALT-008', titulo:'Atenção em área comercial', tipo:'Segurança', gravidade:'baixo', bairro:'Centro', endereco:'Rua 25 de Março, 450', latitude:-23.5455, longitude:-46.6310, descricao:'Patrulhamento preventivo reforçado no local.' }
-  ];
-
-  const cores = { 'crítico':'#ef4444', 'médio':'#f59e0b', 'baixo':'#38bdf8' };
-  const rotulos = { 'crítico':'Crítico', 'médio':'Médio', 'baixo':'Baixo' };
-  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-
-  window.SentinelAlertas = {
-    dados: alertas,
-    cores,
-    rotulos,
-    esc,
-    porGravidade: gravidade => alertas.filter(a => a.gravidade === gravidade)
-  };
-
-  function renderizarLista() {
-    const lista = document.querySelector('[data-alertas-lista]');
-    if (!lista) return;
-    const ativos = new Set(['crítico', 'médio', 'baixo']);
-    document.querySelectorAll('[data-filtro-alerta]').forEach(botao => {
-      botao.addEventListener('click', () => {
-        const nivel = botao.dataset.filtroAlerta;
-        ativos.has(nivel) ? ativos.delete(nivel) : ativos.add(nivel);
-        botao.classList.toggle('is-off', !ativos.has(nivel));
-        desenhar();
-      });
-    });
-    function desenhar() {
-      const visiveis = alertas.filter(a => ativos.has(a.gravidade));
-      const contador = document.querySelector('[data-alertas-contagem]');
-      if (contador) contador.textContent = `${visiveis.length} alertas ativos`;
-      lista.innerHTML = visiveis.map(a => `<article class="alert-card">
-        <span class="severity-dot ${a.gravidade}"></span><div><span class="eyebrow">${esc(a.tipo)} · ${esc(rotulos[a.gravidade])}</span>
-        <h3>${esc(a.titulo)}</h3><p>${esc(a.descricao)}</p><small>${esc(a.bairro)} · ${esc(a.endereco)}</small></div></article>`).join('') || '<p class="empty">Nenhum alerta neste filtro.</p>';
-    }
-    desenhar();
-  }
-  document.addEventListener('DOMContentLoaded', renderizarLista);
+/* Fonte única: dados fornecidos. Coordenadas só surgem após geocodificação confirmada. */
+(function(){'use strict';
+const linhas=[
+['04/07/2026','Bom Sucesso de Itararé','Atropelamento fatal','crítico'],['08/07/2026','São Paulo, Rua Augusta, Centro','Morte de GCM','crítico'],['10/07/2026','São Paulo','Confronto policial','crítico'],['10/07/2026','Pinheiros/Vila Madalena','Advogado foi encontrado morto','crítico'],['11/07/2026','Zona Sul / Rio Guarapiranga','Feminicídio e ocultação de cadáver','crítico'],['15/07/2026','Barra Funda','Homem foi encontrado morto','crítico'],['16/07/2026','Carapicuíba','Sequestro e homicídio','crítico'],['20/07/2026','Capão Redondo','Prisão relacionada à investigação de homicídio','crítico'],['21/07/2026','Av. Ibirapuera, Zona Sul','Atropelamento fatal','crítico'],['23/07/2026','Av. Nove de Julho','Atropelamento fatal','crítico'],['26/07/2026','Campinas, Rodovia Adhemar de Barros','Acidente rodoviário','médio'],['26/07/2026','Barra Funda, Rua do Bosque','Atropelamento fatal','crítico'],['27/07/2026','Planalto Paulista','Perseguição policial e acidente','médio'],['31/07/2026','Penápolis, Parque dos Girassóis','Confronto policial','crítico'],['31/07/2026','Vila Jacuí, Zona Leste','Tentativa de feminicídio','médio'],['02/08/2026','Parque Santo Antônio, Zona Sul','Cárcere privado e violência sexual','médio'],['03/08/2026','Viaduto Dona Matilde, Zona Leste','Atropelamento fatal','crítico'],['03/08/2026','Marília, Zona Sul','Homicídio','crítico'],['04/08/2026','Linhas 11, 12 e 13 da CPTM','Greve afetou três linhas','médio'],['07/08/2026','Jundiaí, Rodovia Anhanguera','Atropelamento fatal durante fuga','crítico'],['07/08/2026','Ourinhos, SP-270','Acidente rodoviário','médio'],['09/08/2026','Ribeirão Preto, SP-333','Acidente rodoviário','médio'],['10/08/2026','Artur Alvim, Zona Leste','Homem foi sequestrado com falsa viatura','médio'],['10/08/2026',"Santa Bárbara d'Oeste",'Acidente de trânsito','baixo'],['10/08/2026','São José do Rio Preto, SP-425','Atropelamento fatal','crítico'],['11/08/2026','Cambuci, Av. do Estado','Incêndio atingiu uma estrutura','baixo'],['11/08/2026','Cambuci, Rua Silveira da Mota','Incêndio atingiu um galpão','baixo'],['11/08/2026','Zona Leste','Quatro pessoas foram presas por golpes digitais','baixo'],['15/08/2026','Sarapuí','Tentativa de feminicídio','médio'],['18/08/2026','Vargem, Rodovia Fernão Dias','Queda de passarela','baixo'],['19/08/2026','Capivari, Jardim Florido','Homicídio','crítico'],['23/08/2026','Joanópolis','Tentativa de homicídio','médio'],['24/08/2026','São Paulo','Operação contra rede de receptadores de alianças roubadas','baixo'],['27/08/2026','Penha, Av. Governador Carvalho Pinto','Atropelamento fatal','crítico'],['29/08/2026','Itaquaquecetuba, Jardim Nova Louzada','Acidente de trabalho fatal','crítico'],['29/08/2026','São José dos Campos, Bairro dos Freitas','Homicídio','crítico'],['30/08/2026','Araçatuba','Morte em abordagem policial','crítico'],['30/08/2026','Jardim Castro Alves, Zona Sul','Homicídio','crítico'],['30/08/2026','Botucatu','Morte por ataque de abelhas','crítico'],['01/09/2026','Vila Madalena','Tentativa de roubo a uma farmácia','médio'],['02/09/2026','Perdizes','Tentativa de roubo a uma farmácia','médio'],['03/09/2026','Araras, Jardim Cândida','Confronto policial','crítico'],['03/09/2026','São Vicente','Atropelamento fatal','crítico'],['05/09/2026','Moema, Av. Rouxinol','Árvore caiu sobre um veículo','baixo'],['05/09/2026','Araraquara, Jardim Salto Grande','Afogamento e morte suspeita','crítico'],['06/09/2026','Vila Maria, Comunidade do Verde','Incêndio atingiu moradias','baixo'],['06/09/2026','Capão Redondo, Conjunto Pirajussara','Homem morreu após ser baleado em intervenção policial','crítico'],['06/09/2026','Capão Redondo','Morte em abordagem policial','crítico'],['06/09/2026','Sapopemba, Rua Aurélio Neves','Casa desabou','baixo'],['06/09/2026','Embu das Artes, Chácaras Bartira','Morte suspeita em investigação','crítico'],['07/09/2026','Ribeirão Preto','Homicídio em investigação','crítico'],['08/09/2026','São Vicente, Av. Pérsio de Queirós Filho','Homicídio/latrocínio','crítico'],['11/09/2026','Grande São Paulo','Chuvas causaram mortes','crítico'],['12/09/2026','Penha, Rua Tequeci','Desabamento de prédio deixou mortos','crítico'],['12/09/2026','Jandira','Pessoas foram arrastadas por enxurrada','médio'],['12/09/2026','Jabaquara','Moradias desabaram','baixo'],['12/09/2026','Mogi das Cruzes, SP-066','Queda de barreira interditou a via','baixo'],['12/09/2026','Vila Granada, Zona Leste','Desabamento','baixo'],['12/09/2026','Marginal Tietê','Pistas foram bloqueadas','baixo'],['12/09/2026','Marginal Pinheiros','Faixas foram bloqueadas','baixo'],['12/09/2026','Ipiranga','Alerta de transbordamento','baixo'],['12/09/2026','São Paulo','Alagamentos e incêndio em subestação','baixo'],['13/09/2026','Av. Paulista','Acidente de trânsito','baixo'],['14/09/2026','São Bernardo do Campo, Ferrazópolis','Chuva causou desabamento parcial de uma casa','baixo'],['14/09/2026','Campinas, Região Norte','Confronto policial','crítico'],['15/09/2026','Santos, Zona Portuária','Morte suspeita em investigação','crítico'],['17/09/2026','Jardim Cachoeira, Zona Norte','Estudante foi morta a tiros','crítico'],['18/09/2026','Ipiranga','Homem morreu após ser baleado por policial militar','crítico'],['18/09/2026','Capão Redondo','Suspeito morreu baleado durante tentativa de roubo','crítico']];
+const alertas=linhas.map(([data,local,descricao,gravidade],i)=>({id:`ALT-${String(i+1).padStart(3,'0')}`,data,local,titulo:descricao,descricao,gravidade}));const cores={'crítico':'#ef4444','médio':'#f59e0b','baixo':'#38bdf8'},rotulos={'crítico':'Crítico','médio':'Médio','baixo':'Baixo'},esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));window.SentinelAlertas={dados:alertas,cores,rotulos,esc,porGravidade:g=>alertas.filter(a=>a.gravidade===g)};
+function render(){const lista=document.querySelector('[data-alertas-lista]');if(!lista)return;const ativos=new Set(['crítico','médio','baixo']);document.querySelectorAll('[data-filtro-alerta]').forEach(b=>b.onclick=()=>{const n=b.dataset.filtroAlerta;ativos.has(n)?ativos.delete(n):ativos.add(n);b.classList.toggle('is-off',!ativos.has(n));sessionStorage.setItem('sentinel-filtros',JSON.stringify([...ativos]));desenhar()});function desenhar(){const v=alertas.filter(a=>ativos.has(a.gravidade)),c=document.querySelector('[data-alertas-contagem]');if(c)c.textContent=`${v.length} alertas ativos`;lista.innerHTML=v.map(a=>`<button class="alert-card" data-alerta-id="${a.id}"><span class="severity-dot ${a.gravidade}"></span><div><span class="eyebrow">${esc(a.data)} · ${esc(rotulos[a.gravidade])}</span><h3>${esc(a.descricao)}</h3><small>${esc(a.local)}</small></div></button>`).join('');lista.querySelectorAll('[data-alerta-id]').forEach(b=>b.onclick=()=>location.href=`mapa.html#alert=${b.dataset.alertaId}`)}desenhar()}document.addEventListener('DOMContentLoaded',render);
 })();
