@@ -407,7 +407,7 @@
         <a href="alertas.html" class="sidebar-link">
           <i data-lucide="bell"></i>
           Alertas
-          <span class="link-badge">43</span>
+          <span class="link-badge" id="sidebarAlertBadge">43</span>
         </a>
 
         <span class="sidebar-section-label">Sistema</span>
@@ -417,7 +417,7 @@
           Página Inicial
         </a>
 
-        <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+        <a href="login.html" onclick="if(window.sentinelLogout){sentinelLogout();return false;}" class="sidebar-link" style="color:#ef4444;">
           <i data-lucide="log-out" style="color:#ef4444;"></i>
           Sair (Bloquear)
         </a>
@@ -463,6 +463,12 @@
           <button class="btn btn-primary btn-sm" id="btnOpenSmartRoute" style="gap:0.4rem; font-weight:700; background: linear-gradient(135deg, #00e5ff 0%, #0077b6 100%); border:none; color:#050508;">
             <i data-lucide="navigation" style="width:16px;height:16px;"></i>
             Rota IA (Waze)
+          </button>
+
+          <!-- Botão Atualizar Dados do Mapa -->
+          <button class="btn btn-secondary btn-sm" id="btnRefreshMap" style="gap:0.4rem; font-weight:600;" title="Atualizar dados do mapa sob demanda">
+            <i data-lucide="refresh-cw" style="width:16px;height:16px"></i>
+            Atualizar
           </button>
 
           <!-- Botão Gerar Relatório -->

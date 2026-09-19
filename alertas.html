@@ -29,7 +29,7 @@
                 <div class="logo-icon">🛡️</div>
                 <div>
                     <h3>Sentinel IA</h3>
-                    <span>v2.4.0-beta</span>
+                    <span>v1.0</span>
                 </div>
             </div>
             
@@ -49,7 +49,7 @@
                 </a>
                 <a href="alertas.html" class="sidebar-link active">
                     <i data-lucide="bell"></i> Alertas
-                    <span class="link-badge">43</span>
+                    <span class="link-badge" id="sidebarAlertBadge">43</span>
                 </a>
                 
                 <div style="margin-top: auto;"></div>
@@ -57,7 +57,7 @@
                 <a href="index.html" class="sidebar-link">
                     <i data-lucide="home"></i> Voltar ao Site
                 </a>
-                <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+                <a href="login.html" onclick="if(window.sentinelLogout){sentinelLogout();return false;}" class="sidebar-link" style="color:#ef4444;">
                     <i data-lucide="log-out" style="color:#ef4444;"></i> Sair (Bloquear)
                 </a>
             </nav>
@@ -94,7 +94,6 @@
                     <div class="alerts-filters" id="alertFilters">
                         <button class="filter-btn active" data-filter="all">Todos</button>
                         <button class="filter-btn" data-filter="critical" style="color: var(--red);">Crítico</button>
-                        <button class="filter-btn" data-filter="high" style="color: var(--yellow);">Alto</button>
                         <button class="filter-btn" data-filter="medium" style="color: var(--blue);">Médio</button>
                         <button class="filter-btn" data-filter="low" style="color: var(--green);">Baixo</button>
                     </div>
@@ -104,6 +103,7 @@
                         <label for="alertEndDate">Até:</label>
                         <input id="alertEndDate" type="date" aria-label="Data final dos alertas">
                         <button id="applyAlertDateFilter" class="filter-btn" type="button">Consultar período</button>
+                        <button id="clearAlertDateFilter" class="filter-btn" type="button" style="background: rgba(255,255,255,0.06); color: var(--text-secondary);">Limpar</button>
                     </div>
                     <div style="font-size: 0.85rem; color: var(--text-secondary);">
                         Total exibido: <strong class="text-primary" id="alertCount">43</strong> alertas recentes

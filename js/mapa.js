@@ -34,11 +34,26 @@
     attributionControl: true
   });
 
-  // OpenStreetMap tiles – free, no API key required
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const osmTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom: 19
   }).addTo(map);
+
+  let tileNoticeShown = false;
+  osmTileLayer.on('tileerror', () => {
+    if (!tileNoticeShown) {
+      tileNoticeShown = true;
+      console.warn('[Mapa] Alguns blocos cartográficos não puderam ser carregados.');
+    }
+  });
+
+  window.addEventListener('offline', () => {
+    mostrarToast('⚠️ Modo Sem Internet', 'Executando com dados em cache local da sessão.', 'warning');
+  });
+
+  window.addEventListener('online', () => {
+    mostrarToast('🌐 Conexão Ativa', 'Internet disponível. Clique em "Atualizar" para sincronizar se desejar.', 'safe');
+  });
 
   // New layer groups for crimes and flood‑risk points
   const crimeLayer = L.layerGroup().addTo(map);
@@ -83,11 +98,11 @@
     return gravityConfig[String(g).toUpperCase()] || gravityConfig.MEDIA;
   }
 
-  const realAlertColors = { critical: '#ff1744', high: '#f59e0b', medium: '#3b82f6', low: '#10b981' };
-  const realAlertRank = { critical: 0, high: 1, medium: 2, low: 3 };
+  const realAlertColors = { critical: '#ef4444', medium: '#3b82f6', low: '#10b981' };
+  const realAlertRank = { critical: 0, medium: 1, low: 2 };
 
   function criarMarcadorAlertaReal(grupo) {
-    const principal = grupo.slice().sort((a, b) => realAlertRank[a.severidade] - realAlertRank[b.severidade])[0];
+    const principal = grupo.slice().sort((a, b) => (realAlertRank[a.severidade] ?? 2) - (realAlertRank[b.severidade] ?? 2))[0];
     const cor = realAlertColors[principal.severidade] || realAlertColors.low;
     const icon = grupo.length > 1
       ? L.divIcon({ className: 'custom-map-icon', html: `<div class="sentinel-real-cluster" style="background:${cor}">${grupo.length}</div>`, iconSize: [34, 34], iconAnchor: [17, 17] })
@@ -98,38 +113,46 @@
     return marker;
   }
 
+  function renderizarGruposAlertasReais(ocorrencias) {
+    realAlertLayer.clearLayers();
+    realAlertMarkers.clear();
+    const grupos = new Map();
+    ocorrencias.filter(item => Number.isFinite(item.lat) && Number.isFinite(item.lng)).forEach(item => {
+      const chave = `${item.lat.toFixed(6)},${item.lng.toFixed(6)}`;
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      grupos.get(chave).push(item);
+    });
+    grupos.forEach(grupo => criarMarcadorAlertaReal(grupo));
+    const estatisticas = {
+      total: ocorrencias.length,
+      criticas: ocorrencias.filter(item => item.severidade === 'critical').length,
+      medias: ocorrencias.filter(item => item.severidade === 'medium').length
+    };
+    const atualizarNumero = (id, valor) => { const el = document.getElementById(id); if (el) el.textContent = valor; };
+    atualizarNumero('statOcorrencias', estatisticas.total);
+    atualizarNumero('statZonas', estatisticas.criticas);
+    atualizarNumero('statAlertasMedios', estatisticas.medias);
+    const alvo = new URLSearchParams(window.location.search).get('realId');
+    if (alvo && realAlertMarkers.has(alvo)) {
+      const marker = realAlertMarkers.get(alvo);
+      map.flyTo(marker.getLatLng(), 15, { animate: true, duration: 1.2 });
+      setTimeout(() => marker.openPopup(), 500);
+    }
+  }
+
   async function carregarAlertasReaisNoMapa() {
     const api = window.SENTINEL_REAL_ALERTS_API;
-    if (!api || !window.SENTINEL_REAL_ALERTS?.length) return;
+    if (!api || !window.SENTINEL_REAL_ALERTS?.length) return [];
     try {
       const ocorrencias = await api.geocodificarTodos((feito, total) => {
         const el = document.getElementById('mapLoadingOverlay');
-        if (el) el.lastChild.textContent = ` Geocodificando alertas ${feito}/${total}...`;
+        if (el && el.lastChild) el.lastChild.textContent = ` Geocodificando alertas ${feito}/${total}...`;
       });
-      const grupos = new Map();
-      ocorrencias.filter(item => Number.isFinite(item.lat) && Number.isFinite(item.lng)).forEach(item => {
-        const chave = `${item.lat.toFixed(6)},${item.lng.toFixed(6)}`;
-        if (!grupos.has(chave)) grupos.set(chave, []);
-        grupos.get(chave).push(item);
-      });
-      grupos.forEach(grupo => criarMarcadorAlertaReal(grupo));
-      const estatisticas = {
-        total: ocorrencias.length,
-        altas: ocorrencias.filter(item => item.severidade === 'critical').length,
-        medias: ocorrencias.filter(item => item.severidade === 'medium').length
-      };
-      const atualizarNumero = (id, valor) => { const el = document.getElementById(id); if (el) el.textContent = valor; };
-      atualizarNumero('statOcorrencias', estatisticas.total);
-      atualizarNumero('statZonas', estatisticas.altas);
-      atualizarNumero('statAlertasMedios', estatisticas.medias);
-      const alvo = new URLSearchParams(window.location.search).get('realId');
-      if (alvo && realAlertMarkers.has(alvo)) {
-        const marker = realAlertMarkers.get(alvo);
-        map.flyTo(marker.getLatLng(), 15, { animate: true, duration: 1.2 });
-        setTimeout(() => marker.openPopup(), 500);
-      }
+      renderizarGruposAlertasReais(ocorrencias);
+      return ocorrencias;
     } catch (error) {
       console.warn('[Alertas] Não foi possível localizar as ocorrências:', error);
+      return [];
     }
   }
 
@@ -533,23 +556,128 @@ let heatLayer = null;
     if (elStatTemp) elStatTemp.textContent = `${tempC}°C`;
   }
 
+  // ── Cache de Sessão e Atualização sob Demanda ─────────────────────────────
+  const MAP_CACHE_KEY = 'sentinel_map_session_cache_v2';
+
+  function salvarEstadoCache(ocorrenciasReais) {
+    try {
+      const estado = {
+        bos: lastBoData || [],
+        total: lastBoData ? lastBoData.length : 0,
+        realAlerts: ocorrenciasReais || (window.SENTINEL_REAL_ALERTS || []),
+        center: [map.getCenter().lat, map.getCenter().lng],
+        zoom: map.getZoom(),
+        tempC: document.getElementById('topbarTempText')?.textContent || '24.2°C',
+        condicao: document.getElementById('topbarCondBadge')?.textContent || 'São Paulo',
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem(MAP_CACHE_KEY, JSON.stringify(estado));
+    } catch (err) {
+      console.warn('[MapCache] Aviso ao salvar estado no sessionStorage:', err);
+    }
+  }
+
+  function tentarRestaurarCache() {
+    try {
+      const bruto = sessionStorage.getItem(MAP_CACHE_KEY);
+      if (!bruto) return false;
+      const cache = JSON.parse(bruto);
+      if (!cache || !Array.isArray(cache.bos) || cache.bos.length === 0) return false;
+
+      // 1. Restaurar visão e zoom do mapa
+      if (cache.center && typeof cache.zoom === 'number') {
+        map.setView(cache.center, cache.zoom);
+      }
+
+      // 2. Renderizar BOs sem nova requisição de rede
+      lastBoData = cache.bos;
+      renderizarMarcadores(cache.bos, cache.total || cache.bos.length);
+      atualizarHeatmap(cache.bos);
+      atualizarEstatisticas(cache.bos, cache.total || cache.bos.length);
+
+      // 3. Renderizar Alertas Reais já geocodificados
+      if (Array.isArray(cache.realAlerts) && cache.realAlerts.length > 0) {
+        renderizarGruposAlertasReais(cache.realAlerts);
+      }
+
+      // 4. Restaurar telemetria de clima
+      if (cache.tempC) {
+        const elTopbar = document.getElementById('topbarTempText');
+        if (elTopbar) elTopbar.textContent = cache.tempC;
+        const elTopbarCond = document.getElementById('topbarCondBadge');
+        if (elTopbarCond) elTopbarCond.textContent = cache.condicao || 'São Paulo';
+        const elHudTemp = document.getElementById('mapHudTemp');
+        if (elHudTemp) elHudTemp.innerHTML = `${cache.tempC}<span></span>`;
+        const elStatTemp = document.getElementById('statTemperatura');
+        if (elStatTemp) elStatTemp.textContent = cache.tempC;
+      }
+
+      checkURLAlertParams();
+      mostrarToast('🗺️ Mapa Restaurado', 'Exibindo dados mantidos na sessão sem recarregar.', 'info');
+      return true;
+    } catch (err) {
+      console.warn('[MapCache] Falha ao ler cache da sessão:', err);
+      return false;
+    }
+  }
+
+  async function recarregarTudo(notificar = false) {
+    mostrarLoading(true);
+    try {
+      await carregarOcorrenciasNoMapa();
+      const ocorrencias = await carregarAlertasReaisNoMapa();
+      await carregarTemperaturaNoMapa();
+      checkURLAlertParams();
+      salvarEstadoCache(ocorrencias);
+      if (notificar) {
+        mostrarToast('✅ Mapa Atualizado', 'Todas as ocorrências e camadas foram sincronizadas.', 'safe');
+      }
+    } finally {
+      mostrarLoading(false);
+    }
+  }
+
   // ── Inicialização ──────────────────────────────────────────────────────────
   async function inicializar() {
-    await carregarOcorrenciasNoMapa();
-    mostrarLoading(true);
-    await carregarAlertasReaisNoMapa();
-    mostrarLoading(false);
-    await carregarTemperaturaNoMapa();
-    checkURLAlertParams();
-    setInterval(async () => {
+    // 1. Tentar restaurar estado em cache
+    const recuperado = tentarRestaurarCache();
+
+    // 2. Só efetua requisições na primeira abertura se não houver cache
+    if (!recuperado) {
+      await recarregarTudo(false);
+    }
+
+    // 3. Persistir nova posição/zoom ao movimentar o mapa
+    map.on('moveend', () => {
       try {
-        const d = await fetchOcorrenciasAPI(1, 100);
-        renderizarMarcadores(d.ocorrencias || [], d.total);
-        atualizarHeatmap(d.ocorrencias || []);
-        atualizarEstatisticas(d.ocorrencias || [], d.total);
-      } catch (e) { console.warn('[Auto-refresh] Offline:', e.message); }
-    }, REFRESH_MS);
-    setInterval(carregarTemperaturaNoMapa, 60000);
+        const bruto = sessionStorage.getItem(MAP_CACHE_KEY);
+        if (bruto) {
+          const cache = JSON.parse(bruto);
+          cache.center = [map.getCenter().lat, map.getCenter().lng];
+          cache.zoom = map.getZoom();
+          sessionStorage.setItem(MAP_CACHE_KEY, JSON.stringify(cache));
+        }
+      } catch (_) {}
+    });
+
+    // 4. Botão Atualizar (sob demanda manual)
+    const btnRefresh = document.getElementById('btnRefreshMap');
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', async () => {
+        const conteudoOriginal = btnRefresh.innerHTML;
+        btnRefresh.disabled = true;
+        btnRefresh.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:4px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Atualizando...';
+        try {
+          await recarregarTudo(true);
+        } catch (e) {
+          mostrarToast('⚠️ Erro', 'Falha ao sincronizar: ' + e.message, 'warning');
+        } finally {
+          btnRefresh.disabled = false;
+          btnRefresh.innerHTML = conteudoOriginal;
+          if (window.lucide) lucide.createIcons();
+        }
+      });
+    }
   }
 
   // ── Roteamento Inteligente com IA (Waze / FECART) ─────────────────────────

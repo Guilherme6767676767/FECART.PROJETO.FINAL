@@ -57,7 +57,7 @@
         <a href="alertas.html" class="sidebar-link">
           <i data-lucide="bell"></i>
           Alertas
-          <span class="link-badge">23</span>
+          <span class="link-badge" id="sidebarAlertBadge">43</span>
         </a>
 
         <span class="sidebar-section-label">Sistema</span>
@@ -67,7 +67,7 @@
           Voltar ao Site
         </a>
 
-        <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+        <a href="login.html" onclick="if(window.sentinelLogout){sentinelLogout();return false;}" class="sidebar-link" style="color:#ef4444;">
           <i data-lucide="log-out" style="color:#ef4444;"></i>
           Sair (Bloquear)
         </a>

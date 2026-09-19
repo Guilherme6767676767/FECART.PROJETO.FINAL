@@ -18,9 +18,45 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1000);
     }
 
-    // Fonte compartilhada das 50 ocorrências fornecidas pelo usuário.
+    function classificarSeveridadeLocal(alerta) {
+        if (typeof window.classificarSeveridade === 'function') {
+            return window.classificarSeveridade(alerta);
+        }
+        let texto = '';
+        if (typeof alerta === 'string') {
+            texto = alerta;
+        } else if (alerta && typeof alerta === 'object') {
+            texto = [alerta.natureza||'', alerta.title||'', alerta.titulo||'', alerta.desc||'', alerta.descricao||''].join(' ');
+        }
+        const limpo = texto.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        if (limpo.includes('morte') || limpo.includes('vitima fatal') || limpo.includes('vitimas fatais') || limpo.includes('obito')) {
+            return 'critical';
+        }
+        const padraoCritico = /\b(morte|mortes|obito|obitos|homicidio|homicidios|feminicidio|feminicidios|vitima fatal|vitimas fatais|fatal|latrocinio|latrocinios|explosao|explosoes)\b|incendio com vitima/i;
+        if (padraoCritico.test(limpo)) return 'critical';
+        const padraoMedio = /\b(carcere privado|sequestro|sequestros|roubo|roubos|assalto|assaltos|agressao|agressoes|confronto policial|perseguicao|violencia sexual|arrastao)\b|acidente com ferido|acidente rodoviario|acidente de transito|incendio sem vitima/i;
+        if (padraoMedio.test(limpo) || limpo.includes('acidente')) return 'medium';
+        return 'low';
+    }
+
+    function atualizarContadoresGlobais() {
+        const totalAlertas = (window.SENTINEL_REAL_ALERTS || []).length || 43;
+        const badges = document.querySelectorAll('#sidebarAlertBadge, .sidebar-link[href="alertas.html"] .link-badge');
+        badges.forEach(b => { b.textContent = totalAlertas; });
+    }
+
+    // Fonte compartilhada das ocorrências fornecidas pelo usuário.
     async function carregarAlertasReais() {
-        const fonte = window.SENTINEL_REAL_ALERTS || [];
+        const classify = window.classificarSeveridade || classificarSeveridadeLocal;
+        const fonte = (window.SENTINEL_REAL_ALERTS || []).map(item => {
+            const sev = classify(item);
+            return {
+                ...item,
+                severidade: sev,
+                nivel_gravidade: sev === 'critical' ? 'CRÍTICO' : (sev === 'medium' ? 'MÉDIO' : 'BAIXO'),
+                prioridade: sev === 'critical' ? 0 : (sev === 'medium' ? 1 : 2)
+            };
+        });
         const start = document.getElementById('alertStartDate')?.value || '';
         const end = document.getElementById('alertEndDate')?.value || '';
         alertsData = fonte
@@ -34,10 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 title: item.natureza,
                 desc: `${item.municipio} • ${item.local}`,
                 time: `${item.data} ${item.hora}`,
-                icon: item.severidade === 'critical' ? 'alert-octagon' : item.severidade === 'high' ? 'shield-alert' : item.severidade === 'medium' ? 'alert-triangle' : 'file-warning',
+                icon: item.severidade === 'critical' ? 'alert-octagon' : (item.severidade === 'medium' ? 'alert-triangle' : 'shield-check'),
                 locationName: `${item.local}, ${item.municipio}`
             }));
-        renderAlerts('all');
+        
+        const activeBtn = document.querySelector('.alerts-filters .filter-btn.active');
+        const filterType = activeBtn ? activeBtn.getAttribute('data-filter') : 'all';
+        renderAlerts(filterType);
+        updateAlertCharts();
+        atualizarContadoresGlobais();
         return;
         try {
             let apiAlerts = [];
@@ -161,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         alertsData.forEach(alert => {
-            const itemClass = alert.type === 'critical' ? 'critical' : (alert.type === 'high' ? 'warning' : '');
+            const itemClass = alert.type === 'critical' ? 'critical' : (alert.type === 'medium' ? 'warning' : 'safe');
             const timeFormatted = alert.real ? alert.time : (alert.time === 'Tempo Real' || alert.time === 'Agora' || alert.time === 'Recente'
                 ? `Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`
                 : `Hoje, ${alert.time}`);
@@ -197,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <i data-lucide="${alert.icon}"></i>
                         </div>
                         <div class="alert-item-content">
-                            <h5>${alert.title}${alert.real && alert.type === 'critical' ? '<span class="real-alert-badge">MAIOR GRAVIDADE</span>' : ''}</h5>
+                            <h5>${alert.title}${alert.real && alert.type === 'critical' ? '<span class="real-alert-badge">CRÍTICO</span>' : ''}</h5>
                             <p>${alert.real ? `${alert.data}${alert.hora ? ` • ${alert.hora}` : ''}<br>${alert.municipio}<br>${alert.local}<br><small>Fonte: ${alert.fonte}</small>` : alert.desc}</p>
                         </div>
                         <div class="alert-item-time">${alert.time}</div>
@@ -216,7 +257,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         if (count === 0) {
-            alertListContainer.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h5>Nenhum alerta encontrado</h5><p>Nenhum alerta corresponde aos filtros selecionados. Tente outro nível de severidade ou período.</p></div>';
+            alertListContainer.innerHTML = `
+                <div class="empty-state" role="status" aria-live="polite" style="padding: 2.5rem 1.5rem; text-align: center;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.6rem;">🔍</div>
+                    <h5 style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 0.4rem;">Nenhum alerta encontrado</h5>
+                    <p style="font-size: 0.85rem; color: var(--text-tertiary); max-width: 440px; margin: 0 auto;">Nenhum alerta corresponde aos filtros ou período selecionado. Tente outro nível de severidade ou clique em "Limpar" no filtro de período.</p>
+                </div>
+            `;
         }
         if (alertCountElement) alertCountElement.textContent = count;
         if (window.lucide) lucide.createIcons();
@@ -236,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
             regionChartInstance.data.datasets[0].data = labels.length ? labels.map(label => regions[label]) : [0];
             regionChartInstance.update();
         }
-        const levels = ['critical', 'high', 'medium', 'low'];
+        const levels = ['critical', 'medium', 'low'];
         if (severityChartInstance) {
             severityChartInstance.data.datasets[0].data = levels.map(level => alertsData.filter(alert => alert.type === level).length);
             severityChartInstance.update();
@@ -247,18 +294,27 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarAlertasReais();
 
     document.getElementById('applyAlertDateFilter')?.addEventListener('click', carregarAlertasReais);
+    document.getElementById('clearAlertDateFilter')?.addEventListener('click', () => {
+        const startInput = document.getElementById('alertStartDate');
+        const endInput = document.getElementById('alertEndDate');
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+        carregarAlertasReais();
+    });
 
     // Função Global para Reconhecer Alerta (Acknowledge)
     window.acknowledgeAlert = function(id) {
-        event.stopPropagation();
+        if (window.event) window.event.stopPropagation();
         const el = document.getElementById('alert-item-' + id);
         if (el) {
             el.classList.add('fadeOut');
             setTimeout(() => {
                 el.remove();
+                alertsData = alertsData.filter(a => a.id !== id);
                 // Atualiza o contador visual
                 const countEl = document.getElementById('alertCount');
                 if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent) - 1);
+                updateAlertCharts();
             }, 300);
         }
     };
@@ -276,26 +332,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 "Veículo com restrição detectado cruzando cerco eletrônico em alta velocidade."
             ]
         },
-        high: {
-            titles: ["Aglomeração Anômala", "Alerta de Tráfego Intenso", "Suspeita de Invasão", "Falha de Infraestrutura", "Alerta Ambiental"],
-            sources: ["Análise de Fluxo de Pessoas", "Modelo de Previsão de Trânsito", "Sensores Perimetrais", "Monitoramento de Pontes", "Sensores de Ar"],
-            details: [
-                "Desvio de 300% na movimentação normal de pessoas na praça central. Possível manifestação não programada.",
-                "Rede recorrente previu retenção severa nas próximas 2 horas. Sugerido desvio dinâmico de semáforos.",
-                "Movimentação detectada em área restrita fora do horário comercial. Alarme despachado.",
-                "Micro-vibrações detectadas acima do limiar seguro em pilar do viaduto principal.",
-                "Queda abrupta na qualidade do ar (PM2.5 disparado). Possível vazamento de gás ou fumaça."
-            ]
-        },
         medium: {
-            titles: ["Semáforo Intermitente", "Ruído Urbano Elevado", "Veículo Abandonado", "Lentidão Moderada", "Iluminação Inoperante"],
+            titles: ["Semáforo Intermitente", "Ruído Urbano Elevado", "Veículo Abandonado", "Lentidão Moderada", "Iluminação Inoperante", "Aglomeração Anômala"],
             sources: ["Monitoramento Viário", "Sensores Acústicos", "Câmeras de Segurança", "GPS Coletivo", "Smart Grid"],
             details: [
                 "Sistema reporta falha de sincronização no cruzamento. Impacto moderado no fluxo.",
                 "Nível de decibéis 30% acima do tolerável por mais de 20 minutos. Possível perturbação da ordem.",
                 "Objeto estático (veículo) na via por tempo superior a 2 horas. Verificação pendente.",
                 "Velocidade média da via caiu para 15km/h. Padrão não habitual para o horário.",
-                "Circuito de iluminação LED apagado. Risco de segurança aumentado no quarteirão."
+                "Circuito de iluminação LED apagado. Risco de segurança aumentado no quarteirão.",
+                "Desvio atípico na movimentação de pedestres monitorada por visão computacional."
             ]
         },
         low: {
@@ -322,7 +368,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Filtros
-    const filterButtons = document.querySelectorAll('.filter-btn');
+    const filterButtons = document.querySelectorAll('.filter-btn[data-filter]');
     filterButtons.forEach(btn => {
         btn.addEventListener('click', (e) => {
             filterButtons.forEach(b => b.classList.remove('active'));
@@ -376,20 +422,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Gráfico: Distribuição por Severidade (Doughnut)
+    // Gráfico: Distribuição por Severidade (Doughnut) — Exclusivamente Crítico, Médio e Baixo
     const ctxSeverity = document.getElementById('severityChart');
     if (ctxSeverity) {
         severityChartInstance = new Chart(ctxSeverity, {
             type: 'doughnut',
             data: {
-                labels: ['Crítico', 'Alto', 'Médio', 'Baixo'],
+                labels: ['Crítico', 'Médio', 'Baixo'],
                 datasets: [{
-                    data: [3, 4, 8, 32],
+                    data: [0, 0, 0],
                     backgroundColor: [
-                        '#ef4444', // Red
-                        '#f59e0b', // Yellow
-                        '#3b82f6', // Blue
-                        '#10b981'  // Green
+                        '#ef4444', // Red (Crítico)
+                        '#3b82f6', // Blue (Médio)
+                        '#10b981'  // Green (Baixo)
                     ],
                     borderWidth: 0,
                     cutout: '70%'

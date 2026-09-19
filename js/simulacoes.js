@@ -81,7 +81,12 @@
       type: occurrence.tipo_crime || occurrence.type || 'Ocorrência simulada',
       district: occurrence.bairro || occurrence.district || 'Não informado',
       address: occurrence.logradouro || occurrence.address || 'Não informado',
-      severity: String(occurrence.gravidade || occurrence.severity || 'ALTA').toUpperCase(),
+      severity: (() => {
+        const raw = String(occurrence.gravidade || occurrence.severity || 'MEDIA').toUpperCase();
+        if (raw.includes('CRITIC') || raw === 'CRITICA') return 'CRITICA';
+        if (raw.includes('BAIX') || raw === 'LOW' || raw === 'BAIXA') return 'BAIXA';
+        return 'MEDIA';
+      })(),
       lat: Number(occurrence.latitude ?? occurrence.lat),
       lng: Number(occurrence.longitude ?? occurrence.lng),
       timestamp: occurrence.data_hora ? new Date(occurrence.data_hora).toLocaleTimeString('pt-BR') : new Date().toLocaleTimeString('pt-BR'),
@@ -105,12 +110,12 @@
     'Brás': { lat: -23.54300, lng: -46.61800, address: 'Rua do Gasômetro, 300' }
   };
 
-  // Base de Ocorrências Históricas SSP-SP
+  // Base de Ocorrências Históricas SSP-SP (Classificação Padronizada: CRÍTICA, MÉDIA, BAIXA)
   const BASE_SP_OCCURRENCES = [
     { id: 'BO-001', bo: '98124/2026', type: 'Furto de Celular', district: 'Sé', address: 'Praça da Sé', lat: -23.55052, lng: -46.63330, severity: 'MEDIA' },
-    { id: 'BO-002', bo: '98125/2026', type: 'Roubo de Veículo', district: 'Pinheiros', address: 'Av. Faria Lima', lat: -23.56750, lng: -46.69200, severity: 'ALTA' },
+    { id: 'BO-002', bo: '98125/2026', type: 'Roubo de Veículo', district: 'Pinheiros', address: 'Av. Faria Lima', lat: -23.56750, lng: -46.69200, severity: 'MEDIA' },
     { id: 'BO-003', bo: '98126/2026', type: 'Furto de Veículo', district: 'Bela Vista', address: 'Rua 13 de Maio', lat: -23.55800, lng: -46.64500, severity: 'MEDIA' },
-    { id: 'BO-004', bo: '98127/2026', type: 'Alagamento Pista Expressa', district: 'Lapa', address: 'Marginal Tietê', lat: -23.51900, lng: -46.69200, severity: 'ALTA' },
+    { id: 'BO-004', bo: '98127/2026', type: 'Alagamento Pista Expressa', district: 'Lapa', address: 'Marginal Tietê', lat: -23.51900, lng: -46.69200, severity: 'BAIXA' },
     { id: 'BO-005', bo: '98128/2026', type: 'Tentativa de Roubo Comercial', district: 'Moema', address: 'Av. Ibirapuera', lat: -23.59500, lng: -46.66200, severity: 'CRITICA' },
     { id: 'BO-006', bo: '98129/2026', type: 'Furto Qualificado', district: 'Tatuapé', address: 'Rua Tuiuti', lat: -23.54100, lng: -46.57500, severity: 'BAIXA' },
     { id: 'BO-007', bo: '98130/2026', type: 'Roubo de Carga', district: 'Brás', address: 'Rua do Gasômetro', lat: -23.54300, lng: -46.61800, severity: 'CRITICA' }
@@ -232,7 +237,7 @@
 
     BASE_SP_OCCURRENCES.forEach(bo => {
       const isCrit = bo.severity === 'CRITICA';
-      const color = isCrit ? '#ef4444' : (bo.severity === 'ALTA' ? '#f59e0b' : '#3b82f6');
+      const color = isCrit ? '#ef4444' : (bo.severity === 'MEDIA' ? '#3b82f6' : '#10b981');
 
       const icon = L.divIcon({
         className: 'custom-bo-marker',
@@ -355,22 +360,22 @@
     updateAnimatedImpactChart(simEvent);
   };
 
-  // 5. Disparo de Cenários Prontos em 1 Clique
+  // 5. Disparo de Cenários Prontos em 1 Clique (Classificação: CRÍTICA, MÉDIA, BAIXA)
   window.triggerScenario = async function (scenarioId) {
     const scenarios = {
       'tempestade_marginal': [
         { title: 'Alagamento Crítico — Transbordamento de Pista', type: 'Alagamento Iminente', district: 'Lapa', address: 'Marginal Tietê, próx. Ponte da Lapa', severity: 'CRITICA', lat: -23.5195, lng: -46.6930 },
-        { title: 'Queda de Árvore em Faixa de Rolamento', type: 'Queda de Árvore', district: 'Santana', address: 'Av. Olavo Fontoura', severity: 'ALTA', lat: -23.5080, lng: -46.6390 }
+        { title: 'Queda de Árvore em Faixa de Rolamento', type: 'Queda de Árvore', district: 'Santana', address: 'Av. Olavo Fontoura', severity: 'BAIXA', lat: -23.5080, lng: -46.6390 }
       ],
       'arrastao_centro': [
         { title: 'Arrastão / Roubo Coletivo a Transeuntes', type: 'Arrastão / Furto Coletivo', district: 'Sé', address: 'Rua Direita x Praça do Patriarca', severity: 'CRITICA', lat: -23.5485, lng: -46.6345 },
-        { title: 'Aglomeração Hostil / Distúrbio', type: 'Aglomeração Hostil', district: 'Sé', address: 'Praça da Sé, Metrô', severity: 'ALTA', lat: -23.5505, lng: -46.6333 }
+        { title: 'Aglomeração Hostil / Distúrbio', type: 'Aglomeração Hostil', district: 'Sé', address: 'Praça da Sé, Metrô', severity: 'MEDIA', lat: -23.5505, lng: -46.6333 }
       ],
       'aglomeracao_paulista': [
         { title: 'Manifestação Espontânea / Bloqueio Total', type: 'Bloqueio de Via', district: 'Bela Vista', address: 'Av. Paulista, 1578 (MASP)', severity: 'CRITICA', lat: -23.5614, lng: -46.6560 }
       ],
       'pane_pinheiros': [
-        { title: 'Apagão Semafórico em Cruzamento', type: 'Falha Semafórica', district: 'Pinheiros', address: 'Av. Faria Lima x Rebouças', severity: 'ALTA', lat: -23.5675, lng: -46.6920 },
+        { title: 'Apagão Semafórico em Cruzamento', type: 'Falha Semafórica', district: 'Pinheiros', address: 'Av. Faria Lima x Rebouças', severity: 'BAIXA', lat: -23.5675, lng: -46.6920 },
         { title: 'Acidente Múltiplo com Bloqueio de Faixa', type: 'Acidente de Trânsito', district: 'Pinheiros', address: 'Av. Faria Lima, 3900', severity: 'CRITICA', lat: -23.5920, lng: -46.6850 }
       ]
     };
@@ -405,7 +410,10 @@
     if (badgeCount) badgeCount.textContent = activeSimulations.length;
 
     const isCrit = simEvent.severity === 'CRITICA';
+    const isMed = simEvent.severity === 'MEDIA';
     const markerClass = isCrit ? 'sim-radar-marker critica' : 'sim-radar-marker';
+    const badgeBg = isCrit ? 'rgba(239, 68, 68, 0.25)' : (isMed ? 'rgba(59, 130, 246, 0.25)' : 'rgba(16, 185, 129, 0.25)');
+    const badgeColor = isCrit ? '#ef4444' : (isMed ? '#3b82f6' : '#10b981');
 
     const icon = L.divIcon({
       className: 'custom-sim-divicon',
@@ -420,7 +428,7 @@
       <div style="font-family: sans-serif; min-width: 200px; padding: 2px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <span style="font-size: 10px; font-weight: 800; color: #00e5ff; font-family: monospace;">${simEvent.id}</span>
-          <span style="font-size: 9px; font-weight: 700; background: ${isCrit ? '#ef444433' : '#00e5ff22'}; color: ${isCrit ? '#ef4444' : '#00e5ff'}; padding: 2px 6px; border-radius: 4px;">
+          <span style="font-size: 9px; font-weight: 700; background: ${badgeBg}; color: ${badgeColor}; padding: 2px 6px; border-radius: 4px;">
             ${simEvent.severity}
           </span>
         </div>
@@ -450,9 +458,11 @@
     const termScore = document.getElementById('aiDiagScore');
     const termContent = document.getElementById('aiDiagContent');
 
+    const isCrit = simEvent.severity === 'CRITICA';
+    const isMed = simEvent.severity === 'MEDIA';
     const score = Number.isFinite(apiResult?.score_risco_calculado)
       ? apiResult.score_risco_calculado
-      : (simEvent.severity === 'CRITICA' ? 92 : (simEvent.severity === 'ALTA' ? 82 : 68));
+      : (isCrit ? 94 : (isMed ? 76 : 52));
     if (termScore) termScore.textContent = `Score: ${score}/100`;
 
     let recommendations = apiResult?.acoes_recomendadas || [];
@@ -570,11 +580,11 @@
     if (!impactChart) return;
 
     const isCrit = simEvent.severity === 'CRITICA';
-    const isHigh = simEvent.severity === 'ALTA';
+    const isMed = simEvent.severity === 'MEDIA';
     
-    let mult = isCrit ? 1.8 : (isHigh ? 1.3 : 0.8);
+    let mult = isCrit ? 1.8 : (isMed ? 1.1 : 0.65);
     if (simEvent.type.includes('Alagamento') || simEvent.title.includes('Tempestade')) {
-      mult *= 1.4;
+      mult *= 1.35;
     }
 
     const impactData = [

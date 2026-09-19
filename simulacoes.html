@@ -329,7 +329,7 @@
         <a href="alertas.html" class="sidebar-link">
           <i data-lucide="bell"></i>
           Alertas
-          <span class="link-badge">23</span>
+          <span class="link-badge" id="sidebarAlertBadge">43</span>
         </a>
 
         <span class="sidebar-section-label">Sistema</span>
@@ -339,7 +339,7 @@
           Voltar ao Site
         </a>
 
-        <a href="#" onclick="sentinelLogout(); return false;" class="sidebar-link" style="color:#ef4444;">
+        <a href="login.html" onclick="if(window.sentinelLogout){sentinelLogout();return false;}" class="sidebar-link" style="color:#ef4444;">
           <i data-lucide="log-out" style="color:#ef4444;"></i>
           Sair (Bloquear)
         </a>
@@ -410,6 +410,40 @@
               <div>💧 Umidade: <strong id="simHumidity">60%</strong></div>
               <div>💨 Vento: <strong id="simWind">12.5 km/h</strong></div>
               <div>🌧️ Chuva Recente: <strong id="simRain">0.0 mm</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Caixa Explicativa: Como Funciona o Laboratório de Simulação -->
+        <div class="sim-card" style="margin-top: 1rem; background: rgba(13, 20, 36, 0.75); border: 1px solid rgba(0, 229, 255, 0.25);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 0.5rem; flex-wrap: wrap; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-weight: 700; color: var(--cyan); font-size: 0.95rem;">
+              <i data-lucide="help-circle" style="width:18px;height:18px;"></i>
+              Como Funciona a Simulação Preditiva
+            </div>
+            <span style="font-size: 0.75rem; color: #94a3b8; font-family: monospace;">Modelo Matemático Dinâmico</span>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; font-size: 0.82rem; color: #cbd5e1;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 6px;">
+                <span style="background: var(--cyan); color: #060a14; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800;">1</span>
+                Defina o Incidente
+              </div>
+              <p style="margin: 0; color: var(--text-tertiary); line-height: 1.4;">Dispare um cenário rápido de 1 clique ou clique no mapa para escolher o local, tipo e nível de risco (Crítico, Médio ou Baixo).</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 6px;">
+                <span style="background: #3b82f6; color: #fff; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800;">2</span>
+                Cálculo em Tempo Real
+              </div>
+              <p style="margin: 0; color: var(--text-tertiary); line-height: 1.4;">O motor computa o Score de Risco, analisa o impacto pluviométrico e formula ações táticas (desvios Waze/CET, bombas de sucção e cerco OCR).</p>
+            </div>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.75rem;">
+              <div style="font-weight: 700; color: #fff; margin-bottom: 0.3rem; display: flex; align-items: center; gap: 6px;">
+                <span style="background: #10b981; color: #060a14; border-radius: 50%; width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800;">3</span>
+                Projeção no Gráfico & Radar
+              </div>
+              <p style="margin: 0; color: var(--text-tertiary); line-height: 1.4;">Visualize os radares pulsantes no mapa e a curva de 60 minutos com lentidão viária, tempo de resposta e absorção da crise urbana.</p>
             </div>
           </div>
         </div>
@@ -529,9 +563,8 @@
                     <label>Severidade</label>
                     <select id="simSeverity" class="sim-input">
                       <option value="CRITICA">Crítica (Prioridade 1)</option>
-                      <option value="ALTA" selected>Alta</option>
-                      <option value="MEDIA">Média</option>
-                      <option value="BAIXA">Baixa</option>
+                      <option value="MEDIA" selected>Média (Prioridade 2)</option>
+                      <option value="BAIXA">Baixa (Prioridade 3)</option>
                     </select>
                   </div>
                 </div>
