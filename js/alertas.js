@@ -13,9 +13,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const liveClock = document.getElementById('liveClock');
     if (liveClock) {
-        setInterval(() => {
+        const updateClock = () => {
             liveClock.textContent = new Date().toLocaleTimeString('pt-BR');
-        }, 1000);
+        };
+        updateClock();
+        setInterval(updateClock, 1000);
     }
 
     // Fonte compartilhada das 50 ocorrências fornecidas pelo usuário.
@@ -127,8 +129,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const alertListContainer = document.getElementById('alertList');
     const alertCountElement = document.getElementById('alertCount');
-    let regionChartInstance = null;
-    let severityChartInstance = null;
 
     // Função Global de Navegação para o Mapa
     window.viewAlertOnMap = function(lat, lng, locationName) {
@@ -140,44 +140,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.event) window.event.stopPropagation();
         window.location.href = `mapa.html?realId=${encodeURIComponent(id)}`;
     };
-
-    // Função para renderizar a timeline lateral ("Últimas 24 Horas") de forma dinâmica com dados da API
-    function renderTimeline() {
-        const timelineList = document.getElementById('timelineList');
-        if (!timelineList) return;
-        timelineList.innerHTML = '';
-
-        if (!alertsData || alertsData.length === 0) {
-            timelineList.innerHTML = `
-                <div class="timeline-item">
-                    <div class="timeline-time">Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}</div>
-                    <div class="timeline-content">
-                        <h5>Telemetria Ativa</h5>
-                        <p>Monitoramento urbano em tempo real sem anomalias nas últimas 24 horas.</p>
-                    </div>
-                </div>
-            `;
-            return;
-        }
-
-        alertsData.forEach(alert => {
-            const itemClass = alert.type === 'critical' ? 'critical' : (alert.type === 'high' ? 'warning' : '');
-            const timeFormatted = alert.real ? alert.time : (alert.time === 'Tempo Real' || alert.time === 'Agora' || alert.time === 'Recente'
-                ? `Hoje, ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})}`
-                : `Hoje, ${alert.time}`);
-
-            const itemHTML = `
-                <div class="timeline-item ${itemClass}">
-                    <div class="timeline-time">${timeFormatted}</div>
-                    <div class="timeline-content">
-                        <h5>${alert.title}</h5>
-                        <p>${alert.desc}</p>
-                    </div>
-                </div>
-            `;
-            timelineList.insertAdjacentHTML('beforeend', itemHTML);
-        });
-    }
 
     // Função para renderizar alertas
     function renderAlerts(filterType = 'all') {
@@ -219,28 +181,22 @@ document.addEventListener('DOMContentLoaded', () => {
             alertListContainer.innerHTML = '<div class="empty-state" role="status" aria-live="polite"><h5>Nenhum alerta encontrado</h5><p>Nenhum alerta corresponde aos filtros selecionados. Tente outro nível de severidade ou período.</p></div>';
         }
         if (alertCountElement) alertCountElement.textContent = count;
+        const visibleAlerts = alertsData.filter(alert => filterType === 'all' || alert.type === filterType);
+        atualizarResumoAlertas(visibleAlerts);
+        const sidebarCount = document.getElementById('alertSidebarCount');
+        if (sidebarCount) sidebarCount.textContent = alertsData.length;
         if (window.lucide) lucide.createIcons();
-        renderTimeline();
     }
 
-    function updateAlertCharts() {
-        if (!window.Chart) return;
-        const regions = {};
-        alertsData.forEach(alert => {
-            const region = alert.locationName || 'São Paulo';
-            regions[region] = (regions[region] || 0) + 1;
-        });
-        const labels = Object.keys(regions).slice(0, 8);
-        if (regionChartInstance) {
-            regionChartInstance.data.labels = labels.length ? labels : ['Sem dados'];
-            regionChartInstance.data.datasets[0].data = labels.length ? labels.map(label => regions[label]) : [0];
-            regionChartInstance.update();
-        }
-        const levels = ['critical', 'high', 'medium', 'low'];
-        if (severityChartInstance) {
-            severityChartInstance.data.datasets[0].data = levels.map(level => alertsData.filter(alert => alert.type === level).length);
-            severityChartInstance.update();
-        }
+    function atualizarResumoAlertas(items) {
+        const set = (id, value) => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = value;
+        };
+        set('summaryShown', items.length);
+        set('summaryCritical', items.filter(item => item.type === 'critical').length);
+        set('summaryMedium', items.filter(item => item.type === 'medium').length);
+        set('summaryLow', items.filter(item => item.type === 'low').length);
     }
 
     // Chamada Inicial
@@ -334,76 +290,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Gráficos Chart.js
-    if (!window.Chart) {
-        console.warn('Chart.js indisponível; alertas continuam funcionando sem os gráficos.');
-    }
-    if (window.Chart) {
-    Chart.defaults.color = '#8b9dc3';
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.plugins.legend.labels.usePointStyle = true;
-    Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
-    Chart.defaults.plugins.legend.labels.boxWidth = 10;
-    Chart.defaults.plugins.legend.labels.boxHeight = 10;
-    Chart.defaults.plugins.legend.labels.padding = 16;
-    const gridColor = 'rgba(255, 255, 255, 0.05)';
-
-    // Gráfico: Alertas por Região (Bar Horizontal)
-    const ctxRegion = document.getElementById('regionChart');
-    if (ctxRegion) {
-        regionChartInstance = new Chart(ctxRegion, {
-            type: 'bar',
-            data: {
-                labels: ['Centro', 'Zona Sul', 'Zona Leste', 'Zona Oeste', 'Zona Norte'],
-                datasets: [{
-                    label: 'Alertas Ativos',
-                    data: [15, 12, 9, 7, 4],
-                    backgroundColor: 'rgba(0, 229, 255, 0.6)',
-                    borderColor: '#00e5ff',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: gridColor } },
-                    y: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // Gráfico: Distribuição por Severidade (Doughnut)
-    const ctxSeverity = document.getElementById('severityChart');
-    if (ctxSeverity) {
-        severityChartInstance = new Chart(ctxSeverity, {
-            type: 'doughnut',
-            data: {
-                labels: ['Crítico', 'Alto', 'Médio', 'Baixo'],
-                datasets: [{
-                    data: [3, 4, 8, 32],
-                    backgroundColor: [
-                        '#ef4444', // Red
-                        '#f59e0b', // Yellow
-                        '#3b82f6', // Blue
-                        '#10b981'  // Green
-                    ],
-                    borderWidth: 0,
-                    cutout: '70%'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right' }
-                }
-            }
-        });
-    }
-    updateAlertCharts();
-    }
 });

@@ -17,7 +17,9 @@
       <div class="alert-item-actions"><button class="btn-view-map" onclick="window.location.href='mapa.html?realId=${encodeURIComponent(item.id)}'">📍 Ver no Mapa</button></div>
     </div>`).join('');
     const badge = document.querySelector('[href="alertas.html"] .badge, .sidebar-link[href="alertas.html"] .link-badge');
-    if (badge) badge.textContent = recentes.length;
+    // O badge representa a base total disponível; o feed visual continua FIFO
+    // com apenas os cinco registros mais recentes.
+    if (badge) badge.textContent = base.length;
   }
 
   function renderizarTabela() {

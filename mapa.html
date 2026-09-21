@@ -452,10 +452,10 @@
             <span class="weather-cond-badge" id="topbarCondBadge">São Paulo</span>
           </div>
 
-          <!-- Busca de Bairros -->
+          <!-- Busca de cidade/endereço -->
           <div class="map-search-box">
             <i data-lucide="search" style="width:16px;height:16px;color:var(--text-tertiary)"></i>
-            <input type="text" id="mapSearchInput" class="map-search-input" placeholder="Buscar bairro ou região..." />
+            <input type="search" id="mapSearchInput" class="map-search-input" placeholder="Buscar cidade ou endereço..." autocomplete="off" />
             <button class="map-search-btn" id="mapSearchBtn">Buscar</button>
           </div>
 
@@ -494,7 +494,7 @@
           <div><div class="hud-temp" id="mapHudTemp">--<span>°C</span></div><div class="hud-desc" id="mapHudDesc">São Paulo • Ao Vivo</div></div>
         </div>
 
-        <!-- Compact Legend (top-left, inline) -->
+        <!-- Legenda única de gravidade (top-left) -->
         <div class="map-legend-compact" id="mapLegendCompact">
           <button class="legend-toggle-btn" id="legendToggleBtn" title="Legenda de Cores">
             <i data-lucide="palette" style="width:14px;height:14px;"></i>
@@ -502,11 +502,10 @@
             <i data-lucide="chevron-down" class="legend-chevron" style="width:12px;height:12px;"></i>
           </button>
           <div class="legend-dropdown" id="legendDropdown">
-            <div class="legend-item"><span class="legend-dot red"></span> Emergência</div>
-            <div class="legend-item"><span class="legend-dot yellow"></span> Atenção</div>
-            <div class="legend-item"><span class="legend-dot blue"></span> Clima</div>
-            <div class="legend-item"><span class="legend-dot purple"></span> Infra/IA</div>
-            <div class="legend-item"><span class="legend-dot green"></span> Segura</div>
+            <div class="legend-item"><span class="legend-dot red"></span> Crítico</div>
+            <div class="legend-item"><span class="legend-dot yellow"></span> Alto</div>
+            <div class="legend-item"><span class="legend-dot blue"></span> Médio</div>
+            <div class="legend-item"><span class="legend-dot green"></span> Baixo</div>
           </div>
         </div>
 
@@ -516,7 +515,7 @@
             <i data-lucide="layers" style="width:16px;height:16px;"></i>
           </button>
           <div class="map-layer-toggle" id="mapLayerPanel">
-            <h5>Camadas</h5>
+            <h5>Filtros de camadas</h5>
 
             <label class="map-layer-item">
               <input type="checkbox" id="layerCritical" checked>

@@ -769,6 +769,16 @@
   color: var(--cyan);
 }
 
+/* A central de alertas mantém apenas a lista detalhada; não reservar espaço para
+   uma segunda coluna/timeline que não existe nessa página. */
+.alert-list-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.alert-summary-grid {
+  margin-bottom: var(--space-xl);
+}
+
 .alert-date-filter {
   color: var(--text-secondary);
   font-size: 0.8rem;
@@ -1038,7 +1048,7 @@
 .legend-dot.purple { background: #a855f7; color: #a855f7; }
 .legend-dot.green  { background: #10b981; color: #10b981; }
 
-/* Busca de Bairros no Mapa */
+/* Busca de cidade/endereço no Mapa */
 .map-search-box {
   display: flex;
   align-items: center;

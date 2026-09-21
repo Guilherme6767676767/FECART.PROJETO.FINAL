@@ -370,6 +370,7 @@ let heatLayer = null;
     if (!q) return;
     const found = allApiMarkers.find(({bo}) =>
       (bo.bairro && bo.bairro.toLowerCase().includes(q)) ||
+      (bo.municipio && bo.municipio.toLowerCase().includes(q)) ||
       (bo.logradouro && bo.logradouro.toLowerCase().includes(q)) ||
       (bo.tipo_crime && bo.tipo_crime.toLowerCase().includes(q))
     );
@@ -380,8 +381,24 @@ let heatLayer = null;
       return;
     }
 
-    mostrarToast('Busca Geoespacial', `Localizando "${originalQuery}"...`, 'info');
-    const result = await buscarEnderecoNominatim(originalQuery);
+    // As ocorrências consolidadas podem estar em um grupo separado dos BOs.
+    // Quando a busca é uma cidade, centralizamos diretamente no primeiro ponto
+    // geocodificado dessa cidade e mantemos todos os marcadores visíveis.
+    const realAlerts = window.SENTINEL_REAL_ALERTS || [];
+    const realFound = realAlerts.find(item =>
+      (item.municipio && item.municipio.toLowerCase().includes(q)) ||
+      (item.local && item.local.toLowerCase().includes(q))
+    );
+    if (realFound && Number.isFinite(Number(realFound.lat)) && Number.isFinite(Number(realFound.lng))) {
+      map.flyTo([Number(realFound.lat), Number(realFound.lng)], 13, { animate: true, duration: 1.2 });
+      const marker = realAlertMarkers.get(realFound.id);
+      if (marker) setTimeout(() => marker.openPopup(), 500);
+      mostrarToast(`📍 ${realFound.municipio}`, `${realAlerts.filter(item => item.municipio === realFound.municipio).length} ocorrência(s) encontrada(s)`, 'info');
+      return;
+    }
+
+    mostrarToast('Busca Geoespacial', `Localizando "${originalQuery}" em São Paulo...`, 'info');
+    const result = await buscarEnderecoNominatim(`${originalQuery}, São Paulo, SP`);
     if (!result) {
       mostrarToast('Busca Geoespacial', `Nenhum endereço encontrado para "${originalQuery}".`, 'warning');
       return;
