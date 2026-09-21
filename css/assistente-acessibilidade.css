@@ -27,6 +27,19 @@ body.access-explain-mode * { cursor: help !important; }
 .accessibility-panel button b { margin-left:auto; font-size:14px; }
 @media(max-width:560px) { .accessibility-panel { left:12px; bottom:78px; width:calc(100vw - 24px); max-width:250px; } }
 
+/* Ajustes transversais para não criar rolagem horizontal nem cobrir dados. */
+html, body { max-width:100%; overflow-x:hidden; }
+.grid, .card, .chart-box, canvas { min-width:0; max-width:100%; }
+.map-shell .map-legend { bottom:96px; }
+.map-shell .map-tools { max-width:calc(100% - 24px); }
+.map-load-status { position:absolute; left:14px; bottom:14px; z-index:801; max-width:260px; padding:6px 9px; border-radius:8px; color:#d9efff; background:rgba(7,17,31,.9); border:1px solid rgba(56,189,248,.35); font-size:11px; pointer-events:none; }
+.map-load-status:empty { display:none; }
+@media (max-width:720px) {
+  .map-shell .map-tools { left:10px; right:10px; top:10px; }
+  .map-shell .map-legend { display:none; }
+  .table-row { min-width:0; }
+}
+
 .ai-chat-launcher {
   position: fixed; right: 24px; bottom: 24px; z-index: 10001;
   width: 58px; height: 58px; border: 2px solid rgba(255,255,255,.55);

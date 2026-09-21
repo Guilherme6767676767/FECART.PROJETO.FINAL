@@ -11,14 +11,14 @@
   <style>
     .map-shell { position: relative; }
     .map-tools { position: absolute; z-index: 800; left: 12px; top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .map-search { position: absolute; z-index: 801; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; width: min(440px, calc(100% - 32px)); padding: 9px; background: rgba(7,17,31,.96); border: 1px solid #24415f; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+    .map-search { position: absolute; z-index: 801; top: 12px; right: 12px; display: flex; gap: 8px; width: min(440px, calc(100% - 32px)); padding: 9px; background: rgba(7,17,31,.96); border: 1px solid #24415f; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
     .map-search input { min-width: 0; flex: 1; border: 1px solid #24415f; border-radius: 8px; background: #071523; color: #fff; padding: 9px 10px; font: inherit; }
     .map-search button { border: 1px solid #3a6086; border-radius: 8px; background: #163454; color: #fff; padding: 9px 12px; font-weight: 700; cursor: pointer; }
-    .map-search-status { position: absolute; z-index: 801; top: 66px; left: 50%; transform: translateX(-50%); width: min(440px, calc(100% - 32px)); color: #d7e5f2; font-size: .82rem; text-align: center; pointer-events: none; }
+    .map-search-status { position: absolute; z-index: 801; top: 66px; right: 12px; width: min(440px, calc(100% - 32px)); color: #d7e5f2; font-size: .82rem; text-align: right; pointer-events: none; }
     .map-legend { position: absolute; z-index: 800; right: 12px; bottom: 12px; min-width: 126px; padding: 10px 12px; background: rgba(7,17,31,.96); border: 1px solid #24415f; border-radius: 10px; font-size: .85rem; }
     .map-legend div { display: flex; align-items: center; gap: 7px; margin: 4px 0; }
     .map-legend i { width: 9px; height: 9px; border-radius: 50%; }
-    @media (max-width: 720px) { .map-tools { right: 10px; } .map-search { top: 66px; } .map-search-status { top: 120px; } }
+    @media (max-width: 720px) { .map-tools { right: 10px; } .map-search { top: 74px; left: 10px; right: 10px; width: auto; } .map-search-status { top: 128px; left: 10px; right: 10px; width: auto; text-align: left; } }
   </style>
 </head>
 <body>
@@ -27,7 +27,7 @@
     <section class="map-shell">
       <div class="map-tools"><button class="filter critical" data-map-filter="crítico">Crítico</button><button class="filter medium" data-map-filter="médio">Médio</button><button class="filter low" data-map-filter="baixo">Baixo</button><label class="notice"><input type="checkbox" data-zonas> Mostrar zonas</label></div>
       <div class="map-search"><input id="citySearch" type="search" placeholder="Buscar cidade..." autocomplete="off"><button id="citySearchButton" type="button">Buscar</button></div><div class="map-search-status" id="citySearchStatus" role="status" aria-live="polite"></div>
-      <div id="mapa-alertas" class="alert-map" aria-label="Mapa de alertas em São Paulo"></div>
+      <div id="mapa-alertas" class="alert-map" aria-label="Mapa de alertas em São Paulo"></div><div id="mapLoadStatus" class="map-load-status" role="status" aria-live="polite">Preparando pontos do mapa…</div>
       <aside class="map-legend" aria-label="Legenda de gravidade"><strong>Gravidade</strong><div><i style="background:#ef4444"></i> Crítico</div><div><i style="background:#f59e0b"></i> Médio</div><div><i style="background:#38bdf8"></i> Baixo</div></aside>
     </section>
   </main>

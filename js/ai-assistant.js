@@ -84,7 +84,9 @@
         showActionNotification(`🎯 Focando no mapa: ${bairro || action.target}`);
         
         // Se o mapa do Leaflet existir globalmente
-        if (window.map && typeof window.map.panTo === 'function') {
+        if (window.SentinelMapaAPI?.mapa && typeof window.SentinelMapaAPI.mapa.flyTo === 'function') {
+          window.SentinelMapaAPI.mapa.flyTo([lat, lng], 15, { animate: true, duration: 1.5 });
+        } else if (window.map && typeof window.map.panTo === 'function') {
           window.map.panTo([lat, lng], { animate: true, duration: 1.5 });
         } else if (typeof window.setSimulationPin === 'function') {
           window.setSimulationPin(lat, lng);
@@ -215,7 +217,15 @@
     return generateLocalResponseWithActions(userMessage);
   }
 
-  // Fallback Local Inteligente
+  function getLiveSummary() {
+    const data = Array.isArray(window.SentinelAlertas?.dados) ? window.SentinelAlertas.dados : [];
+    const counts = data.reduce((acc, item) => { acc[item.gravidade] = (acc[item.gravidade] || 0) + 1; return acc; }, {});
+    const toDate = value => { const [day, month, year] = String(value || '').split('/'); return new Date(`${year}-${month}-${day}T00:00:00`); };
+    const latest = data.slice().sort((a, b) => toDate(b.data) - toDate(a.data))[0];
+    return { total: data.length, critical: counts['crítico'] || 0, medium: counts['médio'] || 0, low: counts.baixo || 0, latest };
+  }
+
+  // Fallback Local Inteligente, sincronizado com a base central dos alertas.
   function generateLocalResponseWithActions(query) {
     const q = query.toLowerCase().trim();
 
@@ -247,8 +257,14 @@
       executeActions(actions);
     }
 
+    const summary = getLiveSummary();
     let resp = '';
-    if (q.includes('aoi') || q.includes('zona') || q.includes('perimetro')) {
+    if (q.includes('quantos') || q.includes('quantidade') || q.includes('resumo dos alertas') || q.includes('total de alertas')) {
+      resp = `📊 <strong>Resumo da base central:</strong><br><br>• Total: <strong>${summary.total}</strong> alertas<br>• Críticos: <strong>${summary.critical}</strong><br>• Médios: <strong>${summary.medium}</strong><br>• Baixos: <strong>${summary.low}</strong><br><br>${summary.latest ? `Registro mais recente: <strong>${escapeHTML(summary.latest.data)} — ${escapeHTML(summary.latest.local)}</strong>.` : 'Não há registros carregados.'}`;
+    } else if (q.includes('alerta') && (q.includes('crít') || q.includes('grave') || q.includes('prior'))) {
+      const criticos = (window.SentinelAlertas?.dados || []).filter(item => item.gravidade === 'crítico').slice(0, 5);
+      resp = `🚨 <strong>Alertas críticos:</strong> ${summary.critical} registro(s) na base.<br><br>${criticos.map(item => `• ${escapeHTML(item.data)} — <strong>${escapeHTML(item.local)}</strong>: ${escapeHTML(item.descricao)}`).join('<br>') || 'Nenhum alerta crítico carregado.'}<br><br>Use “Abrir o mapa” para localizar os pontos.`;
+    } else if (q.includes('aoi') || q.includes('zona') || q.includes('perimetro')) {
       resp = `🗺️ <strong>Áreas de Interesse (AOIs) Ativas em São Paulo:</strong><br><br>
         • <strong>AOI Alpha (Av. Paulista):</strong> Risco 68% • 84 Câmeras • 412 Sensores<br>
         • <strong>AOI Bravo (Sé / Centro):</strong> Risco 92% (Crítico) • 120 Câmeras • 320 Sensores<br>
@@ -260,12 +276,12 @@
         • <strong>Foco Crítico:</strong> Praça da Sé e Centro Histórico (Risco 92/100)<br>
         • <strong>Foco Alto:</strong> Marginal Tietê e Lapa (Risco 81/100)<br>
         • <strong>Zonas Estáveis:</strong> Moema (18/100), Jardins (15/100), Pinheiros (24/100)<br>
-        • <strong>Status Operacional:</strong> 1.847 câmeras com inteligência OCR monitorando em tempo real.`;
+        • <strong>Base central:</strong> ${summary.total} alertas classificados por gravidade.`;
     } else if (q.includes('tempestade') || q.includes('chuva') || q.includes('clima') || q.includes('temperatura')) {
       resp = `🌧️ <strong>Monitoramento Meteorológico de São Paulo:</strong><br><br>
         • Temperatura: 24.4°C • Umidade: 62% • Vento: 14 km/h<br>
         • <strong>Risco Pluviométrico:</strong> MODERADO nas Marginais Tietê e Pinheiros<br>
-        • Sensores IoT operando para alerta preventivo de alagamento.`;
+        • Consulte a aba Mapa para localizar alertas relacionados a chuva e alagamento.`;
     } else if (q.includes('ola') || q.includes('olá') || q.includes('oi') || q.includes('bom dia') || q.includes('boa tarde') || q.includes('boa noite') || q.includes('ajuda')) {
       resp = `👋 <strong>Olá! Sou o assistente de IA do Sentinel IA.</strong><br><br>
         Posso auxiliá-lo com consultas preditivas, relatórios táticos de segurança e controle da plataforma.<br><br>
@@ -276,8 +292,8 @@
     } else {
       resp = `📡 <strong>Sentinel IA Intelligence Core:</strong><br><br>
         Consulta processada sobre a malha de São Paulo: <em>"${escapeHTML(query)}"</em>.<br><br>
-        • 🛡️ <strong>Monitoramento Ativo:</strong> 1.847 Câmeras IA & 3.421 Sensores IoT<br>
-        • 📍 <strong>Zonas de Cobertura:</strong> Sé, Paulista, Pinheiros e Lapa<br>
+        • 🛡️ <strong>Base monitorada:</strong> ${summary.total} alertas (${summary.critical} críticos)<br>
+        • 📍 <strong>Dados disponíveis:</strong> Dashboard, Mapa, Alertas e Simulações<br>
         • 💡 <em>Solicite comandos de navegação ou simulações táticas.</em>`;
     }
 
@@ -369,7 +385,7 @@
         <div class="ai-msg-row bot">
           <div class="ai-msg-bubble">
             👋 ${getGreetingByTime()}! Sou o assistente oficial do <strong>Sentinel IA</strong>.<br><br>
-            Estou conectado em tempo real aos sistemas de <strong>Segurança Urbana, Clima, Câmeras IA e Simulação Preditiva</strong> de São Paulo.<br><br>
+            Estou conectado à base central do projeto, com <strong>${getLiveSummary().total} alertas classificados</strong> por gravidade e localização em São Paulo.<br><br>
             Como posso apoiar sua operação hoje?
           </div>
         </div>

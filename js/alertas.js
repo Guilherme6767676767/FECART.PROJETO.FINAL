@@ -17,7 +17,7 @@
       sharedStyle.dataset.sentinelSharedUi = '1';
       document.head.appendChild(sharedStyle);
     }
-    if (!document.querySelector('script[data-sentinel-chat]')) {
+    if (!document.querySelector('script[data-sentinel-chat], script[src*="ai-assistant.js"]')) {
       const chatScript = document.createElement('script');
       chatScript.src = 'js/ai-assistant.js?v=4';
       chatScript.dataset.sentinelChat = '1';
