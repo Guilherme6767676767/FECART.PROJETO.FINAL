@@ -64,8 +64,8 @@
     document.body.classList.toggle('modo-acessibilidade', active);
     applyZoom();
     buttons.forEach(button => {
-      button.addEventListener('click', togglePanel);
-      button.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); togglePanel(); } });
+      button.onclick = togglePanel;
+      button.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); togglePanel(); } };
     });
     panel.querySelectorAll('[data-access-action]').forEach(button => button.addEventListener('click', () => {
       const action = button.dataset.accessAction;
