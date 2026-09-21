@@ -174,6 +174,11 @@
       };
     }
 
+    // Perguntas objetivas sobre a base são respondidas localmente para não
+    // depender do backend e nem receber uma resposta genérica do modelo.
+    const dataResponse = getDeterministicDataResponse(userMessage);
+    if (dataResponse) return dataResponse;
+
     // 1. Tenta chamar o Endpoint do Backend FastAPI (/api/v1/chat)
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 4500);
@@ -225,6 +230,50 @@
     return { total: data.length, critical: counts['crítico'] || 0, medium: counts['médio'] || 0, low: counts.baixo || 0, latest };
   }
 
+  function normalizeQuery(value) {
+    return String(value || '')
+      .toLocaleLowerCase('pt-BR')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function requestedSeverity(query) {
+    const q = normalizeQuery(query);
+    if (/\b(crit\w*|grave\w*|alta\w*)/.test(q)) return { key: 'critical', label: 'críticas' };
+    if (/\b(medi\w*|moderad\w*)/.test(q)) return { key: 'medium', label: 'médias' };
+    if (/\b(baix\w*|leve\w*)/.test(q)) return { key: 'low', label: 'baixas' };
+    return null;
+  }
+
+  function getDeterministicDataResponse(query) {
+    const q = normalizeQuery(query);
+    const asksCount = /(quant\w*|qtd|quantidade|numero|total|cont\w*|registrad\w*|possui|existe)/.test(q)
+      && /(ocorr\w*|alert\w*|registro\w*|crit\w*|medi\w*|baix\w*|gravidade|nivel)/.test(q);
+    if (!asksCount) return null;
+
+    const summary = getLiveSummary();
+    const level = requestedSeverity(query);
+    if (level) {
+      const count = summary[level.key];
+      return {
+        text: `📊 <strong>Ocorrências ${level.label} registradas:</strong> ${count}.<br><br>`
+          + `A base central possui <strong>${summary.total}</strong> ocorrências no total: `
+          + `<strong>${summary.critical}</strong> críticas, <strong>${summary.medium}</strong> médias e `
+          + `<strong>${summary.low}</strong> baixas.`,
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    return {
+      text: `📊 <strong>Resumo da base central:</strong><br><br>`
+        + `• Total: <strong>${summary.total}</strong> ocorrências<br>`
+        + `• Críticas: <strong>${summary.critical}</strong><br>`
+        + `• Médias: <strong>${summary.medium}</strong><br>`
+        + `• Baixas: <strong>${summary.low}</strong>`,
+      model: 'Sentinel Local Data Engine'
+    };
+  }
+
   // Fallback Local Inteligente, sincronizado com a base central dos alertas.
   function generateLocalResponseWithActions(query) {
     const q = query.toLowerCase().trim();
@@ -256,6 +305,9 @@
     if (actions.length > 0) {
       executeActions(actions);
     }
+
+    const dataResponse = getDeterministicDataResponse(query);
+    if (dataResponse) return dataResponse;
 
     const summary = getLiveSummary();
     let resp = '';
