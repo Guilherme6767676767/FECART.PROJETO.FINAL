@@ -34,6 +34,16 @@ html, body { max-width:100%; overflow-x:hidden; }
 .map-shell .map-tools { max-width:calc(100% - 24px); }
 .map-load-status { position:absolute; left:14px; bottom:14px; z-index:801; max-width:260px; padding:6px 9px; border-radius:8px; color:#d9efff; background:rgba(7,17,31,.9); border:1px solid rgba(56,189,248,.35); font-size:11px; pointer-events:none; }
 .map-load-status:empty { display:none; }
+.map-marker { position:relative; display:block; width:27px; height:27px; border:3px solid #fff; border-radius:50%; background:var(--marker); box-shadow:0 0 0 3px color-mix(in srgb,var(--marker) 45%,transparent),0 0 16px var(--marker),0 2px 7px #001; animation: sentinelMarkerPulse 1.8s ease-out infinite; }
+.map-marker::before { content:''; position:absolute; inset:6px; border-radius:50%; background:#fff; box-shadow:0 0 8px #fff; }
+.map-marker::after { content:''; position:absolute; inset:-8px; border:2px solid var(--marker); border-radius:50%; opacity:.8; animation: sentinelMarkerRing 1.8s ease-out infinite; }
+.map-marker.marker-crítico { animation-duration:1.15s; box-shadow:0 0 0 4px rgba(239,68,68,.48),0 0 22px #ef4444,0 2px 8px #001; }
+.map-marker.marker-médio { box-shadow:0 0 0 3px rgba(245,158,11,.5),0 0 19px #f59e0b,0 2px 8px #001; }
+.map-marker.marker-baixo { box-shadow:0 0 0 3px rgba(56,189,248,.45),0 0 16px #38bdf8,0 2px 8px #001; }
+.marker-cluster { border:3px solid #fff !important; color:#fff !important; font-weight:900 !important; text-shadow:0 1px 3px #001; box-shadow:0 0 0 4px rgba(0,217,255,.38),0 0 22px rgba(0,217,255,.8),0 3px 10px #001 !important; background:linear-gradient(135deg,#00b8d9,#375be7) !important; }
+.marker-cluster div { background:transparent !important; color:#fff !important; font-size:13px !important; }
+@keyframes sentinelMarkerPulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.1); } }
+@keyframes sentinelMarkerRing { 0% { transform:scale(.65); opacity:.85; } 75%,100% { transform:scale(1.35); opacity:0; } }
 @media (max-width:720px) {
   .map-shell .map-tools { left:10px; right:10px; top:10px; }
   .map-shell .map-legend { display:none; }

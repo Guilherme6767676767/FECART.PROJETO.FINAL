@@ -44,7 +44,7 @@
 
   function marcador(alerta, ponto, api) {
     const A = window.SentinelAlertas;
-    const marker = L.marker(ponto, { icon: L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9], html: `<span class="map-marker" style="--marker:${A.cores[alerta.gravidade]}"></span>` }), title: alerta.descricao });
+    const marker = L.marker(ponto, { icon: L.divIcon({ className: '', iconSize: [32, 32], iconAnchor: [16, 16], html: `<span class="map-marker marker-${alerta.gravidade}" style="--marker:${A.cores[alerta.gravidade]}" title="${A.esc(A.rotulos[alerta.gravidade])}: ${A.esc(alerta.descricao)}"></span>` }), title: alerta.descricao });
     marker.bindPopup(`<div class="map-popup"><b>Data</b><p>${A.esc(alerta.data)}</p><b>Local</b><p>${A.esc(alerta.local)}</p><b>O que aconteceu</b><p>${A.esc(alerta.descricao)}</p><span>Gravidade: ${A.esc(A.rotulos[alerta.gravidade])}</span></div>`);
     api.marcadores[alerta.id] = marker;
     api.camadas[alerta.gravidade].addLayer(marker);
