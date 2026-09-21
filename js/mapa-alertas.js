@@ -40,7 +40,28 @@
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(mapa);
     mapa.setView([-23.5505, -46.6333], 10);
     const camadas = { crítico: L.markerClusterGroup(), médio: L.markerClusterGroup(), baixo: L.markerClusterGroup() };
-    const api = { mapa, camadas, zonas: L.layerGroup(), marcadores: {}, pontos: {}, alertas: window.SentinelAlertas.dados };
+    const api = {
+      mapa,
+      camadas,
+      zonas: L.layerGroup(),
+      marcadores: {},
+      pontos: {},
+      alertas: window.SentinelAlertas.dados,
+      ponto: null,
+      pontoBusca: null,
+      adicionarPonto(lat, lon) {
+        if (!Number.isFinite(Number(lat)) || !Number.isFinite(Number(lon))) return;
+        if (api.ponto) mapa.removeLayer(api.ponto);
+        api.ponto = L.circleMarker([Number(lat), Number(lon)], {
+          radius: 11,
+          color: '#ffffff',
+          weight: 3,
+          fillColor: '#8b5cf6',
+          fillOpacity: 1
+        }).addTo(mapa).bindTooltip('Ponto da simulação', { permanent: true, direction: 'top' });
+        mapa.flyTo([Number(lat), Number(lon)], 14, { duration: 0.8 });
+      }
+    };
     Object.values(camadas).forEach(layer => mapa.addLayer(layer));
     estado.set(el, api);
     (async () => {
@@ -83,16 +104,33 @@
       const normalizado = query.toLocaleLowerCase('pt-BR');
       const alerta = api.alertas.find(item => item.local.toLocaleLowerCase('pt-BR').includes(normalizado));
       if (alerta && api.pontos[alerta.id]) {
-        api.mapa.flyTo(api.pontos[alerta.id], 13, { duration: 1.2 });
+        api.mapa.flyTo(api.pontos[alerta.id], 16, { duration: 1.2 });
         api.marcadores[alerta.id]?.openPopup();
         if (status) status.textContent = `Local encontrado: ${alerta.local}`;
         return;
       }
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(`${query}, São Paulo, Brasil`)}`, { headers: { 'Accept-Language': 'pt-BR' } });
-        const result = response.ok ? (await response.json())[0] : null;
+        const consultas = [
+          `${query}, São Paulo, SP, Brasil`,
+          `${query}, São Paulo, Brasil`,
+          `${query}, Brasil`,
+          query
+        ];
+        let result = null;
+        for (const consulta of consultas) {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&q=${encodeURIComponent(consulta)}`, { headers: { 'Accept-Language': 'pt-BR' } });
+          result = response.ok ? (await response.json())[0] : null;
+          if (result) break;
+          await wait(1050);
+        }
         if (!result) { if (status) status.textContent = 'Nenhuma cidade encontrada.'; return; }
-        api.mapa.flyTo([Number(result.lat), Number(result.lon)], 12, { duration: 1.2 });
+        const ponto = [Number(result.lat), Number(result.lon)];
+        if (api.pontoBusca) api.mapa.removeLayer(api.pontoBusca);
+        api.pontoBusca = L.marker(ponto, { title: query })
+          .addTo(api.mapa)
+          .bindPopup(`<b>Local pesquisado</b><br>${window.SentinelAlertas.esc(result.display_name || query)}`)
+          .openPopup();
+        api.mapa.flyTo(ponto, 16, { duration: 1.2 });
         if (status) status.textContent = result.display_name || `Local encontrado: ${query}`;
       } catch (_) { if (status) status.textContent = 'Não foi possível realizar a busca agora.'; }
     }

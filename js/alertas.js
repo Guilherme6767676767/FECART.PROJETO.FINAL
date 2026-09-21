@@ -12,7 +12,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.side-link[href="alertas.html"] .badge').forEach(item => item.remove());
     const style = document.createElement('style');
-    style.textContent = 'body.modo-acessibilidade{font-size:16px}body.modo-acessibilidade *{letter-spacing:.015em}body.modo-acessibilidade .card,body.modo-acessibilidade .alert-row{border-color:#8deeff}body.modo-acessibilidade .access{background:#00d9ff;color:#001018;box-shadow:0 0 24px #00d9ff}';
+    style.textContent = 'body.modo-acessibilidade{font-size:16px}body.modo-acessibilidade *{letter-spacing:.015em}body.modo-acessibilidade .card,body.modo-acessibilidade .alert-row{border-color:#8deeff}body.modo-acessibilidade .access{background:#00d9ff;color:#001018;box-shadow:0 0 24px #00d9ff}.side-link[href="alertas.html"] .badge{display:none!important}';
     document.head.appendChild(style);
     const button = document.querySelector('.access');
     if (!button) return;
