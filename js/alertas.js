@@ -19,7 +19,7 @@
     }
     if (!document.querySelector('script[data-sentinel-chat], script[src*="ai-assistant.js"]')) {
       const chatScript = document.createElement('script');
-      chatScript.src = 'js/ai-assistant.js?v=5';
+      chatScript.src = 'js/ai-assistant.js?v=6';
       chatScript.dataset.sentinelChat = '1';
       document.body.appendChild(chatScript);
     }
