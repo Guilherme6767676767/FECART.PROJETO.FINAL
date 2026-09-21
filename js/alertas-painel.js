@@ -1,1 +1,60 @@
-(function(){'use strict';const style=document.createElement('link');style.rel='stylesheet';style.href='css/alertas-command.css';document.head.append(style);document.addEventListener('DOMContentLoaded',()=>{const P=SentinelPainel,A=SentinelAlertas;let nivel='todos',graf=[];Chart.defaults.color='#93abc0';Chart.defaults.borderColor='rgba(81,141,170,.18)';const clock=document.getElementById('clock'),updated=document.getElementById('updated'),badge=document.getElementById('badge'),alertList=document.getElementById('alertList'),inicio=document.getElementById('inicio'),fim=document.getElementById('fim'),limpar=document.getElementById('limpar');function tempo(){clock.textContent=new Date().toLocaleTimeString('pt-BR');updated.textContent=`Base central consultada às ${clock.textContent}`;setTimeout(tempo,1000)}tempo();function desenho(id,type,labels,data,cor){graf.push(new Chart(document.getElementById(id),{type,data:{labels,datasets:[{data,backgroundColor:cor,borderColor:cor,borderWidth:2,fill:type==='line',tension:.35}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:type==='line'||type==='bar'?{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0}}}:{}}}))}function render(){graf.forEach(x=>x.destroy());graf=[];const niveis=nivel==='todos'?['crítico','médio','baixo']:[nivel],itens=P.filtrar({niveis,inicio:inicio.value,fim:fim.value}),g=P.agrupar(itens,a=>a.gravidade),datas=P.ordenado(P.agrupar(itens,a=>a.data)).sort((a,b)=>P.dataIso(a[0]).localeCompare(P.dataIso(b[0]))),reg=P.ordenado(P.agrupar(itens,P.regiao)).slice(0,7);badge.textContent=itens.length;[['total',itens.length],['criticos',g.crítico||0],['medios',g.médio||0],['baixos',g.baixo||0]].forEach(x=>document.getElementById(x[0]).textContent=x[1]);desenho('dateChart','line',datas.map(x=>x[0]),datas.map(x=>x[1]),'#00d9ff');desenho('regionChart','bar',reg.map(x=>x[0]),reg.map(x=>x[1]),'#a855f7');alertList.innerHTML=[...itens].reverse().map(a=>`<button class="table-row alert-row ${a.gravidade}" data-id="${a.id}"><span>${a.data}</span><b>${A.esc(a.local)}</b><span class="hide-mobile">${A.esc(a.descricao)}</span><span class="pill ${a.gravidade}">${A.rotulos[a.gravidade]}</span></button>`).join('')||'<p>Nenhum alerta encontrado neste período.</p>';alertList.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>location.href=`mapa.html#alert=${b.dataset.id}`)}document.querySelectorAll('[data-nivel]').forEach(b=>b.onclick=()=>{nivel=b.dataset.nivel;document.querySelectorAll('[data-nivel]').forEach(x=>x.classList.toggle('selected',x===b));render()});inicio.onchange=render;fim.onchange=render;limpar.onclick=()=>{inicio.value='';fim.value='';render()};render()})})();
+/* Interface da Central de Alertas. Os gráficos pertencem somente ao Dashboard. */
+(function () {
+  'use strict';
+  document.addEventListener('DOMContentLoaded', () => {
+    const P = window.SentinelPainel;
+    const A = window.SentinelAlertas;
+    if (!P || !A) return;
+
+    let nivel = 'todos';
+    const clock = document.getElementById('clock');
+    const updated = document.getElementById('updated');
+    const badge = document.getElementById('badge');
+    const alertList = document.getElementById('alertList');
+    const inicio = document.getElementById('inicio');
+    const fim = document.getElementById('fim');
+
+    function tempo() {
+      const agora = new Date().toLocaleTimeString('pt-BR');
+      if (clock) clock.textContent = agora;
+      if (updated) updated.textContent = `Base central consultada às ${agora}`;
+    }
+    tempo();
+    setInterval(tempo, 1000);
+
+    function render() {
+      const niveis = nivel === 'todos' ? ['crítico', 'médio', 'baixo'] : [nivel];
+      const itens = P.filtrar({ niveis, inicio: inicio?.value, fim: fim?.value });
+      const grupos = P.agrupar(itens, item => item.gravidade);
+      if (badge) badge.textContent = itens.length;
+      [['total', itens.length], ['criticos', grupos.crítico || 0], ['medios', grupos.médio || 0], ['baixos', grupos.baixo || 0]]
+        .forEach(([id, valor]) => { const el = document.getElementById(id); if (el) el.textContent = valor; });
+
+      if (alertList) {
+        alertList.innerHTML = itens.slice().reverse().map(alerta => `
+          <button class="table-row alert-row ${alerta.gravidade}" data-id="${alerta.id}" type="button">
+            <span>${A.esc(alerta.data)}</span>
+            <b>${A.esc(alerta.local)}</b>
+            <span class="hide-mobile">${A.esc(alerta.descricao)}</span>
+            <span class="pill ${alerta.gravidade}">${A.rotulos[alerta.gravidade]}</span>
+          </button>
+        `).join('') || '<p>Nenhum alerta encontrado neste período.</p>';
+        alertList.querySelectorAll('[data-id]').forEach(row => {
+          row.addEventListener('click', () => { window.location.href = `mapa.html#alert=${encodeURIComponent(row.dataset.id)}`; });
+        });
+      }
+    }
+
+    document.querySelectorAll('[data-nivel]').forEach(button => {
+      button.addEventListener('click', () => {
+        nivel = button.dataset.nivel;
+        document.querySelectorAll('[data-nivel]').forEach(item => item.classList.toggle('selected', item === button));
+        render();
+      });
+    });
+    inicio?.addEventListener('change', render);
+    fim?.addEventListener('change', render);
+    document.getElementById('limpar')?.addEventListener('click', () => { inicio.value = ''; fim.value = ''; render(); });
+    render();
+  });
+})();

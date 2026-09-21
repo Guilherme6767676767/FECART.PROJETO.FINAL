@@ -1,1 +1,37 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Mapa de alertas | Sentinel IA</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/sentinel-interface.css"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"><link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"></head><body><header class="site-header"><a class="brand" href="index.html">SENTINEL <b>IA</b></a><nav><a href="dashboard.html">Painel</a><a href="alertas.html">Alertas</a><a class="active" href="mapa.html">Mapa</a><a href="simulacoes.html">Simulações</a></nav></header><main class="wrap"><section class="hero"><span class="eyebrow">Mapa de alertas</span><h1>O que pede atenção, sem ruído.</h1><p>Os pontos são agrupados quando estão próximos. Clique em um grupo para aproximar ou em um ponto para ver seus detalhes.</p></section><section class="map-shell"><div class="map-tools"><button class="filter critical" data-map-filter="crítico">Crítico</button><button class="filter medium" data-map-filter="médio">Médio</button><button class="filter low" data-map-filter="baixo">Baixo</button><label class="notice"><input type="checkbox" data-zonas> Mostrar zonas</label></div><div id="mapa-alertas" class="alert-map" aria-label="Mapa de alertas em São Paulo"></div><aside class="legend" aria-label="Legenda"><strong>Gravidade</strong><div><i style="background:#ef4444"></i> Crítico</div><div><i style="background:#f59e0b"></i> Médio</div><div><i style="background:#38bdf8"></i> Baixo</div></aside></section></main><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script><script src="js/alertas.js"></script><script src="js/mapa-alertas.js"></script><script>document.addEventListener('DOMContentLoaded',()=>conectarControlesMapa(criarMapaDeAlertas('mapa-alertas')));</script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Mapa de alertas | Sentinel IA</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/sentinel-interface.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <style>
+    .map-shell { position: relative; }
+    .map-tools { position: absolute; z-index: 800; left: 12px; top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .map-search { position: absolute; z-index: 801; top: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; width: min(440px, calc(100% - 32px)); padding: 9px; background: rgba(7,17,31,.96); border: 1px solid #24415f; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+    .map-search input { min-width: 0; flex: 1; border: 1px solid #24415f; border-radius: 8px; background: #071523; color: #fff; padding: 9px 10px; font: inherit; }
+    .map-search button { border: 1px solid #3a6086; border-radius: 8px; background: #163454; color: #fff; padding: 9px 12px; font-weight: 700; cursor: pointer; }
+    .map-search-status { position: absolute; z-index: 801; top: 66px; left: 50%; transform: translateX(-50%); width: min(440px, calc(100% - 32px)); color: #d7e5f2; font-size: .82rem; text-align: center; pointer-events: none; }
+    .map-legend { position: absolute; z-index: 800; right: 12px; bottom: 12px; min-width: 126px; padding: 10px 12px; background: rgba(7,17,31,.96); border: 1px solid #24415f; border-radius: 10px; font-size: .85rem; }
+    .map-legend div { display: flex; align-items: center; gap: 7px; margin: 4px 0; }
+    .map-legend i { width: 9px; height: 9px; border-radius: 50%; }
+    @media (max-width: 720px) { .map-tools { right: 10px; } .map-search { top: 66px; } .map-search-status { top: 120px; } }
+  </style>
+</head>
+<body>
+  <header class="site-header"><a class="brand" href="index.html">SENTINEL <b>IA</b></a><nav><a href="dashboard.html">Painel</a><a href="alertas.html">Alertas</a><a class="active" href="mapa.html">Mapa</a><a href="simulacoes.html">Simulações</a></nav></header>
+  <main class="wrap"><section class="hero"><span class="eyebrow">Mapa de alertas</span><h1>O que pede atenção, sem ruído.</h1><p>Os pontos são agrupados quando estão próximos. Clique em um grupo para aproximar ou em um ponto para ver seus detalhes.</p></section>
+    <section class="map-shell">
+      <div class="map-tools"><button class="filter critical" data-map-filter="crítico">Crítico</button><button class="filter medium" data-map-filter="médio">Médio</button><button class="filter low" data-map-filter="baixo">Baixo</button><label class="notice"><input type="checkbox" data-zonas> Mostrar zonas</label></div>
+      <div class="map-search"><input id="citySearch" type="search" placeholder="Buscar cidade..." autocomplete="off"><button id="citySearchButton" type="button">Buscar</button></div><div class="map-search-status" id="citySearchStatus" role="status" aria-live="polite"></div>
+      <div id="mapa-alertas" class="alert-map" aria-label="Mapa de alertas em São Paulo"></div>
+      <aside class="map-legend" aria-label="Legenda de gravidade"><strong>Gravidade</strong><div><i style="background:#ef4444"></i> Crítico</div><div><i style="background:#f59e0b"></i> Médio</div><div><i style="background:#38bdf8"></i> Baixo</div></aside>
+    </section>
+  </main>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script><script src="js/alertas.js?v=6"></script><script src="js/mapa-alertas.js?v=2"></script>
+  <script>document.addEventListener('DOMContentLoaded',()=>{const api=criarMapaDeAlertas('mapa-alertas');conectarControlesMapa(api);conectarBuscaCidade(api);});</script>
+</body>
+</html>
