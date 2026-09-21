@@ -1,0 +1,103 @@
+[33m862a1c5[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbackup[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m seg 1
+[33m09982fe[m seg 1
+[33md4b95d1[m sab 7
+[33md4d3a33[m sab 6
+[33m4baa829[m sab 5
+[33mcb49383[m sab 4
+[33m2da46d3[m sab 3c
+[33md34d75e[m sab 2
+[33maf35471[m sab
+[33m2cf3986[m 15
+[33m54ccff5[m 14
+[33m2113629[m geocodacia
+[33m553edb3[m 14
+[33mcce285c[m deshboard
+[33m5a648ef[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33m16198d5[m 12+1
+[33mdf08f69[m 12
+[33mf14ac9d[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33m5cc3ad5[m 12
+[33me541cb9[m waze
+[33mf08a4e4[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33m7911baf[m Update dashboard.html
+[33m8059dac[m 12
+[33m46f55f1[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33m1faee5c[m 1
+[33me07f96e[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33mbb0a66c[m sla so deixei
+[33m24c672f[m Update alertas.js
+[33mec768b4[m 1
+[33m828d6ba[m fecart pqp nao aguentyo mais
+[33mb552ea9[m APIs nao aguento mais
+[33m5906598[m APIs criminalista
+[33mf60f3de[m sla
+[33m78e47d1[m APis site
+[33m23e0d8e[m Merge branch 'main' of https://github.com/Guilherme6767676767/FECART.PROJETO.FINAL
+[33m4baf90e[m transito
+[33m64f52a0[m 2
+[33mc22262c[m api crime
+[33m4bf3a3a[m mapa e visual
+[33m6d7e934[m vamos!!!
+[33md9eb492[m alerta
+[33ma5842cf[m Alertas
+[33m515f9a0[m Data
+[33ma0db401[m APIs
+[33m2cf9435[m botelho
+[33m151fc1e[m DAtas APIs
+[33m3b13e30[m APIs
+[33m65ee0a5[m Html
+[33m504b8d0[m APIs nao aguento mias
+[33m5e0cab8[m facilidades
+[33m560f75b[m explicação
+[33mf52a5d1[m expanção
+[33ma51f23b[m slaaaaaaaaaa
+[33mbf47b1f[m slaaaa
+[33m5f10e12[m API
+[33medaa02e[m AAPI
+[33m07c6d16[m API
+[33m1292165[m API
+[33mfebdc42[m mapa
+[33md314aca[m mapa dark
+[33m2d54f3a[m mapa
+[33m1e6ad13[m APIs
+[33me983136[m login
+[33me1b557c[m fix: remover modo 3d completamente, mapa 2d puro com leaflet dark matter
+[33m8ae1849[m feat: motor geoespacial unificado com modo 2d e 3d escuro, extrusao volumetrica e sem marcas de agua
+[33m2f6cf50[m feat: visual dark cyberpunk puro para mapas 2d e 3d sem marcas de agua
+[33md2900b7[m fix: remover conflitos de css do mapa e atualizar cache buster para v2.0
+[33m9fa2987[m feat: 3D buildings extrusion, prismas volumetricos das AOIs e tiles sem bloqueio
+[33m35ec607[m feat: mapa 3d volumetrico, fallbacks resilientes e configuracao de cors para github pages
+[33m7468f77[m fix: corrigir carregamento do mapa e layout da legenda
+[33m56df556[m sla
+[33me153e35[m slaq gemini pediu
+[33m3a4f676[m sla gemini deu a ideia
+[33mf2c7f19[m cadastro
+[33m4dbffef[m grafico na simulação
+[33mf951059[m conta
+[33m2f72b23[m sla
+[33m08bdbaa[m chat bot
+[33m11a1d9f[m chat bot
+[33me4d535f[m 2.0
+[33m9d9924e[m simulação
+[33mdf70303[m api
+[33ma03732c[m segurança
+[33m276d19a[m supabese
+[33maa72f79[m Conectando com o projeto Supabase PostgreSQL real
+[33m94be437[m API add
+[33m9a37415[m 0,6
+[33m489875b[m 0.5
+[33m67d7b7b[m 0.3
+[33m7cf9dae[m 0.2
+[33m1f0d59c[m mais nova 0.1
+[33m2fee507[m ia
+[33m2849b4e[m ....
+[33m7b056aa[m interação
+[33m297315d[m interação
+[33mc7e6091[m botao
+[33m721676d[m desheboards PT2
+[33m630f1cd[m mapa.js2
+[33mcbdaf80[m mapa.js
+[33mb75e413[m pra deixar bunitinho PT1
+[33mbc07719[m Botão PT1
+[33mcc2e71e[m inicio PT1
+[33m8dc7fe1[m Initial commit
