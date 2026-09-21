@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Alertas | Sentinel IA</title>
   <link rel="stylesheet" href="css/sentinel-command.css">
+  <link rel="stylesheet" href="css/alertas-style.css">
 </head>
 <body>
   <aside class="sidebar">
@@ -32,10 +33,10 @@
           <div class="filters" id="filters"><button class="filter selected" data-nivel="todos">TODOS</button><button class="filter" data-nivel="crítico">CRÍTICO</button><button class="filter" data-nivel="médio">MÉDIO</button><button class="filter" data-nivel="baixo">BAIXO</button></div>
           <div class="filters"><label>De <input type="date" id="inicio"></label><label>Até <input type="date" id="fim"></label><button class="filter" id="limpar" type="button">LIMPAR PERÍODO</button></div>
         </article>
-        <article class="card full">
-          <h3>Lista detalhada de alertas</h3>
-          <p>Data, local, ocorrência e gravidade. Clique em uma linha para localizar o marcador no mapa.</p>
-          <div class="table-row" style="color:#7891a6;font-weight:700"><span>DATA</span><span>LOCAL</span><span class="hide-mobile">OCORRÊNCIA</span><span>GRAVIDADE</span></div>
+        <article class="card full alert-list-card">
+          <h3>DETALHES DE ALERTAS DE INCIDENTES (SÃO PAULO)</h3>
+          <p>Data, local, ocorrência e gravidade. Selecione uma ocorrência para visualizá-la no mapa.</p>
+          <div class="table-row alert-list-header"><span>DATA</span><span>LOCALIZAÇÃO</span><span class="hide-mobile">OCORRÊNCIA</span><span>GRAVIDADE</span></div>
           <div id="alertList"></div>
         </article>
       </section>

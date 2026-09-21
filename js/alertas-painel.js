@@ -31,9 +31,14 @@
         .forEach(([id, valor]) => { const el = document.getElementById(id); if (el) el.textContent = valor; });
 
       if (alertList) {
+        const meses = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+        const dataVisual = valor => {
+          const [dia, mes, ano] = valor.split('/');
+          return dia && mes && ano ? `${dia} ${meses[Number(mes) - 1] || mes} ${ano}` : valor;
+        };
         alertList.innerHTML = itens.slice().reverse().map(alerta => `
           <button class="table-row alert-row ${alerta.gravidade}" data-id="${alerta.id}" type="button">
-            <span>${A.esc(alerta.data)}</span>
+            <span>${A.esc(dataVisual(alerta.data))}</span>
             <b>${A.esc(alerta.local)}</b>
             <span class="hide-mobile">${A.esc(alerta.descricao)}</span>
             <span class="pill ${alerta.gravidade}">${A.rotulos[alerta.gravidade]}</span>
