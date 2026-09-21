@@ -31,23 +31,59 @@
     if (!buttons.length) return;
     let active = false;
     try { active = localStorage.getItem('sentinel-acessibilidade') === '1'; } catch (_) {}
+    const panel = document.createElement('div');
+    panel.className = 'accessibility-panel';
+    panel.hidden = true;
+    panel.setAttribute('aria-label', 'Opções de acessibilidade');
+    panel.innerHTML = `
+      <div class="accessibility-section-title">ACESSIBILIDADE VISUAL</div>
+      <button type="button" data-access-action="zoom-in">⌕ <span>Expandir Tela:</span> <b data-zoom-value>100%</b></button>
+      <button type="button" data-access-action="zoom-reset">↶ <span>Tamanho Padrão</span></button>
+      <button type="button" data-access-action="contrast">☼ <span>Super Contraste / Nitidez</span></button>
+      <div class="accessibility-section-title guide">GUIA &amp; LEITURA</div>
+      <button type="button" data-access-action="explain">ⓘ <span>Explica Tudo ao Clicar</span></button>
+      <button type="button" data-access-action="speech">◖ <span>Leitura por Voz (Áudio)</span></button>`;
+    document.body.appendChild(panel);
+    const zoomValue = panel.querySelector('[data-zoom-value]');
+    let zoom = 100;
+    let explain = false;
+    let speech = false;
+    try { zoom = Number(localStorage.getItem('sentinel-zoom')) || 100; } catch (_) {}
+    const applyZoom = () => { document.documentElement.style.fontSize = `${zoom}%`; if (zoomValue) zoomValue.textContent = `${zoom}%`; };
     const render = () => buttons.forEach(button => {
       button.setAttribute('role', 'button');
       button.setAttribute('tabindex', '0');
-      button.setAttribute('aria-pressed', String(active));
-      button.setAttribute('aria-label', active ? 'Desativar modo de acessibilidade' : 'Ativar modo de acessibilidade');
-      button.textContent = active ? '◉ Acessibilidade: ativa' : '◉ Acessibilidade';
+      button.setAttribute('aria-expanded', String(!panel.hidden));
+      button.setAttribute('aria-label', 'Abrir opções de acessibilidade');
+      button.textContent = '◉ Acessibilidade';
     });
-    const toggle = () => {
-      active = !active;
-      document.body.classList.toggle('modo-acessibilidade', active);
-      try { localStorage.setItem('sentinel-acessibilidade', active ? '1' : '0'); } catch (_) {}
+    const togglePanel = () => {
+      panel.hidden = !panel.hidden;
       render();
     };
     document.body.classList.toggle('modo-acessibilidade', active);
+    applyZoom();
     buttons.forEach(button => {
-      button.addEventListener('click', toggle);
-      button.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } });
+      button.addEventListener('click', togglePanel);
+      button.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); togglePanel(); } });
+    });
+    panel.querySelectorAll('[data-access-action]').forEach(button => button.addEventListener('click', () => {
+      const action = button.dataset.accessAction;
+      if (action === 'zoom-in') { zoom = Math.min(130, zoom + 10); applyZoom(); try { localStorage.setItem('sentinel-zoom', String(zoom)); } catch (_) {} }
+      if (action === 'zoom-reset') { zoom = 100; applyZoom(); try { localStorage.setItem('sentinel-zoom', '100'); } catch (_) {} }
+      if (action === 'contrast') { active = !active; document.body.classList.toggle('modo-acessibilidade', active); try { localStorage.setItem('sentinel-acessibilidade', active ? '1' : '0'); } catch (_) {} button.classList.toggle('is-active', active); }
+      if (action === 'explain') { explain = !explain; button.classList.toggle('is-active', explain); document.body.classList.toggle('access-explain-mode', explain); }
+      if (action === 'speech') { speech = !speech; button.classList.toggle('is-active', speech); if (!speech && window.speechSynthesis) window.speechSynthesis.cancel(); }
+    }));
+    document.addEventListener('click', event => {
+      if (explain && !panel.contains(event.target) && !event.target.closest('.access')) {
+        const text = event.target.innerText?.trim();
+        if (text) window.alert(text.slice(0, 220));
+      }
+      if (speech && window.speechSynthesis && !panel.contains(event.target)) {
+        const text = event.target.innerText?.trim();
+        if (text) { window.speechSynthesis.cancel(); window.speechSynthesis.speak(new SpeechSynthesisUtterance(text.slice(0, 260))); }
+      }
     });
     render();
   });

@@ -14,6 +14,18 @@ body.modo-acessibilidade input:focus-visible,
 body.modo-acessibilidade select:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 body.modo-acessibilidade .card,
 body.modo-acessibilidade .alert-row { border-color: #8deeff; }
+body.modo-acessibilidade { filter: contrast(1.12) saturate(1.08); }
+body.access-explain-mode * { cursor: help !important; }
+.accessibility-panel { position:fixed; left:14px; bottom:78px; z-index:10004; width:250px; padding:13px; border:2px solid #00e5ff; border-radius:17px; background:rgba(3,5,10,.97); box-shadow:0 0 22px rgba(0,229,255,.55),0 16px 34px #000c; }
+.accessibility-panel[hidden] { display:none; }
+.accessibility-panel::after { content:''; position:absolute; left:24px; bottom:-10px; width:18px; height:18px; background:#03050a; border-right:2px solid #00e5ff; border-bottom:2px solid #00e5ff; transform:rotate(45deg); }
+.accessibility-section-title { padding:1px 0 7px; margin-bottom:9px; color:#00e5ff; border-bottom:1px solid rgba(0,229,255,.42); font-size:12px; font-weight:900; letter-spacing:.03em; }
+.accessibility-section-title.guide { margin-top:14px; }
+.accessibility-panel button { position:relative; z-index:1; display:flex; align-items:center; gap:9px; width:100%; min-height:38px; margin:8px 0; padding:8px 11px; border:1px solid rgba(255,255,255,.16); border-radius:9px; background:#121217; color:#f4f7fb; text-align:left; font:600 12px Inter,Arial,sans-serif; cursor:pointer; }
+.accessibility-panel button:hover, .accessibility-panel button:focus-visible, .accessibility-panel button.is-active { border-color:#00e5ff; background:#20252b; color:#fff; outline:2px solid rgba(0,229,255,.6); outline-offset:1px; }
+.accessibility-panel button:first-letter { color:#fff; font-size:16px; }
+.accessibility-panel button b { margin-left:auto; font-size:14px; }
+@media(max-width:560px) { .accessibility-panel { left:12px; bottom:78px; width:calc(100vw - 24px); max-width:250px; } }
 
 .ai-chat-launcher {
   position: fixed; right: 24px; bottom: 24px; z-index: 10001;
