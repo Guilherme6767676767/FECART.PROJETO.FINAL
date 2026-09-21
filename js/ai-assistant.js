@@ -173,10 +173,13 @@
     }
 
     // 1. Tenta chamar o Endpoint do Backend FastAPI (/api/v1/chat)
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 4500);
     try {
       const response = await fetch(`${BACKEND_URL}/api/v1/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMessage,
           history: conversationMemory.history.slice(-6),
@@ -204,6 +207,8 @@
       }
     } catch (err) {
       console.warn('Backend FastAPI indisponível, usando motor neural local Sentinel:', err);
+    } finally {
+      window.clearTimeout(timeout);
     }
 
     // 2. Fallback Especializado: Motor NLP Local com Detecção de Ações
@@ -337,7 +342,7 @@
     launcher.className = 'ai-chat-launcher';
     launcher.setAttribute('aria-label', 'Abrir Assistente de IA');
     launcher.innerHTML = `
-      <i data-lucide="bot" style="width:24px;height:24px;"></i>
+      <span aria-hidden="true">🤖</span>
       <span class="ai-chat-launcher-badge"></span>
     `;
 
@@ -348,7 +353,7 @@
       <div class="ai-chat-header">
         <div class="ai-chat-header-title">
           <div class="ai-avatar-icon">
-            <i data-lucide="sparkles" style="width:18px;height:18px;"></i>
+            <span aria-hidden="true">✦</span>
           </div>
           <div>
             <h4>Sentinel IA Assistant</h4>
@@ -356,7 +361,7 @@
           </div>
         </div>
         <button class="btn-icon" id="aiChatClose" style="width:28px;height:28px;background:transparent;border:none;color:#8b9dc3;cursor:pointer;">
-          <i data-lucide="x" style="width:18px;height:18px;"></i>
+          ×
         </button>
       </div>
 
@@ -382,7 +387,7 @@
       <div class="ai-chat-footer">
         <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Comande a IA ou faça uma pergunta sobre a plataforma..." autocomplete="off" />
         <button id="aiChatSend" class="ai-chat-send-btn" aria-label="Enviar Pergunta">
-          <i data-lucide="send" style="width:16px;height:16px;"></i>
+          ➤
         </button>
       </div>
     `;

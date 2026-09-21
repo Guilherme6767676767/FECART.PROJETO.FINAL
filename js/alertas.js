@@ -10,16 +10,45 @@
   const rotulos = {'crítico':'Crítico','médio':'Médio','baixo':'Baixo'};
   window.SentinelAlertas = { dados:alertas, cores, rotulos, esc, porGravidade:g => alertas.filter(a => a.gravidade === g) };
   document.addEventListener('DOMContentLoaded', () => {
+    if (!document.querySelector('link[data-sentinel-shared-ui]')) {
+      const sharedStyle = document.createElement('link');
+      sharedStyle.rel = 'stylesheet';
+      sharedStyle.href = 'css/assistente-acessibilidade.css?v=4';
+      sharedStyle.dataset.sentinelSharedUi = '1';
+      document.head.appendChild(sharedStyle);
+    }
+    if (!document.querySelector('script[data-sentinel-chat]')) {
+      const chatScript = document.createElement('script');
+      chatScript.src = 'js/ai-assistant.js?v=4';
+      chatScript.dataset.sentinelChat = '1';
+      document.body.appendChild(chatScript);
+    }
     document.querySelectorAll('.side-link[href="alertas.html"] .badge').forEach(item => item.remove());
     const style = document.createElement('style');
     style.textContent = 'body.modo-acessibilidade{font-size:16px}body.modo-acessibilidade *{letter-spacing:.015em}body.modo-acessibilidade .card,body.modo-acessibilidade .alert-row{border-color:#8deeff}body.modo-acessibilidade .access{background:#00d9ff;color:#001018;box-shadow:0 0 24px #00d9ff}.side-link[href="alertas.html"] .badge{display:none!important}';
     document.head.appendChild(style);
-    const button = document.querySelector('.access');
-    if (!button) return;
-    button.setAttribute('role', 'button');
-    button.setAttribute('tabindex', '0');
-    const toggle = () => { const active = document.body.classList.toggle('modo-acessibilidade'); button.setAttribute('aria-pressed', String(active)); button.textContent = active ? '◉ Acessibilidade: ativa' : '◉ Acessibilidade'; };
-    button.addEventListener('click', toggle);
-    button.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } });
+    const buttons = document.querySelectorAll('.access');
+    if (!buttons.length) return;
+    let active = false;
+    try { active = localStorage.getItem('sentinel-acessibilidade') === '1'; } catch (_) {}
+    const render = () => buttons.forEach(button => {
+      button.setAttribute('role', 'button');
+      button.setAttribute('tabindex', '0');
+      button.setAttribute('aria-pressed', String(active));
+      button.setAttribute('aria-label', active ? 'Desativar modo de acessibilidade' : 'Ativar modo de acessibilidade');
+      button.textContent = active ? '◉ Acessibilidade: ativa' : '◉ Acessibilidade';
+    });
+    const toggle = () => {
+      active = !active;
+      document.body.classList.toggle('modo-acessibilidade', active);
+      try { localStorage.setItem('sentinel-acessibilidade', active ? '1' : '0'); } catch (_) {}
+      render();
+    };
+    document.body.classList.toggle('modo-acessibilidade', active);
+    buttons.forEach(button => {
+      button.addEventListener('click', toggle);
+      button.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } });
+    });
+    render();
   });
 })();
