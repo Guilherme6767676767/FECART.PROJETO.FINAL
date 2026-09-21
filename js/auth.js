@@ -9,6 +9,7 @@
   const USERS_KEY = 'sentinel_registered_users';
   const currentPage = window.location.pathname.split('/').pop() || 'index.html';
   const isLoginPage = currentPage.toLowerCase() === 'login.html';
+  const isPublicPage = isLoginPage || currentPage.toLowerCase() === 'index.html' || !currentPage;
 
   // Buscar usuários cadastrados no localStorage
   function getRegisteredUsers() {
@@ -25,8 +26,8 @@
     return sessionStorage.getItem(AUTH_KEY) === 'true' || localStorage.getItem(AUTH_KEY) === 'true';
   }
 
-  // Se não estiver logado e tentar acessar qualquer página que não seja login.html -> Redireciona
-  if (!isAuthenticated() && !isLoginPage) {
+  // Se não estiver logado e tentar acessar qualquer página protegida -> Redireciona para o login
+  if (!isAuthenticated() && !isPublicPage) {
     window.location.href = 'login.html';
     return;
   }

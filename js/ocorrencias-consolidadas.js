@@ -47,14 +47,61 @@
     {data:'2026-09-15',hora:'',municipio:'Santos',natureza:'Morte suspeita / investigação',local:'Zona Portuária',fonte:'A Tribuna'}
   ].map((item, index) => ({...item, id:`consolidada-${String(index + 1).padStart(2, '0')}`}));
 
-  const alta = /homicídio|feminicídio|sequestro e homicídio|confronto policial|morte em abordagem policial|desabamento|chuvas.*mortes/i;
-  const media = /atropelamento fatal|acidente|morte suspeita|investigação|prisão|afogamento|abelhas|perseguição/i;
+  function classificarSeveridade(alerta) {
+    let texto = '';
+    if (typeof alerta === 'string') {
+      texto = alerta;
+    } else if (alerta && typeof alerta === 'object') {
+      texto = [
+        alerta.natureza || '',
+        alerta.title || '',
+        alerta.titulo || '',
+        alerta.desc || '',
+        alerta.descricao || '',
+        alerta.tipo || '',
+        alerta.tipo_crime || '',
+        alerta.tipo_evento || ''
+      ].join(' ');
+    }
+
+    const limpo = texto
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+
+    // REGRA DE OURO: "Se houver 'morte' ou 'vítima fatal', sempre crítico, mesmo que o tipo seja de baixo."
+    if (limpo.includes('morte') || limpo.includes('vitima fatal') || limpo.includes('vitimas fatais') || limpo.includes('obito')) {
+      return 'critical';
+    }
+
+    // CRÍTICO: morte, óbito, homicídio, vítima fatal, latrocínio, explosão, incêndio com vítimas
+    const padraoCritico = /\b(morte|mortes|obito|obitos|homicidio|homicidios|feminicidio|feminicidios|vitima fatal|vitimas fatais|fatal|latrocinio|latrocinios|explosao|explosoes)\b|incendio com vitima/i;
+    if (padraoCritico.test(limpo)) {
+      return 'critical';
+    }
+
+    // MÉDIO: cárcere privado, sequestro, roubo, assalto, agressão, acidente com feridos, incêndio sem vítimas, confronto policial, etc.
+    const padraoMedio = /\b(carcere privado|sequestro|sequestros|roubo|roubos|assalto|assaltos|agressao|agressoes|confronto policial|perseguicao|violencia sexual|arrastao)\b|acidente com ferido|acidente rodoviario|acidente de transito|incendio sem vitima/i;
+    if (padraoMedio.test(limpo)) {
+      return 'medium';
+    }
+
+    if (limpo.includes('acidente')) {
+      return 'medium';
+    }
+
+    // BAIXO: desabamento sem vítimas, alagamento, queda de árvore, trânsito, semáforo apagado, clima e ocorrências comuns
+    return 'low';
+  }
+
   ocorrencias.forEach(item => {
-    item.severidade = alta.test(item.natureza) ? 'critical' : media.test(item.natureza) ? 'medium' : 'low';
-    item.nivel_gravidade = item.severidade === 'critical' ? 'ALTA' : item.severidade === 'medium' ? 'MÉDIA' : 'BAIXA';
-    item.prioridade = item.severidade === 'critical' ? 0 : item.severidade === 'medium' ? 1 : 2;
+    item.severidade = classificarSeveridade(item);
+    item.nivel_gravidade = item.severidade === 'critical' ? 'CRÍTICO' : (item.severidade === 'medium' ? 'MÉDIO' : 'BAIXO');
+    item.prioridade = item.severidade === 'critical' ? 0 : (item.severidade === 'medium' ? 1 : 2);
     item.consulta_geocodificacao = `${item.local}, ${item.municipio}, SP, Brasil`;
   });
+
+  window.classificarSeveridade = classificarSeveridade;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const popupHtml = items => `<div class="real-alert-popup"><strong>${items.length > 1 ? `${items.length} ocorrências` : 'Ocorrência'}</strong>` + items.map(item => `<div class="real-alert-popup-item ${item.severidade}"><b>${esc(item.natureza)}</b><br><span>${esc(item.data)}${item.hora ? ` • ${esc(item.hora)}` : ''}</span><br><span>${esc(item.local)}</span><br><span>${esc(item.municipio)}</span><br><small>Gravidade: ${esc(item.nivel_gravidade)}<br>Fonte: ${esc(item.fonte)}</small></div>`).join('') + '</div>';

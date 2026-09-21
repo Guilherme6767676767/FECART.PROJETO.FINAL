@@ -1537,3 +1537,73 @@ body,
   }
 }
 
+/* ============================================
+   Ajustes de Apresentação (Projetor e Mobile)
+   ============================================ */
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw;
+}
+
+/* Telas de Projetor (1024x768 / 1280x720 / 1280x800) */
+@media screen and (min-width: 769px) and (max-width: 1280px) {
+  .dashboard-content {
+    padding: 1rem 1.25rem !important;
+  }
+  .dashboard-topbar {
+    padding: 0.75rem 1.25rem !important;
+    gap: 0.75rem;
+  }
+  .dashboard-grid, .dashboard-grid-wide {
+    gap: 1rem !important;
+  }
+  .sim-layout-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .sidebar {
+    width: 230px !important;
+  }
+  .dashboard-main {
+    margin-left: 230px !important;
+  }
+  .alerts-toolbar {
+    flex-wrap: wrap !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Telas Mobile (< 768px) */
+@media screen and (max-width: 768px) {
+  .alerts-toolbar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .alerts-filters {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .filter-btn {
+    flex: 1 1 calc(50% - 6px);
+    text-align: center;
+  }
+  .alert-date-filter {
+    flex-direction: column !important;
+    align-items: stretch !important;
+  }
+  .alert-date-filter input {
+    width: 100% !important;
+  }
+  .alert-item {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+  }
+  .alert-item-actions {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+  }
+}
+
+
