@@ -13,7 +13,7 @@
     if (!document.querySelector('link[data-sentinel-shared-ui]')) {
       const sharedStyle = document.createElement('link');
       sharedStyle.rel = 'stylesheet';
-      sharedStyle.href = 'css/assistente-acessibilidade.css?v=4';
+      sharedStyle.href = 'css/assistente-acessibilidade.css?v=5';
       sharedStyle.dataset.sentinelSharedUi = '1';
       document.head.appendChild(sharedStyle);
     }
