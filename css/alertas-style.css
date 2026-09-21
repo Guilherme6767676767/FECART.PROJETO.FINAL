@@ -38,7 +38,7 @@
 .alert-row:hover { background: #3b515a; box-shadow: inset 0 0 0 1px #00d9ff66; }
 .alert-row b { color: #f4fbff; font-weight: 600; }
 .alert-row.crítico { border-left-color: #742633; }
-.alert-row.médio { border-left-color: #2d7180; }
+.alert-row.médio { border-left-color: #d89a16; }
 .alert-row.baixo { border-left-color: #3f91a2; }
 .alert-row .pill { justify-self: stretch; text-align: center; }
 
