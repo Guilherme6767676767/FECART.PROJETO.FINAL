@@ -92,6 +92,7 @@
     const format = element.getAttribute('data-format');
     const duration = 2000; // 2 seconds
     const startTime = performance.now();
+    const initialValue = Number(element.textContent.replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0;
 
     function formatNumber(num) {
       if (format === 'abbr') {
@@ -117,7 +118,7 @@
       const elapsed = currentTime - startTime;
       const progress = Math.min(elapsed / duration, 1);
       const easedProgress = easeOutExpo(progress);
-      const currentValue = easedProgress * target;
+      const currentValue = initialValue + ((target - initialValue) * easedProgress);
 
       element.textContent = formatNumber(currentValue) + suffix;
 

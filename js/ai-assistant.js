@@ -84,7 +84,9 @@
         showActionNotification(`🎯 Focando no mapa: ${bairro || action.target}`);
         
         // Se o mapa do Leaflet existir globalmente
-        if (window.map && typeof window.map.panTo === 'function') {
+        if (window.SentinelMapaAPI?.mapa && typeof window.SentinelMapaAPI.mapa.flyTo === 'function') {
+          window.SentinelMapaAPI.mapa.flyTo([lat, lng], 15, { animate: true, duration: 1.5 });
+        } else if (window.map && typeof window.map.panTo === 'function') {
           window.map.panTo([lat, lng], { animate: true, duration: 1.5 });
         } else if (typeof window.setSimulationPin === 'function') {
           window.setSimulationPin(lat, lng);
@@ -133,6 +135,7 @@
       "mapa", "analise", "análise", "alerta", "alertas", "simulac", "simulaç", "cenario", "cenário",
       "relatorio", "relatório", "funcionalidade", "login", "cadastro", "usuario", "usuário", "admin",
       "são paulo", "sao paulo", "bairro", "perimetro", "perímetro",
+      "cidade", "cidades", "municipio", "município", "local", "locais", "quantas", "quantos", "quando", "mais recente", "mais comum", "distribuicao", "distribuição",
       "paulista", "bela vista", "pinheiros", "faria lima", "lapa", "marginal",
       "tietê", "tiete", "moema", "ibirapuera", "jardins", "santana", "tatuape", "tatuapé",
       "boletim", "boletins", "ocorrencia", "ocorrência", "crime", "furto", "roubo",
@@ -172,11 +175,19 @@
       };
     }
 
+    // Perguntas objetivas sobre a base são respondidas localmente para não
+    // depender do backend e nem receber uma resposta genérica do modelo.
+    const dataResponse = getDeterministicDataResponse(userMessage);
+    if (dataResponse) return dataResponse;
+
     // 1. Tenta chamar o Endpoint do Backend FastAPI (/api/v1/chat)
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 4500);
     try {
       const response = await fetch(`${BACKEND_URL}/api/v1/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           message: userMessage,
           history: conversationMemory.history.slice(-6),
@@ -204,13 +215,298 @@
       }
     } catch (err) {
       console.warn('Backend FastAPI indisponível, usando motor neural local Sentinel:', err);
+    } finally {
+      window.clearTimeout(timeout);
     }
 
     // 2. Fallback Especializado: Motor NLP Local com Detecção de Ações
     return generateLocalResponseWithActions(userMessage);
   }
 
-  // Fallback Local Inteligente
+  function getLiveSummary() {
+    const data = Array.isArray(window.SentinelAlertas?.dados) ? window.SentinelAlertas.dados : [];
+    const counts = data.reduce((acc, item) => { acc[item.gravidade] = (acc[item.gravidade] || 0) + 1; return acc; }, {});
+    const toDate = value => { const [day, month, year] = String(value || '').split('/'); return new Date(`${year}-${month}-${day}T00:00:00`); };
+    const latest = data.slice().sort((a, b) => toDate(b.data) - toDate(a.data))[0];
+    return { total: data.length, critical: counts['crítico'] || 0, medium: counts['médio'] || 0, low: counts.baixo || 0, latest };
+  }
+
+  function normalizeQuery(value) {
+    return String(value || '')
+      .toLocaleLowerCase('pt-BR')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  function requestedSeverity(query) {
+    const q = normalizeQuery(query);
+    if (/\b(crit\w*|grave\w*|alta\w*)/.test(q)) return { key: 'critical', label: 'críticas' };
+    if (/\b(medi\w*|moderad\w*)/.test(q)) return { key: 'medium', label: 'médias' };
+    if (/\b(baix\w*|leve\w*)/.test(q)) return { key: 'low', label: 'baixas' };
+    return null;
+  }
+
+  const MUNICIPALITIES = {
+    'sao paulo': 'São Paulo',
+    'bom sucesso de itarare': 'Bom Sucesso de Itararé',
+    carapicuiba: 'Carapicuíba', penapolis: 'Penápolis', campinas: 'Campinas',
+    marilia: 'Marília', jundiai: 'Jundiaí', ourinhos: 'Ourinhos',
+    'ribeirao preto': 'Ribeirão Preto', 'santa barbara d\'oeste': 'Santa Bárbara d\'Oeste',
+    'sao jose do rio preto': 'São José do Rio Preto', sarapui: 'Sarapuí',
+    capivari: 'Capivari', joanopolis: 'Joanópolis', vargem: 'Vargem',
+    itaquaquecetuba: 'Itaquaquecetuba', 'sao jose dos campos': 'São José dos Campos',
+    aracatuba: 'Araçatuba', botucatu: 'Botucatu', araras: 'Araras',
+    'sao vicente': 'São Vicente', araraquara: 'Araraquara', 'embu das artes': 'Embu das Artes',
+    jandira: 'Jandira', 'mogi das cruzes': 'Mogi das Cruzes',
+    'sao bernardo do campo': 'São Bernardo do Campo', santos: 'Santos',
+    'santo andre': 'Santo André', osasco: 'Osasco', guarulhos: 'Guarulhos',
+    maua: 'Mauá', tatui: 'Tatuí', 'dois corregos': 'Dois Córregos', iaras: 'Iaras',
+    pindamonhangaba: 'Pindamonhangaba', suzano: 'Suzano', guaruja: 'Guarujá',
+    cruzeiro: 'Cruzeiro'
+  };
+
+  const ZONES = [
+    { key: 'south', label: 'Zona Sul', terms: ['zona sul', 'capao redondo', 'guarapiranga', 'ibirapuera', 'moema', 'jardim castro alves', 'ipiranga', 'jabaquara', 'cidade dutra'] },
+    { key: 'east', label: 'Zona Leste', terms: ['zona leste', 'viaduto dona matilde', 'penha', 'artur alvim', 'sapopemba', 'vila jacui', 'vila granada'] },
+    { key: 'north', label: 'Zona Norte', terms: ['zona norte', 'jardim cachoeira', 'vila maria', 'deputado emilio carlos'] },
+    { key: 'center', label: 'Centro/Oeste', terms: ['centro', 'rua augusta', 'barra funda', 'pinheiros', 'vila madalena', 'nove de julho', 'planalto paulista', 'cambuci', 'marginal', 'paulista', 'bras', 'se'] }
+  ];
+
+  function containsTerm(text, term) {
+    return term.length <= 2 ? new RegExp(`\\b${term}\\b`).test(text) : text.includes(term);
+  }
+
+  const MONTHS = {
+    janeiro: '01', fevereiro: '02', marco: '03', abril: '04', maio: '05', junho: '06',
+    julho: '07', agosto: '08', setembro: '09', outubro: '10', novembro: '11', dezembro: '12'
+  };
+
+  function municipalityOf(local) {
+    const text = normalizeQuery(local);
+    if (text.includes('grande sao paulo')) return 'Grande São Paulo';
+    const key = Object.keys(MUNICIPALITIES).sort((a, b) => b.length - a.length)
+      .find(city => text === city || text.startsWith(`${city},`));
+    return key ? MUNICIPALITIES[key] : 'São Paulo';
+  }
+
+  function requestedPlace(query) {
+    const q = normalizeQuery(query);
+    const nonCapital = Object.keys(MUNICIPALITIES)
+      .filter(city => city !== 'sao paulo')
+      .sort((a, b) => b.length - a.length)
+      .find(city => q.includes(city));
+    if (nonCapital) return { municipality: MUNICIPALITIES[nonCapital], label: MUNICIPALITIES[nonCapital] };
+
+    const zone = ZONES.find(item => item.terms.some(term => containsTerm(q, term)));
+    if (zone) return { municipality: 'São Paulo', zone: zone.key, label: `${zone.label} de São Paulo` };
+    if (/\b(capital|sao paulo|sp)\b/.test(q)) return { municipality: 'São Paulo', label: 'São Paulo' };
+    if (q.includes('grande sao paulo')) return { municipality: 'Grande São Paulo', label: 'Grande São Paulo' };
+    return null;
+  }
+
+  function requestedType(query) {
+    const q = normalizeQuery(query);
+    const types = [
+      { terms: ['homic', 'feminic', 'latrocin'], label: 'de crimes letais', test: /homic|feminic|latrocin/ },
+      { terms: ['atropelamento'], label: 'de atropelamentos', test: /atropelamento/ },
+      { terms: ['acidente', 'colisao', 'capotamento', 'tombamento', 'engavetamento'], label: 'de acidentes de trânsito', test: /acidente|colisao|capotamento|tombamento|engavetamento/ },
+      { terms: ['roubo'], label: 'de roubos', test: /roubo/ },
+      { terms: ['furto'], label: 'de furtos', test: /furto/ },
+      { terms: ['chuva', 'alagamento', 'enxurrada', 'desabamento', 'incendio'], label: 'de clima e infraestrutura', test: /chuva|alagamento|enxurrada|desabamento|incendio/ },
+      { terms: ['prisao', 'preso'], label: 'de prisões', test: /prisao|preso/ }
+    ];
+    return types.find(type => type.terms.some(term => q.includes(term))) || null;
+  }
+
+  function requestedDate(query) {
+    const q = normalizeQuery(query);
+    const numeric = q.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{4}))?\b/);
+    if (numeric) {
+      const day = numeric[1].padStart(2, '0');
+      const month = numeric[2].padStart(2, '0');
+      const year = numeric[3] || '2026';
+      return { test: item => item.data === `${day}/${month}/${year}`, label: `${day}/${month}/${year}` };
+    }
+    const month = Object.keys(MONTHS).find(name => q.includes(name));
+    if (month) {
+      const monthNumber = MONTHS[month];
+      return { test: item => item.data.split('/')[1] === monthNumber, label: month };
+    }
+    return null;
+  }
+
+  function dateSort(items) {
+    return items.slice().sort((a, b) => {
+      const [ad, am, ay] = a.data.split('/');
+      const [bd, bm, by] = b.data.split('/');
+      return new Date(`${by}-${bm}-${bd}`) - new Date(`${ay}-${am}-${ad}`);
+    });
+  }
+
+  function matchesScope(item, scope) {
+    const local = normalizeQuery(item.local);
+    if (scope.place?.municipality && municipalityOf(item.local) !== scope.place.municipality) return false;
+    if (scope.place?.zone) {
+      const zone = ZONES.find(value => value.key === scope.place.zone);
+      if (!zone || municipalityOf(item.local) !== 'São Paulo' || !zone.terms.some(term => containsTerm(local, term))) return false;
+    }
+    if (scope.severity && item.gravidade !== ({ critical: 'crítico', medium: 'médio', low: 'baixo' }[scope.severity.key])) return false;
+    if (scope.type && !scope.type.test.test(normalizeQuery(item.descricao))) return false;
+    if (scope.date && !scope.date.test(item)) return false;
+    return true;
+  }
+
+  function scopeLabel(scope) {
+    const labels = [];
+    if (scope.severity) labels.push(scope.severity.label);
+    if (scope.type) labels.push(scope.type.label);
+    if (scope.place) labels.push(`em ${scope.place.label}`);
+    if (scope.date) labels.push(`em ${scope.date.label}`);
+    return labels.join(' ');
+  }
+
+  function asksCount(query) {
+    const q = normalizeQuery(query);
+    return /(quant\w*|qtd|quantidade|numero|total|cont\w*|registrad\w*|possui|existe)/.test(q)
+      && /(ocorr\w*|alert\w*|registro\w*|crit\w*|medi\w*|baix\w*|gravidade|nivel|cidade|municipio|local)/.test(q);
+  }
+
+  function getDeterministicDataResponse(query) {
+    const q = normalizeQuery(query);
+    const data = Array.isArray(window.SentinelAlertas?.dados) ? window.SentinelAlertas.dados : [];
+    const scope = {
+      place: requestedPlace(query),
+      severity: requestedSeverity(query),
+      type: requestedType(query),
+      date: requestedDate(query)
+    };
+    const asksRecent = /mais recente|ultima|ultimo|recentes|recente|nova ocorrencia|novo alerta/.test(q);
+    const asksList = /\b(quais|liste|listar|mostre|mostrar|exiba|exibir|detalhes|aconteceu)\b/.test(q);
+    const asksCities = /\b(cidades?|municipios?|locais?)\b/.test(q) && !scope.place;
+    const asksTopPlace = /\b(cidade|municipio|local)\b.*\b(mais|maior|concentra)|\b(mais|maior)\b.*\b(ocorr\w*|alert\w*)\b.*\b(cidade|municipio|local)\b/.test(q);
+    const asksDistribution = /distribuicao|distribuicao por gravidade|nivel de gravidade/.test(q);
+    const asksCommon = /mais comum|maior incidencia|maior concentracao|predominante/.test(q);
+    const asksWhen = /\bquando\b/.test(q);
+    const asksWhere = /\bonde\b/.test(q);
+    const asksData = /\b(ocorr\w*|alert\w*|registro\w*|base|quant\w*|qtd|municip\w*|cidad\w*|local\w*|recent\w*|quais|liste|listar|mostre|detalhes|aconteceu|gravidade|distribuicao|distribuição|quando|onde)\b/.test(q);
+    if (!asksData) return null;
+    const scoped = data.filter(item => matchesScope(item, scope));
+    const label = scopeLabel(scope);
+
+    if (asksCount(query) && !asksCities && !asksList) {
+      if (!scope.place && !scope.severity && !scope.type && !scope.date) {
+        const summary = getLiveSummary();
+        return {
+          text: `📊 <strong>Resumo da base central:</strong><br><br>`
+            + `• Total: <strong>${summary.total}</strong> ocorrências<br>`
+            + `• Críticas: <strong>${summary.critical}</strong><br>`
+            + `• Médias: <strong>${summary.medium}</strong><br>`
+            + `• Baixas: <strong>${summary.low}</strong>`,
+          model: 'Sentinel Local Data Engine'
+        };
+      }
+      return {
+        text: `📊 <strong>Ocorrências ${label || 'encontradas'}:</strong> ${scoped.length}.<br><br>`
+          + (scope.place ? `Local consultado: <strong>${escapeHTML(scope.place.label)}</strong>.<br>` : '')
+          + (scope.date ? `Período: <strong>${escapeHTML(scope.date.label)}</strong>.<br>` : '')
+          + 'A contagem considera somente os registros da base central.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksRecent) {
+      const item = dateSort(scoped)[0];
+      return {
+        text: item
+          ? `🕒 <strong>Ocorrência mais recente${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br>${escapeHTML(item.data)} — <strong>${escapeHTML(item.local)}</strong><br>${escapeHTML(item.descricao)}<br>Gravidade: <strong>${escapeHTML(item.gravidade)}</strong>`
+          : 'Não encontrei ocorrências para esse filtro.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksWhen) {
+      const rows = dateSort(scoped).slice(0, 8);
+      return {
+        text: rows.length
+          ? `📅 <strong>Datas encontradas${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br><br>${rows.map(item => `• ${escapeHTML(item.data)} — ${escapeHTML(item.descricao)} (${escapeHTML(item.local)})`).join('<br>')}`
+          : 'Não encontrei datas para esse filtro.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksWhere) {
+      const rows = dateSort(scoped).slice(0, 8);
+      return {
+        text: rows.length
+          ? `📍 <strong>Locais encontrados${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br><br>${rows.map(item => `• ${escapeHTML(item.local)} — ${escapeHTML(item.data)}: ${escapeHTML(item.descricao)}`).join('<br>')}`
+          : 'Não encontrei locais para esse filtro.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksTopPlace) {
+      const grouped = scoped.reduce((result, item) => {
+        const city = municipalityOf(item.local);
+        result[city] = (result[city] || 0) + 1;
+        return result;
+      }, {});
+      const top = Object.entries(grouped).sort((a, b) => b[1] - a[1])[0];
+      return {
+        text: top ? `🏙️ <strong>Maior concentração:</strong><br>${escapeHTML(top[0])}, com <strong>${top[1]}</strong> ocorrência(s) na base.` : 'Não encontrei municípios para comparar.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksCities) {
+      const grouped = scoped.reduce((result, item) => {
+        const city = municipalityOf(item.local);
+        result[city] = (result[city] || 0) + 1;
+        return result;
+      }, {});
+      const rows = Object.entries(grouped).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      return {
+        text: `📍 <strong>Distribuição por município/local:</strong><br><br>${rows.map(([city, count]) => `• ${escapeHTML(city)}: <strong>${count}</strong>`).join('<br>') || 'Nenhum local encontrado.'}`,
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksDistribution) {
+      const grouped = scoped.reduce((result, item) => {
+        result[item.gravidade] = (result[item.gravidade] || 0) + 1;
+        return result;
+      }, {});
+      return {
+        text: `📊 <strong>Distribuição de gravidade${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br><br>`
+          + `• Críticas: <strong>${grouped.crítico || 0}</strong><br>• Médias: <strong>${grouped.médio || 0}</strong><br>• Baixas: <strong>${grouped.baixo || 0}</strong>`,
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksCommon) {
+      const grouped = scoped.reduce((result, item) => {
+        result[item.descricao] = (result[item.descricao] || 0) + 1;
+        return result;
+      }, {});
+      const top = Object.entries(grouped).sort((a, b) => b[1] - a[1])[0];
+      return {
+        text: top ? `🔎 <strong>Ocorrência mais frequente${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br>${escapeHTML(top[0])}, com <strong>${top[1]}</strong> registro(s).` : 'Não encontrei registros para analisar.',
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    if (asksList || scope.place || scope.type || scope.date) {
+      const rows = dateSort(scoped).slice(0, 8);
+      return {
+        text: `🧾 <strong>Registros${label ? ` — ${escapeHTML(label)}` : ''}:</strong><br><br>`
+          + (rows.map(item => `• ${escapeHTML(item.data)} — <strong>${escapeHTML(item.local)}</strong><br>&nbsp;&nbsp;${escapeHTML(item.descricao)} (${escapeHTML(item.gravidade)})`).join('<br>') || 'Nenhuma ocorrência encontrada para esse filtro.'),
+        model: 'Sentinel Local Data Engine'
+      };
+    }
+
+    return null;
+  }
+
+  // Fallback Local Inteligente, sincronizado com a base central dos alertas.
   function generateLocalResponseWithActions(query) {
     const q = query.toLowerCase().trim();
 
@@ -242,8 +538,17 @@
       executeActions(actions);
     }
 
+    const dataResponse = getDeterministicDataResponse(query);
+    if (dataResponse) return dataResponse;
+
+    const summary = getLiveSummary();
     let resp = '';
-    if (q.includes('aoi') || q.includes('zona') || q.includes('perimetro')) {
+    if (q.includes('quantos') || q.includes('quantidade') || q.includes('resumo dos alertas') || q.includes('total de alertas')) {
+      resp = `📊 <strong>Resumo da base central:</strong><br><br>• Total: <strong>${summary.total}</strong> alertas<br>• Críticos: <strong>${summary.critical}</strong><br>• Médios: <strong>${summary.medium}</strong><br>• Baixos: <strong>${summary.low}</strong><br><br>${summary.latest ? `Registro mais recente: <strong>${escapeHTML(summary.latest.data)} — ${escapeHTML(summary.latest.local)}</strong>.` : 'Não há registros carregados.'}`;
+    } else if (q.includes('alerta') && (q.includes('crít') || q.includes('grave') || q.includes('prior'))) {
+      const criticos = (window.SentinelAlertas?.dados || []).filter(item => item.gravidade === 'crítico').slice(0, 5);
+      resp = `🚨 <strong>Alertas críticos:</strong> ${summary.critical} registro(s) na base.<br><br>${criticos.map(item => `• ${escapeHTML(item.data)} — <strong>${escapeHTML(item.local)}</strong>: ${escapeHTML(item.descricao)}`).join('<br>') || 'Nenhum alerta crítico carregado.'}<br><br>Use “Abrir o mapa” para localizar os pontos.`;
+    } else if (q.includes('aoi') || q.includes('zona') || q.includes('perimetro')) {
       resp = `🗺️ <strong>Áreas de Interesse (AOIs) Ativas em São Paulo:</strong><br><br>
         • <strong>AOI Alpha (Av. Paulista):</strong> Risco 68% • 84 Câmeras • 412 Sensores<br>
         • <strong>AOI Bravo (Sé / Centro):</strong> Risco 92% (Crítico) • 120 Câmeras • 320 Sensores<br>
@@ -255,24 +560,28 @@
         • <strong>Foco Crítico:</strong> Praça da Sé e Centro Histórico (Risco 92/100)<br>
         • <strong>Foco Alto:</strong> Marginal Tietê e Lapa (Risco 81/100)<br>
         • <strong>Zonas Estáveis:</strong> Moema (18/100), Jardins (15/100), Pinheiros (24/100)<br>
-        • <strong>Status Operacional:</strong> 1.847 câmeras com inteligência OCR monitorando em tempo real.`;
+        • <strong>Base central:</strong> ${summary.total} alertas classificados por gravidade.`;
     } else if (q.includes('tempestade') || q.includes('chuva') || q.includes('clima') || q.includes('temperatura')) {
       resp = `🌧️ <strong>Monitoramento Meteorológico de São Paulo:</strong><br><br>
         • Temperatura: 24.4°C • Umidade: 62% • Vento: 14 km/h<br>
         • <strong>Risco Pluviométrico:</strong> MODERADO nas Marginais Tietê e Pinheiros<br>
-        • Sensores IoT operando para alerta preventivo de alagamento.`;
+        • Consulte a aba Mapa para localizar alertas relacionados a chuva e alagamento.`;
     } else if (q.includes('ola') || q.includes('olá') || q.includes('oi') || q.includes('bom dia') || q.includes('boa tarde') || q.includes('boa noite') || q.includes('ajuda')) {
       resp = `👋 <strong>Olá! Sou o assistente de IA do Sentinel IA.</strong><br><br>
         Posso auxiliá-lo com consultas preditivas, relatórios táticos de segurança e controle da plataforma.<br><br>
         • 🗺️ <em>"Abrir o mapa de SP"</em><br>
-        • 🚨 <em>"Qual é o risco de segurança na Sé?"</em><br>
+        • 📊 <em>"Quantas ocorrências médias estão registradas?"</em><br>
+        • 📍 <em>"Quantas ocorrências existem em São Paulo?"</em><br>
+        • 🕒 <em>"Quais foram as ocorrências mais recentes?"</em><br>
+        • 🏙️ <em>"Qual cidade concentra mais ocorrências?"</em><br>
+        • 🚨 <em>"Mostre alertas críticos em Campinas"</em><br>
         • ⛈️ <em>"Simular tempestade na Marginal"</em><br>
         • 📊 <em>"Abrir tela de análise"</em>`;
     } else {
       resp = `📡 <strong>Sentinel IA Intelligence Core:</strong><br><br>
         Consulta processada sobre a malha de São Paulo: <em>"${escapeHTML(query)}"</em>.<br><br>
-        • 🛡️ <strong>Monitoramento Ativo:</strong> 1.847 Câmeras IA & 3.421 Sensores IoT<br>
-        • 📍 <strong>Zonas de Cobertura:</strong> Sé, Paulista, Pinheiros e Lapa<br>
+        • 🛡️ <strong>Base monitorada:</strong> ${summary.total} alertas (${summary.critical} críticos)<br>
+        • 📍 <strong>Dados disponíveis:</strong> Dashboard, Mapa, Alertas e Simulações<br>
         • 💡 <em>Solicite comandos de navegação ou simulações táticas.</em>`;
     }
 
@@ -337,7 +646,7 @@
     launcher.className = 'ai-chat-launcher';
     launcher.setAttribute('aria-label', 'Abrir Assistente de IA');
     launcher.innerHTML = `
-      <i data-lucide="bot" style="width:24px;height:24px;"></i>
+      <span aria-hidden="true">🤖</span>
       <span class="ai-chat-launcher-badge"></span>
     `;
 
@@ -348,7 +657,7 @@
       <div class="ai-chat-header">
         <div class="ai-chat-header-title">
           <div class="ai-avatar-icon">
-            <i data-lucide="sparkles" style="width:18px;height:18px;"></i>
+            <span aria-hidden="true">✦</span>
           </div>
           <div>
             <h4>Sentinel IA Assistant</h4>
@@ -356,7 +665,7 @@
           </div>
         </div>
         <button class="btn-icon" id="aiChatClose" style="width:28px;height:28px;background:transparent;border:none;color:#8b9dc3;cursor:pointer;">
-          <i data-lucide="x" style="width:18px;height:18px;"></i>
+          ×
         </button>
       </div>
 
@@ -364,7 +673,7 @@
         <div class="ai-msg-row bot">
           <div class="ai-msg-bubble">
             👋 ${getGreetingByTime()}! Sou o assistente oficial do <strong>Sentinel IA</strong>.<br><br>
-            Estou conectado em tempo real aos sistemas de <strong>Segurança Urbana, Clima, Câmeras IA e Simulação Preditiva</strong> de São Paulo.<br><br>
+            Estou conectado à base central do projeto, com <strong>${getLiveSummary().total} alertas classificados</strong> por gravidade e localização em São Paulo.<br><br>
             Como posso apoiar sua operação hoje?
           </div>
         </div>
@@ -382,7 +691,7 @@
       <div class="ai-chat-footer">
         <input type="text" id="aiChatInput" class="ai-chat-input" placeholder="Comande a IA ou faça uma pergunta sobre a plataforma..." autocomplete="off" />
         <button id="aiChatSend" class="ai-chat-send-btn" aria-label="Enviar Pergunta">
-          <i data-lucide="send" style="width:16px;height:16px;"></i>
+          ➤
         </button>
       </div>
     `;

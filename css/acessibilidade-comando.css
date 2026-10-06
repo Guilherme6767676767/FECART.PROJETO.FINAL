@@ -1,0 +1,5 @@
+body.modo-acessibilidade { font-size: 16px; }
+body.modo-acessibilidade * { letter-spacing: .015em; }
+body.modo-acessibilidade .card, body.modo-acessibilidade .alert-row { border-color: #8deeff; }
+body.modo-acessibilidade .side-link, body.modo-acessibilidade button, body.modo-acessibilidade input { outline-color: #fff; }
+body.modo-acessibilidade .access { background: #00d9ff; color: #001018; box-shadow: 0 0 24px #00d9ff; }
